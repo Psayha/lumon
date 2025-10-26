@@ -1,0 +1,160 @@
+---
+globs: front/**/*.tsx,packages/**/*.tsx
+description: Правила доступности для компонентов Lumon
+---
+
+# ♿ Accessibility Rules
+
+## 🎯 Основные принципы доступности
+
+### ✅ ОБЯЗАТЕЛЬНЫЕ АТРИБУТЫ
+- Все интерактивные элементы должны иметь `aria-label`
+- Кнопки должны иметь `role="button"`
+- Навигационные элементы должны иметь `tabIndex={0}`
+- Формы должны иметь `aria-describedby` для ошибок
+
+### ✅ КЛАВИАТУРНАЯ НАВИГАЦИЯ
+- Все интерактивные элементы должны быть доступны с клавиатуры
+- Использовать `onKeyDown` для обработки Enter/Space
+- Логический порядок табуляции
+- Видимые индикаторы фокуса
+
+### ✅ СЕМАНТИЧЕСКАЯ РАЗМЕТКА
+- Использовать правильные HTML теги
+- Заголовки должны быть в правильной иерархии
+- Списки должны использовать `<ul>`, `<ol>`, `<li>`
+- Формы должны использовать `<form>`, `<fieldset>`, `<legend>`
+
+## 📝 ПРИМЕРЫ ПРАВИЛЬНОЙ РЕАЛИЗАЦИИ
+
+### ✅ Кнопка с доступностью
+```tsx
+<button
+  aria-label="Открыть главное меню"
+  onClick={handleMenuClick}
+  onKeyDown={(e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      handleMenuClick();
+    }
+  }}
+  className="p-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+>
+  <Menu className="w-6 h-6" />
+</button>
+```
+
+### ✅ Навигационная ссылка
+```tsx
+<a
+  href="/dashboard"
+  aria-label="Перейти к панели управления"
+  className="block p-3 rounded-lg hover:bg-gray-100 focus:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+>
+  <Dashboard className="w-5 h-5" />
+  <span>Панель управления</span>
+</a>
+```
+
+### ✅ Форма с доступностью
+```tsx
+<form onSubmit={handleSubmit}>
+  <fieldset>
+    <legend className="text-lg font-semibold mb-4">
+      Настройки профиля
+    </legend>
+    
+    <div className="mb-4">
+      <label 
+        htmlFor="username" 
+        className="block text-sm font-medium mb-2"
+      >
+        Имя пользователя
+      </label>
+      <input
+        id="username"
+        type="text"
+        value={username}
+        onChange={(e) => setUsername(e.target.value)}
+        aria-describedby="username-error"
+        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+        required
+      />
+      {error && (
+        <p id="username-error" className="text-red-600 text-sm mt-1">
+          {error}
+        </p>
+      )}
+    </div>
+  </fieldset>
+</form>
+```
+
+### ✅ Модальное окно
+```tsx
+<div
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="modal-title"
+  aria-describedby="modal-description"
+  className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+>
+  <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+    <h2 id="modal-title" className="text-xl font-bold mb-4">
+      Подтверждение действия
+    </h2>
+    <p id="modal-description" className="text-gray-600 mb-6">
+      Вы уверены, что хотите удалить этот элемент?
+    </p>
+    <div className="flex gap-3 justify-end">
+      <button
+        onClick={onCancel}
+        className="px-4 py-2 text-gray-600 hover:text-gray-800"
+      >
+        Отмена
+      </button>
+      <button
+        onClick={onConfirm}
+        className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+      >
+        Удалить
+      </button>
+    </div>
+  </div>
+</div>
+```
+
+## 🚨 КРИТИЧЕСКИ ВАЖНО
+
+- НЕ используйте `div` для кнопок без `role="button"`
+- НЕ забывайте про `aria-label` для иконок
+- НЕ создавайте элементы без возможности навигации с клавиатуры
+- НЕ используйте только цвет для передачи информации
+
+## 🧪 Тестирование доступности
+
+### Автоматическое тестирование
+```bash
+# Установка axe-core
+npm install --save-dev @axe-core/react
+
+# Использование в тестах
+import { axe, toHaveNoViolations } from 'jest-axe';
+expect.extend(toHaveNoViolations);
+
+test('should not have accessibility violations', async () => {
+  const { container } = render(<MyComponent />);
+  const results = await axe(container);
+  expect(results).toHaveNoViolations();
+});
+```
+
+### Ручное тестирование
+1. Навигация только с клавиатуры (Tab, Enter, Space, стрелки)
+2. Проверка с screen reader
+3. Тестирование с высоким контрастом
+4. Проверка масштабирования до 200%
+
+---
+
+**Помни**: Доступность - это не опция, а требование для качественного продукта.

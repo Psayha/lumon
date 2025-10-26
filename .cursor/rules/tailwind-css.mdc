@@ -1,0 +1,419 @@
+---
+globs: front/**/*.tsx,packages/**/*.tsx
+description: Правила Tailwind CSS для Lumon
+---
+
+# 🎨 Tailwind CSS Rules
+
+## 🎯 Основные принципы Tailwind CSS
+
+### ✅ UTILITY-FIRST ПОДХОД
+- Используйте только utility классы
+- Избегайте создания custom CSS
+- Группируйте связанные классы логически
+- Используйте consistent spacing scale
+- Применяйте semantic color names
+
+### ✅ RESPONSIVE DESIGN
+- Mobile-first подход
+- Избегайте избыточных responsive классов
+- Используйте только необходимые breakpoints
+- Тестируйте на всех устройствах
+
+### ✅ DARK MODE SUPPORT
+- Всегда добавляйте dark: варианты
+- Используйте semantic цвета
+- Тестируйте контрастность
+- Поддерживайте accessibility
+
+## 📝 ПРИМЕРЫ ПРАВИЛЬНОГО ИСПОЛЬЗОВАНИЯ
+
+### ✅ Карточка с правильными классами
+```tsx
+<div className="
+  p-6 
+  bg-white dark:bg-gray-800 
+  rounded-xl 
+  shadow-md hover:shadow-lg 
+  transition-shadow duration-200
+  border border-gray-200 dark:border-gray-700
+">
+  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+    Заголовок карточки
+  </h3>
+  <p className="text-gray-600 dark:text-gray-300">
+    Описание карточки с поддержкой темной темы
+  </p>
+</div>
+```
+
+### ✅ Кнопка с состояниями
+```tsx
+<button className="
+  px-4 py-2 
+  bg-blue-600 hover:bg-blue-700 active:bg-blue-800
+  disabled:bg-gray-300 disabled:cursor-not-allowed
+  text-white 
+  rounded-lg 
+  font-medium
+  transition-colors duration-150
+  focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
+  dark:focus:ring-offset-gray-800
+">
+  Нажми меня
+</button>
+```
+
+### ✅ Форма с валидацией
+```tsx
+<div className="mb-4">
+  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+    Email адрес
+  </label>
+  <input
+    type="email"
+    className="
+      w-full px-3 py-2 
+      border border-gray-300 dark:border-gray-600 
+      rounded-lg 
+      bg-white dark:bg-gray-700 
+      text-gray-900 dark:text-white
+      placeholder-gray-500 dark:placeholder-gray-400
+      focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
+      invalid:border-red-500 invalid:ring-red-500
+      transition-colors duration-150
+    "
+    placeholder="your@email.com"
+  />
+  <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+    Пожалуйста, введите корректный email
+  </p>
+</div>
+```
+
+### ✅ Навигационное меню
+```tsx
+<nav className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
+  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="flex justify-between h-16">
+      <div className="flex items-center">
+        <a href="/" className="flex items-center space-x-2">
+          <Logo className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+          <span className="text-xl font-bold text-gray-900 dark:text-white">
+            Lumon
+          </span>
+        </a>
+      </div>
+      
+      <div className="flex items-center space-x-4">
+        <a 
+          href="/dashboard"
+          className="
+            px-3 py-2 
+            text-gray-700 dark:text-gray-300 
+            hover:text-blue-600 dark:hover:text-blue-400
+            hover:bg-gray-100 dark:hover:bg-gray-700
+            rounded-md 
+            transition-colors duration-150
+            focus:outline-none focus:ring-2 focus:ring-blue-500
+          "
+        >
+          Dashboard
+        </a>
+      </div>
+    </div>
+  </div>
+</nav>
+```
+
+### ✅ Адаптивная сетка
+```tsx
+<div className="
+  grid 
+  grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4
+  gap-4 sm:gap-6 lg:gap-8
+  p-4 sm:p-6 lg:p-8
+">
+  {items.map(item => (
+    <div key={item.id} className="
+      bg-white dark:bg-gray-800 
+      rounded-lg 
+      shadow-md hover:shadow-lg 
+      transition-shadow duration-200
+      overflow-hidden
+      border border-gray-200 dark:border-gray-700
+    ">
+      <div className="p-4">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+          {item.title}
+        </h3>
+        <p className="text-gray-600 dark:text-gray-300">
+          {item.description}
+        </p>
+      </div>
+    </div>
+  ))}
+</div>
+```
+
+### ✅ Модальное окно
+```tsx
+<div className="
+  fixed inset-0 
+  bg-black bg-opacity-50 
+  flex items-center justify-center 
+  z-50
+  p-4
+">
+  <div className="
+    bg-white dark:bg-gray-800 
+    rounded-lg 
+    shadow-xl 
+    max-w-md w-full
+    border border-gray-200 dark:border-gray-700
+  ">
+    <div className="p-6">
+      <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
+        Подтверждение действия
+      </h2>
+      <p className="text-gray-600 dark:text-gray-300 mb-6">
+        Вы уверены, что хотите удалить этот элемент?
+      </p>
+      <div className="flex gap-3 justify-end">
+        <button
+          onClick={onCancel}
+          className="
+            px-4 py-2 
+            text-gray-600 dark:text-gray-300 
+            hover:text-gray-800 dark:hover:text-gray-100
+            transition-colors duration-150
+          "
+        >
+          Отмена
+        </button>
+        <button
+          onClick={onConfirm}
+          className="
+            px-4 py-2 
+            bg-red-600 hover:bg-red-700 
+            text-white 
+            rounded-lg 
+            transition-colors duration-150
+            focus:outline-none focus:ring-2 focus:ring-red-500
+          "
+        >
+          Удалить
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+```
+
+## 🚨 КРИТИЧЕСКИ ВАЖНО
+
+### ❌ НЕ ДЕЛАЙТЕ
+```tsx
+// ❌ НЕПРАВИЛЬНО - inline стили
+<div style={{padding: '16px', backgroundColor: 'white'}}>
+
+// ❌ НЕПРАВИЛЬНО - CSS файлы
+import './Button.css';
+
+// ❌ НЕПРАВИЛЬНО - styled-components
+const StyledButton = styled.button`
+  padding: 8px 16px;
+  background-color: blue;
+`;
+
+// ❌ НЕПРАВИЛЬНО - избыточные responsive классы
+<div className="p-2 sm:p-3 md:p-4 lg:p-5 xl:p-6 2xl:p-8">
+
+// ❌ НЕПРАВИЛЬНО - конфликтующие классы
+<div className="bg-white bg-gray-800 text-black text-white">
+
+// ❌ НЕПРАВИЛЬНО - слишком длинные классы
+<div className="p-4 m-2 bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 border border-gray-200 text-gray-900 font-medium text-lg leading-relaxed">
+```
+
+### ✅ ДЕЛАЙТЕ ТАК
+```tsx
+// ✅ ПРАВИЛЬНО - только Tailwind
+<div className="p-4 bg-white rounded-lg shadow-md">
+
+// ✅ ПРАВИЛЬНО - простые responsive классы
+<div className="p-4 sm:p-6">
+
+// ✅ ПРАВИЛЬНО - semantic цвета
+<div className="bg-primary-500 hover:bg-primary-600">
+
+// ✅ ПРАВИЛЬНО - логическая группировка
+<div className="
+  p-4 
+  bg-white dark:bg-gray-800 
+  rounded-lg 
+  shadow-md hover:shadow-lg 
+  transition-shadow duration-200
+">
+```
+
+## 🎨 ЦВЕТОВАЯ ПАЛИТРА
+
+### Основные цвета
+```tsx
+// Primary
+bg-blue-600 hover:bg-blue-700 text-blue-600
+
+// Secondary  
+bg-gray-600 hover:bg-gray-700 text-gray-600
+
+// Success
+bg-green-600 hover:bg-green-700 text-green-600
+
+// Warning
+bg-yellow-600 hover:bg-yellow-700 text-yellow-600
+
+// Error
+bg-red-600 hover:bg-red-700 text-red-600
+
+// Info
+bg-indigo-600 hover:bg-indigo-700 text-indigo-600
+```
+
+### Темная тема
+```tsx
+// Всегда добавляйте dark: варианты
+bg-white dark:bg-gray-800
+text-gray-900 dark:text-white
+border-gray-200 dark:border-gray-700
+text-gray-600 dark:text-gray-300
+```
+
+## 📱 RESPONSIVE DESIGN
+
+### Breakpoints
+```tsx
+// Mobile first подход
+<div className="
+  text-sm sm:text-base lg:text-lg
+  p-4 sm:p-6 lg:p-8
+  grid-cols-1 sm:grid-cols-2 lg:grid-cols-3
+  space-y-4 sm:space-y-6 lg:space-y-8
+">
+```
+
+### Контейнеры
+```tsx
+// Максимальная ширина с центрированием
+<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+// Полная ширина
+<div className="w-full px-4 sm:px-6">
+
+// Адаптивная ширина
+<div className="w-full max-w-4xl mx-auto">
+```
+
+## 🎭 АНИМАЦИИ И ПЕРЕХОДЫ
+
+### Простые переходы
+```tsx
+// Hover эффекты
+hover:shadow-lg hover:scale-105 transition-all duration-200
+
+// Focus состояния
+focus:outline-none focus:ring-2 focus:ring-blue-500
+
+// Loading состояния
+animate-pulse opacity-50
+
+// Цветовые переходы
+transition-colors duration-150
+```
+
+### Сложные анимации (избегайте)
+```tsx
+// ❌ НЕПРАВИЛЬНО - сложные анимации
+<div className="animate-bounce animate-spin animate-ping">
+
+// ✅ ПРАВИЛЬНО - простые переходы
+<div className="transition-colors duration-150">
+```
+
+## 🎯 ЛУЧШИЕ ПРАКТИКИ
+
+### 1. **Группировка классов**
+```tsx
+// ✅ ПРАВИЛЬНО - логический порядок
+<div className="
+  p-4                    // spacing
+  bg-white dark:bg-gray-800  // colors
+  rounded-lg             // border radius
+  shadow-md hover:shadow-lg  // effects
+  transition-shadow duration-200  // transitions
+">
+```
+
+### 2. **Использование переменных**
+```tsx
+// В tailwind.config.js
+module.exports = {
+  theme: {
+    extend: {
+      colors: {
+        primary: {
+          50: '#eff6ff',
+          500: '#3b82f6',
+          900: '#1e3a8a',
+        }
+      }
+    }
+  }
+}
+
+// Использование
+<div className="bg-primary-500 hover:bg-primary-600">
+```
+
+### 3. **Компонентные классы**
+```tsx
+// Создавайте переиспользуемые компоненты
+const Button = ({ variant = 'primary', children, ...props }) => {
+  const baseClasses = "px-4 py-2 rounded-lg font-medium transition-colors duration-150 focus:outline-none focus:ring-2";
+  
+  const variants = {
+    primary: "bg-blue-600 hover:bg-blue-700 text-white focus:ring-blue-500",
+    secondary: "bg-gray-600 hover:bg-gray-700 text-white focus:ring-gray-500",
+    outline: "border border-gray-300 text-gray-700 hover:bg-gray-50 focus:ring-gray-500"
+  };
+  
+  return (
+    <button 
+      className={`${baseClasses} ${variants[variant]}`}
+      {...props}
+    >
+      {children}
+    </button>
+  );
+};
+```
+
+## 🧪 ТЕСТИРОВАНИЕ
+
+### Проверка доступности
+```tsx
+// Тестируйте контрастность цветов
+// Используйте инструменты для проверки WCAG
+// Тестируйте с screen readers
+```
+
+### Кроссбраузерность
+```tsx
+// Тестируйте на всех основных браузерах
+// Проверяйте поддержку CSS Grid и Flexbox
+// Тестируйте на мобильных устройствах
+```
+
+---
+
+**Помни**: Tailwind CSS - это utility-first подход. Не создавайте сложные CSS файлы.

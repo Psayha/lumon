@@ -1,0 +1,575 @@
+---
+globs: front/**/*.tsx,packages/**/*.tsx
+description: Telegram Mini Apps
+---
+
+# 📱 Telegram Mini Apps
+
+## 🎯 Основные принципы TMA
+
+### ✅ TMA АРХИТЕКТУРА
+- Используйте Telegram WebApp API
+- Адаптируйтесь к темам пользователей
+- Поддерживайте нативные жесты
+- Интегрируйтесь с Telegram Bot API
+
+### ✅ КОМПОНЕНТЫ TMA
+- TelegramButton - кнопки в стиле Telegram
+- TelegramCard - карточки с адаптивными темами
+- TelegramLayout - основной layout с кнопками
+- TelegramInput - поля ввода с валидацией
+
+### ✅ НАВИГАЦИЯ И UX
+- Используйте Telegram кнопки навигации
+- Поддерживайте haptic feedback
+- Адаптируйтесь к размерам экрана
+- Следуйте Telegram Design Guidelines
+
+## 📝 ПРИМЕРЫ TMA КОМПОНЕНТОВ
+
+### ✅ Telegram Button
+```tsx
+import React from 'react';
+import { useTelegramTheme } from '../hooks/useTelegramTheme';
+
+interface TelegramButtonProps {
+  children: React.ReactNode;
+  onClick?: () => void;
+  variant?: 'primary' | 'secondary' | 'destructive';
+  disabled?: boolean;
+  loading?: boolean;
+  className?: string;
+}
+
+export const TelegramButton: React.FC<TelegramButtonProps> = ({
+  children,
+  onClick,
+  variant = 'primary',
+  disabled = false,
+  loading = false,
+  className = ''
+}) => {
+  const { themeParams } = useTelegramTheme();
+
+  const getButtonStyle = () => {
+    switch (variant) {
+      case 'primary':
+        return {
+          backgroundColor: themeParams.button_color || '#2481cc',
+          color: themeParams.button_text_color || '#ffffff'
+        };
+      case 'secondary':
+        return {
+          backgroundColor: themeParams.secondary_bg_color || '#f1f1f1',
+          color: themeParams.text_color || '#000000',
+          border: `1px solid ${themeParams.hint_color || '#999999'}`
+        };
+      case 'destructive':
+  return {
+          backgroundColor: '#dc2626',
+          color: '#ffffff'
+        };
+      default:
+        return {};
+    }
+  };
+
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled || loading}
+      className={`
+        px-4 py-2 rounded-lg font-medium
+        transition-opacity duration-150
+        disabled:opacity-50 disabled:cursor-not-allowed
+        ${className}
+      `}
+      style={getButtonStyle()}
+    >
+      {loading ? (
+        <div className="flex items-center justify-center">
+          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
+        </div>
+      ) : (
+        children
+      )}
+    </button>
+  );
+};
+```
+
+### ✅ Telegram Card
+```tsx
+import React from 'react';
+import { useTelegramTheme } from '../hooks/useTelegramTheme';
+
+interface TelegramCardProps {
+  children: React.ReactNode;
+  className?: string;
+  onClick?: () => void;
+  variant?: 'default' | 'elevated' | 'outlined';
+}
+
+export const TelegramCard: React.FC<TelegramCardProps> = ({
+  children,
+  className = '',
+  onClick,
+  variant = 'default'
+}) => {
+  const { themeParams } = useTelegramTheme();
+
+  const getCardStyle = () => {
+    const baseStyle = {
+      backgroundColor: themeParams.secondary_bg_color || '#f8f9fa',
+      border: `1px solid ${themeParams.hint_color || '#e5e5e5'}`
+    };
+
+    switch (variant) {
+      case 'elevated':
+        return {
+          ...baseStyle,
+          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+        };
+      case 'outlined':
+        return {
+          ...baseStyle,
+          backgroundColor: 'transparent',
+          border: `2px solid ${themeParams.hint_color || '#e5e5e5'}`
+        };
+      default:
+        return baseStyle;
+    }
+  };
+  
+  return (
+    <div 
+      onClick={onClick}
+      className={`
+        p-4 rounded-lg
+        transition-colors duration-150
+        ${onClick ? 'cursor-pointer hover:opacity-90' : ''}
+        ${className}
+      `}
+      style={getCardStyle()}
+    >
+      {children}
+    </div>
+  );
+};
+```
+
+### ✅ Telegram Input
+```tsx
+import React, { useState } from 'react';
+import { useTelegramTheme } from '../hooks/useTelegramTheme';
+
+interface TelegramInputProps {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  type?: 'text' | 'email' | 'password' | 'number';
+  disabled?: boolean;
+  error?: string;
+  label?: string;
+  className?: string;
+}
+
+export const TelegramInput: React.FC<TelegramInputProps> = ({
+  value,
+  onChange,
+  placeholder = '',
+  type = 'text',
+  disabled = false,
+  error,
+  label,
+  className = ''
+}) => {
+  const { themeParams } = useTelegramTheme();
+  const [isFocused, setIsFocused] = useState(false);
+
+  const inputStyle = {
+          backgroundColor: themeParams.bg_color || '#ffffff',
+    color: themeParams.text_color || '#000000',
+    borderColor: error 
+      ? '#dc2626' 
+      : isFocused 
+        ? themeParams.button_color || '#2481cc'
+        : themeParams.hint_color || '#999999'
+  };
+
+  return (
+    <div className={`space-y-2 ${className}`}>
+      {label && (
+        <label className="block text-sm font-medium" style={{ color: themeParams.text_color }}>
+          {label}
+        </label>
+      )}
+      
+      <input
+        type={type}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => setIsFocused(false)}
+        placeholder={placeholder}
+        disabled={disabled}
+        className={`
+          w-full px-3 py-2 rounded-lg
+          border-2 transition-colors duration-150
+          focus:outline-none
+          disabled:opacity-50 disabled:cursor-not-allowed
+        `}
+        style={inputStyle}
+      />
+      
+      {error && (
+        <p className="text-sm text-red-600">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+};
+```
+
+### ✅ Telegram Layout
+```tsx
+import React from 'react';
+import { useTelegram } from '../hooks/useTelegram';
+import { useTelegramTheme } from '../hooks/useTelegramTheme';
+
+interface TelegramLayoutProps {
+  children: React.ReactNode;
+  showBackButton?: boolean;
+  showMainButton?: boolean;
+  mainButtonText?: string;
+  mainButtonLoading?: boolean;
+  onMainButtonClick?: () => void;
+  onBackButtonClick?: () => void;
+  title?: string;
+}
+
+export const TelegramLayout: React.FC<TelegramLayoutProps> = ({
+  children,
+  showBackButton = false,
+  showMainButton = false,
+  mainButtonText = 'Продолжить',
+  mainButtonLoading = false,
+  onMainButtonClick,
+  onBackButtonClick,
+  title
+}) => {
+  const { tg, isReady } = useTelegram();
+  const { themeParams, colorScheme } = useTelegramTheme();
+
+  React.useEffect(() => {
+    if (!isReady || !tg) return;
+
+    // Настройка заголовка
+    if (title) {
+      tg.setHeaderColor(themeParams.bg_color || '#ffffff');
+    }
+
+    // Настройка кнопки "Назад"
+    if (showBackButton) {
+      tg.BackButton.show();
+      tg.BackButton.onClick(onBackButtonClick || (() => tg.close()));
+    } else {
+      tg.BackButton.hide();
+    }
+
+    // Настройка главной кнопки
+    if (showMainButton) {
+      tg.MainButton.setText(mainButtonText);
+      tg.MainButton.show();
+      if (mainButtonLoading) {
+        tg.MainButton.showProgress();
+      } else {
+        tg.MainButton.hideProgress();
+      }
+      tg.MainButton.onClick(onMainButtonClick || (() => {}));
+    } else {
+      tg.MainButton.hide();
+    }
+
+    // Очистка при размонтировании
+    return () => {
+      tg.BackButton.hide();
+      tg.MainButton.hide();
+    };
+  }, [tg, isReady, showBackButton, showMainButton, mainButtonText, mainButtonLoading, onMainButtonClick, onBackButtonClick, title, themeParams]);
+
+  return (
+    <div 
+      className="min-h-screen"
+      style={{
+        backgroundColor: themeParams.bg_color || '#ffffff',
+        color: themeParams.text_color || '#000000'
+      }}
+    >
+      {title && (
+        <div 
+          className="p-4 border-b"
+          style={{
+            backgroundColor: themeParams.bg_color || '#ffffff',
+            borderColor: themeParams.hint_color || '#e5e5e5'
+          }}
+        >
+          <h1 className="text-lg font-semibold">{title}</h1>
+        </div>
+      )}
+      
+      <div className="p-4">
+        {children}
+      </div>
+    </div>
+  );
+};
+```
+
+## 📱 TMA СТРАНИЦЫ
+
+### ✅ Главная страница TMA
+```tsx
+import React from 'react';
+import { TelegramLayout } from '../components/TelegramLayout';
+import { TelegramCard } from '../components/TelegramCard';
+import { TelegramButton } from '../components/TelegramButton';
+import { useTelegramUser } from '../hooks/useTelegramUser';
+
+const TMAHomePage: React.FC = () => {
+  const { user } = useTelegramUser();
+  
+  const handleMainButtonClick = () => {
+    // Логика при нажатии основной кнопки
+    console.log('Main button clicked');
+  };
+  
+  return (
+    <TelegramLayout
+      showMainButton={true}
+      mainButtonText="Начать работу"
+      onMainButtonClick={handleMainButtonClick}
+      title="Lumon Assistant"
+    >
+      <div className="space-y-4">
+        <div className="text-center">
+          <h2 className="text-xl font-bold mb-2">
+            Добро пожаловать, {user?.first_name}!
+          </h2>
+          <p className="text-sm opacity-75">
+            Ваш AI-помощник готов к работе
+          </p>
+        </div>
+        
+        <TelegramCard variant="elevated">
+          <h3 className="font-semibold mb-2">Быстрые действия</h3>
+          <p className="text-sm opacity-75 mb-4">
+            Выберите нужное действие
+          </p>
+          
+          <div className="space-y-2">
+            <TelegramButton 
+              variant="primary" 
+              className="w-full"
+              onClick={() => console.log('Voice assistant clicked')}
+            >
+              🎤 Голосовой ассистент
+            </TelegramButton>
+            
+            <TelegramButton 
+              variant="secondary" 
+              className="w-full"
+              onClick={() => console.log('Settings clicked')}
+            >
+              ⚙️ Настройки
+            </TelegramButton>
+          </div>
+        </TelegramCard>
+        
+        <TelegramCard>
+          <h3 className="font-semibold mb-2">Статистика</h3>
+          <div className="grid grid-cols-2 gap-4 text-center">
+            <div>
+              <div className="text-2xl font-bold">12</div>
+              <div className="text-xs opacity-75">Задач выполнено</div>
+            </div>
+            <div>
+              <div className="text-2xl font-bold">3</div>
+              <div className="text-xs opacity-75">Активных процесса</div>
+            </div>
+          </div>
+        </TelegramCard>
+      </div>
+    </TelegramLayout>
+  );
+};
+
+export default TMAHomePage;
+```
+
+### ✅ Форма в TMA
+```tsx
+import React, { useState } from 'react';
+import { TelegramLayout } from '../components/TelegramLayout';
+import { TelegramCard } from '../components/TelegramCard';
+import { TelegramInput } from '../components/TelegramInput';
+import { TelegramButton } from '../components/TelegramButton';
+
+const TMAFormPage: React.FC = () => {
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    message: ''
+  });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+    
+    if (!formData.name.trim()) {
+      newErrors.name = 'Имя обязательно';
+    }
+    
+    if (!formData.email.includes('@')) {
+      newErrors.email = 'Некорректный email';
+    }
+    
+    if (!formData.message.trim()) {
+      newErrors.message = 'Сообщение обязательно';
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async () => {
+    if (!validateForm()) return;
+    
+    setIsSubmitting(true);
+    
+    try {
+      // Отправка данных
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      console.log('Form submitted:', formData);
+    } catch (error) {
+      console.error('Submit error:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <TelegramLayout
+      showBackButton={true}
+      showMainButton={true}
+      mainButtonText="Отправить"
+      mainButtonLoading={isSubmitting}
+      onMainButtonClick={handleSubmit}
+      title="Обратная связь"
+    >
+      <div className="space-y-4">
+        <TelegramCard>
+          <h3 className="font-semibold mb-4">Свяжитесь с нами</h3>
+          
+          <div className="space-y-4">
+            <TelegramInput
+              label="Ваше имя"
+              value={formData.name}
+              onChange={(value) => setFormData(prev => ({ ...prev, name: value }))}
+              placeholder="Введите ваше имя"
+              error={errors.name}
+            />
+            
+            <TelegramInput
+              label="Email"
+              type="email"
+              value={formData.email}
+              onChange={(value) => setFormData(prev => ({ ...prev, email: value }))}
+              placeholder="your@email.com"
+              error={errors.email}
+            />
+            
+            <TelegramInput
+              label="Сообщение"
+              value={formData.message}
+              onChange={(value) => setFormData(prev => ({ ...prev, message: value }))}
+              placeholder="Опишите ваш вопрос или предложение"
+              error={errors.message}
+            />
+          </div>
+        </TelegramCard>
+      </div>
+    </TelegramLayout>
+  );
+};
+
+export default TMAFormPage;
+```
+
+## 🎯 ЛУЧШИЕ ПРАКТИКИ TMA
+
+### 1. **Адаптация к темам**
+```tsx
+// ✅ ПРАВИЛЬНО - используйте themeParams
+const { themeParams } = useTelegramTheme();
+<div style={{ backgroundColor: themeParams.bg_color }}>
+```
+
+### 2. **Haptic Feedback**
+```tsx
+// ✅ ПРАВИЛЬНО - добавляйте тактильную обратную связь
+const handleClick = () => {
+  tg.HapticFeedback.impactOccurred('medium');
+  // Действие
+};
+```
+
+### 3. **Адаптация к размерам экрана**
+```tsx
+// ✅ ПРАВИЛЬНО - используйте Telegram breakpoints
+<div className="grid grid-cols-1 sm:grid-cols-2">
+```
+
+## 🚨 КРИТИЧЕСКИ ВАЖНО
+
+### ❌ НЕ ДЕЛАЙТЕ
+```tsx
+// ❌ НЕПРАВИЛЬНО - игнорирование тем
+<div style={{ backgroundColor: 'white', color: 'black' }}>
+
+// ❌ НЕПРАВИЛЬНО - сложные обертки
+const ComplexTMAWrapper = () => {
+  // Слишком много абстракций
+};
+
+// ❌ НЕПРАВИЛЬНО - отсутствие проверок
+const BadComponent = () => {
+  const tg = window.Telegram.WebApp; // Может быть undefined
+  return <div>{tg.initData}</div>;
+};
+```
+
+### ✅ ДЕЛАЙТЕ ТАК
+```tsx
+// ✅ ПРАВИЛЬНО - адаптивные темы
+const { themeParams } = useTelegramTheme();
+<div style={{ backgroundColor: themeParams.bg_color }}>
+
+// ✅ ПРАВИЛЬНО - простые компоненты
+const SimpleTMAComponent = () => {
+  // Простая логика
+};
+
+// ✅ ПРАВИЛЬНО - проверки безопасности
+const SafeComponent = () => {
+  const { tg, isReady } = useTelegram();
+  if (!isReady) return <LoadingSpinner />;
+  return <div>{tg.initData}</div>;
+};
+```
+
+---
+
+**Помни**: TMA - это специфичная среда Telegram. Следуйте нативным паттернам и адаптируйтесь к пользовательским темам.

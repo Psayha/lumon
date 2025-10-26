@@ -1,0 +1,251 @@
+---
+globs: front/**/*.tsx,packages/**/*.tsx
+description: Правила стилизации компонентов Lumon
+---
+
+# 🎨 CSS Styling Rules
+
+## 🎯 Основные принципы стилизации
+
+### ✅ ТОЛЬКО TAILWIND CSS
+- Используйте только Tailwind utility классы
+- НЕ создавайте отдельные CSS файлы
+- НЕ используйте inline стили
+- НЕ используйте styled-components
+- НЕ используйте CSS-in-JS библиотеки
+
+### ✅ СТРУКТУРА КЛАССОВ
+- Группируйте связанные классы
+- Используйте логический порядок: layout → spacing → colors → typography → effects
+- Избегайте избыточных responsive классов
+- Используйте consistent spacing scale
+
+### ✅ ТЕМНАЯ ТЕМА
+- Всегда добавляйте dark: варианты
+- Используйте semantic color names
+- Тестируйте контрастность
+- Поддерживайте accessibility
+
+## 📝 ПРИМЕРЫ ПРАВИЛЬНОЙ СТИЛИЗАЦИИ
+
+### ✅ Карточка с правильными классами
+```tsx
+<div className="
+  p-6 
+  bg-white dark:bg-gray-800 
+  rounded-xl 
+  shadow-md hover:shadow-lg 
+  transition-shadow duration-200
+  border border-gray-200 dark:border-gray-700
+">
+  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+    Заголовок карточки
+  </h3>
+  <p className="text-gray-600 dark:text-gray-300">
+    Описание карточки
+  </p>
+</div>
+```
+
+### ✅ Кнопка с состояниями
+```tsx
+<button className="
+  px-4 py-2 
+  bg-blue-600 hover:bg-blue-700 active:bg-blue-800
+  disabled:bg-gray-300 disabled:cursor-not-allowed
+  text-white 
+  rounded-lg 
+  font-medium
+  transition-colors duration-150
+  focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
+">
+  Нажми меня
+</button>
+```
+
+### ✅ Форма с валидацией
+```tsx
+<div className="mb-4">
+  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+    Email
+  </label>
+  <input
+    type="email"
+    className="
+      w-full px-3 py-2 
+      border border-gray-300 dark:border-gray-600 
+      rounded-lg 
+      bg-white dark:bg-gray-700 
+      text-gray-900 dark:text-white
+      placeholder-gray-500 dark:placeholder-gray-400
+      focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
+      invalid:border-red-500 invalid:ring-red-500
+    "
+    placeholder="your@email.com"
+  />
+</div>
+```
+
+### ✅ Навигационное меню
+```tsx
+<nav className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
+  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="flex justify-between h-16">
+      <div className="flex items-center">
+        <a href="/" className="flex items-center space-x-2">
+          <Logo className="w-8 h-8 text-blue-600" />
+          <span className="text-xl font-bold text-gray-900 dark:text-white">
+            Lumon
+          </span>
+        </a>
+      </div>
+      
+      <div className="flex items-center space-x-4">
+        <a 
+          href="/dashboard"
+          className="
+            px-3 py-2 
+            text-gray-700 dark:text-gray-300 
+            hover:text-blue-600 dark:hover:text-blue-400
+            hover:bg-gray-100 dark:hover:bg-gray-700
+            rounded-md 
+            transition-colors duration-150
+          "
+        >
+          Dashboard
+        </a>
+      </div>
+    </div>
+  </div>
+</nav>
+```
+
+### ✅ Адаптивная сетка
+```tsx
+<div className="
+  grid 
+  grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4
+  gap-4 sm:gap-6 lg:gap-8
+  p-4 sm:p-6 lg:p-8
+">
+  {items.map(item => (
+    <div key={item.id} className="
+      bg-white dark:bg-gray-800 
+      rounded-lg 
+      shadow-md hover:shadow-lg 
+      transition-shadow duration-200
+      overflow-hidden
+    ">
+      {/* Контент карточки */}
+    </div>
+  ))}
+</div>
+```
+
+## 🚨 КРИТИЧЕСКИ ВАЖНО
+
+### ❌ НЕ ДЕЛАЙТЕ
+```tsx
+// ❌ НЕПРАВИЛЬНО - inline стили
+<div style={{padding: '16px', backgroundColor: 'white'}}>
+
+// ❌ НЕПРАВИЛЬНО - CSS файлы
+import './Button.css';
+
+// ❌ НЕПРАВИЛЬНО - styled-components
+const StyledButton = styled.button`
+  padding: 8px 16px;
+  background-color: blue;
+`;
+
+// ❌ НЕПРАВИЛЬНО - избыточные responsive классы
+<div className="p-2 sm:p-3 md:p-4 lg:p-5 xl:p-6 2xl:p-8">
+```
+
+### ✅ ДЕЛАЙТЕ ТАК
+```tsx
+// ✅ ПРАВИЛЬНО - только Tailwind
+<div className="p-4 bg-white rounded-lg shadow-md">
+
+// ✅ ПРАВИЛЬНО - простые responsive классы
+<div className="p-4 sm:p-6">
+
+// ✅ ПРАВИЛЬНО - semantic цвета
+<div className="bg-primary-500 hover:bg-primary-600">
+```
+
+## 🎨 ЦВЕТОВАЯ ПАЛИТРА
+
+### Основные цвета
+```tsx
+// Primary
+bg-blue-600 hover:bg-blue-700 text-blue-600
+
+// Secondary  
+bg-gray-600 hover:bg-gray-700 text-gray-600
+
+// Success
+bg-green-600 hover:bg-green-700 text-green-600
+
+// Warning
+bg-yellow-600 hover:bg-yellow-700 text-yellow-600
+
+// Error
+bg-red-600 hover:bg-red-700 text-red-600
+```
+
+### Темная тема
+```tsx
+// Всегда добавляйте dark: варианты
+bg-white dark:bg-gray-800
+text-gray-900 dark:text-white
+border-gray-200 dark:border-gray-700
+```
+
+## 📱 RESPONSIVE DESIGN
+
+### Breakpoints
+```tsx
+// Mobile first подход
+<div className="
+  text-sm sm:text-base lg:text-lg
+  p-4 sm:p-6 lg:p-8
+  grid-cols-1 sm:grid-cols-2 lg:grid-cols-3
+">
+```
+
+### Контейнеры
+```tsx
+// Максимальная ширина с центрированием
+<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+// Полная ширина
+<div className="w-full px-4 sm:px-6">
+```
+
+## 🎭 АНИМАЦИИ И ПЕРЕХОДЫ
+
+### Простые переходы
+```tsx
+// Hover эффекты
+hover:shadow-lg hover:scale-105 transition-all duration-200
+
+// Focus состояния
+focus:outline-none focus:ring-2 focus:ring-blue-500
+
+// Loading состояния
+animate-pulse opacity-50
+```
+
+### Сложные анимации (избегайте)
+```tsx
+// ❌ НЕПРАВИЛЬНО - сложные анимации
+<div className="animate-bounce animate-spin animate-ping">
+
+// ✅ ПРАВИЛЬНО - простые переходы
+<div className="transition-colors duration-150">
+```
+
+---
+
+**Помни**: Tailwind CSS - это utility-first подход. Не создавайте сложные CSS файлы.

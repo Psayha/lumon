@@ -1,0 +1,488 @@
+---
+globs: front/**/*.tsx,packages/**/*.tsx
+description: Интеграция Telegram Mini Apps с архитектурой Lumon
+---
+
+# 🤖 Telegram Integration Rules
+
+## 🎯 Интеграция с архитектурой Lumon
+
+### Структура TMA приложения
+```
+front/tma/
+├── src/
+│   ├── app/
+│   │   ├── pages/           # Страницы Mini App
+│   │   │   ├── MenuPage.tsx
+│   │   │   ├── ProfilePage.tsx
+│   │   │   └── SettingsPage.tsx
+│   │   └── components/      # Компоненты TMA
+│   │       ├── TelegramButton.tsx
+│   │       ├── TelegramCard.tsx
+│   │       └── TelegramLayout.tsx
+│   ├── hooks/              # Telegram хуки
+│   │   ├── useTelegram.ts
+│   │   ├── useTelegramTheme.ts
+│   │   ├── useTelegramUser.ts
+│   │   └── useTelegramStorage.ts
+│   ├── utils/              # Telegram утилиты
+│   │   ├── telegramApi.ts
+│   │   ├── telegramAuth.ts
+│   │   └── telegramStorage.ts
+│   └── types/              # Telegram типы
+│       ├── telegram.ts
+│       └── webapp.ts
+```
+
+> **🎯 ВАЖНО:** Все общие компоненты находятся в `packages/`, а не в `front/shared/`!
+
+## 🎨 Telegram-специфичные компоненты
+
+### Telegram Layout компонент
+```tsx
+// ✅ ПРАВИЛЬНО - Telegram Layout с поддержкой тем
+import React from 'react';
+import { useTelegramTheme } from '../hooks/useTelegramTheme';
+import { useTelegram } from '../hooks/useTelegram';
+
+interface TelegramLayoutProps {
+  children: React.ReactNode;
+  showBackButton?: boolean;
+  showMainButton?: boolean;
+  mainButtonText?: string;
+  onMainButtonClick?: () => void;
+  onBackButtonClick?: () => void;
+}
+
+export const TelegramLayout: React.FC<TelegramLayoutProps> = ({
+  children,
+  showBackButton = false,
+  showMainButton = false,
+  mainButtonText = 'Продолжить',
+  onMainButtonClick,
+  onBackButtonClick
+}) => {
+  const { tg, isReady } = useTelegram();
+  const { themeParams, colorScheme } = useTelegramTheme();
+
+  React.useEffect(() => {
+    if (!isReady || !tg) return;
+
+    // Настройка кнопки "Назад"
+    if (showBackButton) {
+      tg.BackButton.show();
+      tg.BackButton.onClick(onBackButtonClick || (() => tg.close()));
+    } else {
+      tg.BackButton.hide();
+    }
+
+    // Настройка главной кнопки
+    if (showMainButton) {
+      tg.MainButton.setText(mainButtonText);
+      tg.MainButton.show();
+      tg.MainButton.onClick(onMainButtonClick || (() => {}));
+    } else {
+      tg.MainButton.hide();
+    }
+
+    // Очистка при размонтировании
+    return () => {
+      tg.BackButton.hide();
+      tg.MainButton.hide();
+    };
+  }, [tg, isReady, showBackButton, showMainButton, mainButtonText, onMainButtonClick, onBackButtonClick]);
+
+  return (
+    <div 
+      className="min-h-screen"
+      style={{
+        backgroundColor: themeParams.bg_color || '#ffffff',
+        color: themeParams.text_color || '#000000'
+      }}
+    >
+      {children}
+    </div>
+  );
+};
+```
+
+### Telegram Button компонент
+```tsx
+// ✅ ПРАВИЛЬНО - Telegram Button с нативным стилем
+import React from 'react';
+import { useTelegramTheme } from '../hooks/useTelegramTheme';
+
+interface TelegramButtonProps {
+  children: React.ReactNode;
+  onClick?: () => void;
+  variant?: 'primary' | 'secondary';
+  disabled?: boolean;
+  className?: string;
+}
+
+export const TelegramButton: React.FC<TelegramButtonProps> = ({
+  children,
+  onClick,
+  variant = 'primary',
+  disabled = false,
+  className = ''
+}) => {
+  const { themeParams } = useTelegramTheme();
+
+  const getButtonStyle = () => {
+    if (variant === 'primary') {
+      return {
+        backgroundColor: themeParams.button_color || '#2481cc',
+        color: themeParams.button_text_color || '#ffffff'
+      };
+    } else {
+      return {
+        backgroundColor: themeParams.secondary_bg_color || '#f1f1f1',
+        color: themeParams.text_color || '#000000',
+        border: `1px solid ${themeParams.hint_color || '#999999'}`
+      };
+    }
+  };
+
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`
+        px-4 py-2 rounded-lg font-medium
+        transition-opacity duration-150
+        disabled:opacity-50 disabled:cursor-not-allowed
+        ${className}
+      `}
+      style={getButtonStyle()}
+    >
+      {children}
+    </button>
+  );
+};
+```
+
+### Telegram Card компонент
+```tsx
+// ✅ ПРАВИЛЬНО - Telegram Card с адаптивным стилем
+import React from 'react';
+import { useTelegramTheme } from '../hooks/useTelegramTheme';
+
+interface TelegramCardProps {
+  children: React.ReactNode;
+  className?: string;
+  onClick?: () => void;
+}
+
+export const TelegramCard: React.FC<TelegramCardProps> = ({
+  children,
+  className = '',
+  onClick
+}) => {
+  const { themeParams } = useTelegramTheme();
+
+  return (
+    <div
+      onClick={onClick}
+      className={`
+        p-4 rounded-lg shadow-sm
+        transition-colors duration-150
+        ${onClick ? 'cursor-pointer hover:opacity-90' : ''}
+        ${className}
+      `}
+      style={{
+        backgroundColor: themeParams.secondary_bg_color || '#f8f9fa',
+        border: `1px solid ${themeParams.hint_color || '#e5e5e5'}`
+      }}
+    >
+      {children}
+    </div>
+  );
+};
+```
+
+## 🔧 Telegram хуки
+
+### useTelegram хук
+```tsx
+// ✅ ПРАВИЛЬНО - простой хук для Telegram WebApp
+import { useState, useEffect } from 'react';
+
+interface TelegramWebApp {
+  ready: () => void;
+  expand: () => void;
+  close: () => void;
+  BackButton: {
+    show: () => void;
+    hide: () => void;
+    onClick: (callback: () => void) => void;
+  };
+  MainButton: {
+    show: () => void;
+    hide: () => void;
+    setText: (text: string) => void;
+    onClick: (callback: () => void) => void;
+  };
+  HapticFeedback: {
+    impactOccurred: (style: 'light' | 'medium' | 'heavy') => void;
+  };
+}
+
+export const useTelegram = () => {
+  const [tg, setTg] = useState<TelegramWebApp | null>(null);
+  const [isReady, setIsReady] = useState(false);
+
+  useEffect(() => {
+    const telegramWebApp = (window as any).Telegram?.WebApp;
+    
+    if (telegramWebApp) {
+      setTg(telegramWebApp);
+      telegramWebApp.ready();
+      setIsReady(true);
+    }
+  }, []);
+
+  return { tg, isReady };
+};
+```
+
+### useTelegramTheme хук
+```tsx
+// ✅ ПРАВИЛЬНО - хук для работы с темами Telegram
+import { useState, useEffect } from 'react';
+
+interface TelegramThemeParams {
+  bg_color?: string;
+  text_color?: string;
+  hint_color?: string;
+  link_color?: string;
+  button_color?: string;
+  button_text_color?: string;
+  secondary_bg_color?: string;
+}
+
+export const useTelegramTheme = () => {
+  const [themeParams, setThemeParams] = useState<TelegramThemeParams>({});
+  const [colorScheme, setColorScheme] = useState<'light' | 'dark'>('light');
+
+  useEffect(() => {
+    const tg = (window as any).Telegram?.WebApp;
+    
+    if (tg) {
+      const params = tg.initDataUnsafe?.theme_params || {};
+      setThemeParams(params);
+      
+      // Определяем цветовую схему
+      const isDark = tg.colorScheme === 'dark';
+      setColorScheme(isDark ? 'dark' : 'light');
+    }
+  }, []);
+
+  return { themeParams, colorScheme };
+};
+```
+
+### useTelegramUser хук
+```tsx
+// ✅ ПРАВИЛЬНО - хук для работы с пользователем Telegram
+import { useState, useEffect } from 'react';
+
+interface TelegramUser {
+  id: number;
+  first_name: string;
+  last_name?: string;
+  username?: string;
+  language_code?: string;
+  is_premium?: boolean;
+}
+
+export const useTelegramUser = () => {
+  const [user, setUser] = useState<TelegramUser | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const tg = (window as any).Telegram?.WebApp;
+    
+    if (tg) {
+      const userData = tg.initDataUnsafe?.user;
+      setUser(userData || null);
+      setIsLoading(false);
+    }
+  }, []);
+
+  return { user, isLoading };
+};
+```
+
+## 📝 ПРИМЕРЫ ИСПОЛЬЗОВАНИЯ
+
+### Telegram-специфичная страница
+```tsx
+// ✅ ПРАВИЛЬНО - страница с Telegram Layout
+import React from 'react';
+import { TelegramLayout } from '../components/TelegramLayout';
+import { TelegramCard } from '../components/TelegramCard';
+import { TelegramButton } from '../components/TelegramButton';
+import { useTelegramUser } from '../hooks/useTelegramUser';
+
+const MenuPage: React.FC = () => {
+  const { user } = useTelegramUser();
+  
+  const handleMainButtonClick = () => {
+    // Логика при нажатии основной кнопки
+    console.log('Main button clicked');
+  };
+  
+  const handleBackButtonClick = () => {
+    // Логика при нажатии кнопки "Назад"
+    console.log('Back button clicked');
+  };
+  
+  return (
+    <TelegramLayout
+      showBackButton={true}
+      showMainButton={true}
+      mainButtonText="Продолжить"
+      onMainButtonClick={handleMainButtonClick}
+      onBackButtonClick={handleBackButtonClick}
+    >
+      <div className="p-4 space-y-4">
+        <h1 className="text-2xl font-bold">
+          Добро пожаловать, {user?.first_name}!
+        </h1>
+        
+        <TelegramCard className="p-4">
+          <h2 className="text-lg font-semibold mb-2">Меню</h2>
+          <p className="text-sm opacity-75">
+            Выберите действие из меню ниже
+          </p>
+        </TelegramCard>
+        
+        <div className="space-y-2">
+          <TelegramButton 
+            variant="primary" 
+            className="w-full"
+            onClick={() => console.log('Profile clicked')}
+          >
+            Профиль
+          </TelegramButton>
+          
+          <TelegramButton 
+            variant="secondary" 
+            className="w-full"
+            onClick={() => console.log('Settings clicked')}
+          >
+            Настройки
+          </TelegramButton>
+        </div>
+      </div>
+    </TelegramLayout>
+  );
+};
+
+export default MenuPage;
+```
+
+## 🎯 Лучшие практики
+
+### 1. **Всегда проверяйте доступность Telegram WebApp**
+```tsx
+// ✅ ПРАВИЛЬНО
+const MyComponent = () => {
+  const { tg, isReady } = useTelegram();
+  
+  if (!isReady) {
+    return <LoadingSpinner />;
+  }
+  
+  return <div>Контент</div>;
+};
+```
+
+### 2. **Используйте Telegram-специфичные компоненты**
+```tsx
+// ✅ ПРАВИЛЬНО
+<TelegramLayout showMainButton={true}>
+  <TelegramCard>
+    <TelegramButton variant="primary">
+      Кнопка
+    </TelegramButton>
+  </TelegramCard>
+</TelegramLayout>
+```
+
+### 3. **Интегрируйте с Lumon пакетами**
+```tsx
+// ✅ ПРАВИЛЬНО
+import { Card, Button } from '@lumon/ui';
+import { User } from '@lumon/types';
+import { apiClient } from '@lumon/api';
+import { useTelegram } from '../hooks/useTelegram';
+```
+
+### 4. **Обрабатывайте ошибки Telegram API**
+```tsx
+// ✅ ПРАВИЛЬНО
+const handleTelegramAction = () => {
+  try {
+    const tg = (window as any).Telegram?.WebApp;
+    if (tg) {
+      tg.HapticFeedback.impactOccurred('medium');
+      // Действие
+    }
+  } catch (error) {
+    console.error('Telegram API error:', error);
+  }
+};
+```
+
+## 🚨 КРИТИЧЕСКИ ВАЖНО
+
+### ❌ НЕ ДЕЛАЙТЕ
+```tsx
+// ❌ НЕПРАВИЛЬНО - сложные абстракции
+const ComplexTelegramWrapper = () => {
+  // Слишком много логики
+};
+
+// ❌ НЕПРАВИЛЬНО - игнорирование тем
+const BadComponent = () => {
+  return <div style={{ backgroundColor: 'white' }}>Content</div>;
+};
+
+// ❌ НЕПРАВИЛЬНО - отсутствие проверок
+const UnsafeComponent = () => {
+  const tg = window.Telegram.WebApp; // Может быть undefined
+  return <div>{tg.initData}</div>;
+};
+```
+
+### ✅ ДЕЛАЙТЕ ТАК
+```tsx
+// ✅ ПРАВИЛЬНО - простые хуки
+const useTelegram = () => {
+  const tg = window.Telegram?.WebApp;
+  return { tg, isReady: !!tg };
+};
+
+// ✅ ПРАВИЛЬНО - адаптивные темы
+const GoodComponent = () => {
+  const { themeParams } = useTelegramTheme();
+  return (
+    <div style={{ backgroundColor: themeParams.bg_color }}>
+      Content
+    </div>
+  );
+};
+
+// ✅ ПРАВИЛЬНО - проверки безопасности
+const SafeComponent = () => {
+  const { tg, isReady } = useTelegram();
+  if (!isReady) return <LoadingSpinner />;
+  return <div>{tg.initData}</div>;
+};
+```
+
+---
+
+**Помни**: Telegram WebApp - это специфичная среда. Используйте нативные возможности и адаптируйтесь к темам пользователей.

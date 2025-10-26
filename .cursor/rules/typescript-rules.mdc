@@ -1,0 +1,549 @@
+---
+globs: front/**/*.tsx,packages/**/*.tsx
+description: Правила TypeScript
+---
+
+# 📘 TypeScript Rules
+
+## 🎯 Основные принципы TypeScript
+
+### ✅ СТРОГАЯ ТИПИЗАЦИЯ
+- Используйте строгие типы для всех переменных
+- Избегайте `any` и `unknown` без необходимости
+- Применяйте union types для ограниченных значений
+- Используйте type guards для проверки типов
+
+### ✅ ИСПОЛЬЗОВАНИЕ ТИПОВ ИЗ @lumon/types
+- Импортируйте типы из `@lumon/types`
+- Используйте готовые интерфейсы для API
+- Применяйте типы для форм с Zod
+- Используйте типы для компонентов
+
+### ✅ КОМПОНЕНТНАЯ ТИПИЗАЦИЯ
+- Типизируйте все props компонентов
+- Используйте generic типы для переиспользуемых компонентов
+- Применяйте discriminated unions для состояний
+- Используйте типы для событий
+
+## 📝 ПРИМЕРЫ ПРАВИЛЬНОЙ ТИПИЗАЦИИ
+
+### ✅ Базовые типы компонентов
+```tsx
+import React from 'react';
+import { User, ApiResponse } from '@lumon/types';
+
+// ✅ ПРАВИЛЬНО - простые интерфейсы
+interface ButtonProps {
+  children: React.ReactNode;
+  onClick: () => void;
+  variant?: 'primary' | 'secondary' | 'destructive';
+  disabled?: boolean;
+  loading?: boolean;
+  className?: string;
+}
+
+// ✅ ПРАВИЛЬНО - типизированный компонент
+export const Button: React.FC<ButtonProps> = ({
+  children,
+  onClick,
+  variant = 'primary',
+  disabled = false,
+  loading = false,
+  className = ''
+}) => {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled || loading}
+      className={`btn btn-${variant} ${className}`}
+    >
+      {loading ? 'Loading...' : children}
+    </button>
+  );
+};
+```
+
+### ✅ Типизация форм с Zod
+```tsx
+import { z } from 'zod';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+
+// ✅ ПРАВИЛЬНО - схема валидации
+const userSchema = z.object({
+  name: z.string().min(2, 'Имя должно содержать минимум 2 символа'),
+  email: z.string().email('Некорректный email'),
+  age: z.number().min(18, 'Возраст должен быть не менее 18 лет'),
+  role: z.enum(['admin', 'user', 'moderator'])
+});
+
+// ✅ ПРАВИЛЬНО - тип из схемы
+type UserFormData = z.infer<typeof userSchema>;
+
+// ✅ ПРАВИЛЬНО - типизированная форма
+export const UserForm: React.FC = () => {
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting }
+  } = useForm<UserFormData>({
+    resolver: zodResolver(userSchema)
+  });
+
+  const onSubmit = async (data: UserFormData) => {
+    try {
+      // Отправка данных
+      console.log('Form data:', data);
+    } catch (error) {
+      console.error('Submit error:', error);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)}>
+      <div>
+        <label htmlFor="name">Имя</label>
+        <input
+          id="name"
+          {...register('name')}
+          className={errors.name ? 'error' : ''}
+        />
+        {errors.name && (
+          <span className="error-message">{errors.name.message}</span>
+        )}
+      </div>
+
+      <div>
+        <label htmlFor="email">Email</label>
+        <input
+          id="email"
+          type="email"
+          {...register('email')}
+          className={errors.email ? 'error' : ''}
+        />
+        {errors.email && (
+          <span className="error-message">{errors.email.message}</span>
+        )}
+      </div>
+
+      <div>
+        <label htmlFor="age">Возраст</label>
+        <input
+          id="age"
+          type="number"
+          {...register('age', { valueAsNumber: true })}
+          className={errors.age ? 'error' : ''}
+        />
+        {errors.age && (
+          <span className="error-message">{errors.age.message}</span>
+        )}
+      </div>
+
+      <div>
+        <label htmlFor="role">Роль</label>
+        <select
+          id="role"
+          {...register('role')}
+          className={errors.role ? 'error' : ''}
+        >
+          <option value="user">Пользователь</option>
+          <option value="moderator">Модератор</option>
+          <option value="admin">Администратор</option>
+        </select>
+        {errors.role && (
+          <span className="error-message">{errors.role.message}</span>
+        )}
+      </div>
+
+      <button type="submit" disabled={isSubmitting}>
+        {isSubmitting ? 'Сохранение...' : 'Сохранить'}
+      </button>
+    </form>
+  );
+};
+```
+
+### ✅ Типизация API клиента
+```tsx
+import { User, ApiResponse, PaginatedResponse } from '@lumon/types';
+
+// ✅ ПРАВИЛЬНО - типизированный API клиент
+class ApiClient {
+  private baseUrl: string;
+
+  constructor(baseUrl: string) {
+    this.baseUrl = baseUrl;
+  }
+
+  // ✅ ПРАВИЛЬНО - типизированные методы
+  async getUsers(page: number = 1, limit: number = 10): Promise<PaginatedResponse<User>> {
+    const response = await fetch(`${this.baseUrl}/users?page=${page}&limit=${limit}`);
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    return response.json();
+  }
+
+  async getUser(id: string): Promise<ApiResponse<User>> {
+    const response = await fetch(`${this.baseUrl}/users/${id}`);
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    return response.json();
+  }
+
+  async createUser(userData: Omit<User, 'id' | 'createdAt' | 'updatedAt'>): Promise<ApiResponse<User>> {
+    const response = await fetch(`${this.baseUrl}/users`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(userData),
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    return response.json();
+  }
+
+  async updateUser(id: string, userData: Partial<User>): Promise<ApiResponse<User>> {
+    const response = await fetch(`${this.baseUrl}/users/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(userData),
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    return response.json();
+  }
+
+  async deleteUser(id: string): Promise<ApiResponse<void>> {
+    const response = await fetch(`${this.baseUrl}/users/${id}`, {
+      method: 'DELETE',
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    return response.json();
+  }
+}
+
+// ✅ ПРАВИЛЬНО - типизированный хук для API
+export const useUsers = (page: number = 1, limit: number = 10) => {
+  const [users, setUsers] = React.useState<User[]>([]);
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState<Error | null>(null);
+
+  React.useEffect(() => {
+    const fetchUsers = async () => {
+      setLoading(true);
+      setError(null);
+      
+      try {
+        const apiClient = new ApiClient('/api');
+        const response = await apiClient.getUsers(page, limit);
+        setUsers(response.data);
+      } catch (err) {
+        setError(err instanceof Error ? err : new Error('Unknown error'));
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUsers();
+  }, [page, limit]);
+
+  return { users, loading, error };
+};
+```
+
+### ✅ Типизация хуков и контекста
+```tsx
+import React, { createContext, useContext, useState, useCallback } from 'react';
+import { User } from '@lumon/types';
+
+// ✅ ПРАВИЛЬНО - типизированный контекст
+interface AuthContextType {
+  user: User | null;
+  isAuthenticated: boolean;
+  login: (email: string, password: string) => Promise<void>;
+  logout: () => void;
+  loading: boolean;
+  error: string | null;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+// ✅ ПРАВИЛЬНО - типизированный провайдер
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const login = useCallback(async (email: string, password: string) => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      // Логика аутентификации
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Неверные учетные данные');
+      }
+      
+      const userData = await response.json();
+      setUser(userData);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Ошибка аутентификации');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const logout = useCallback(() => {
+    setUser(null);
+    setError(null);
+  }, []);
+
+  const value: AuthContextType = {
+    user,
+    isAuthenticated: !!user,
+    login,
+    logout,
+    loading,
+    error,
+  };
+
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
+
+// ✅ ПРАВИЛЬНО - типизированный хук
+export const useAuth = (): AuthContextType => {
+  const context = useContext(AuthContext);
+  
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  
+  return context;
+};
+```
+
+### ✅ Типизация событий
+```tsx
+import React, { useState, useCallback } from 'react';
+
+// ✅ ПРАВИЛЬНО - типизированные события
+interface SearchEvent {
+  query: string;
+  filters: {
+    category?: string;
+    dateRange?: {
+      start: Date;
+      end: Date;
+    };
+  };
+}
+
+interface SearchResults {
+  items: Array<{
+    id: string;
+    title: string;
+    description: string;
+    category: string;
+  }>;
+  total: number;
+  page: number;
+}
+
+// ✅ ПРАВИЛЬНО - типизированный компонент поиска
+export const SearchComponent: React.FC = () => {
+  const [query, setQuery] = useState<string>('');
+  const [results, setResults] = useState<SearchResults | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
+
+  const handleSearch = useCallback(async (searchEvent: SearchEvent) => {
+    setLoading(true);
+    
+    try {
+      const response = await fetch('/api/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(searchEvent),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Ошибка поиска');
+      }
+      
+      const searchResults: SearchResults = await response.json();
+      setResults(searchResults);
+    } catch (error) {
+      console.error('Search error:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const handleSubmit = useCallback((e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    
+    if (!query.trim()) return;
+    
+    handleSearch({
+      query: query.trim(),
+      filters: {}
+    });
+  }, [query, handleSearch]);
+
+  return (
+    <div>
+      <form onSubmit={handleSubmit}>
+        <input
+          type="text"
+          value={query}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQuery(e.target.value)}
+          placeholder="Поиск..."
+          disabled={loading}
+        />
+        <button type="submit" disabled={loading || !query.trim()}>
+          {loading ? 'Поиск...' : 'Найти'}
+        </button>
+      </form>
+      
+      {results && (
+        <div>
+          <h3>Результаты ({results.total})</h3>
+          {results.items.map((item) => (
+            <div key={item.id}>
+              <h4>{item.title}</h4>
+              <p>{item.description}</p>
+              <span>{item.category}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+```
+
+## 🚨 КРИТИЧЕСКИ ВАЖНО
+
+### ❌ НЕ ДЕЛАЙТЕ
+```tsx
+// ❌ НЕПРАВИЛЬНО - использование any
+const BadComponent = (props: any) => {
+  return <div>{props.title}</div>;
+};
+
+// ❌ НЕПРАВИЛЬНО - отсутствие типизации
+const UntypedComponent = (props) => {
+  return <div>{props.title}</div>;
+};
+
+// ❌ НЕПРАВИЛЬНО - сложные generic типы
+type ComplexType<T extends Record<string, any>, K extends keyof T> = {
+  [P in K]: T[P] extends Function ? T[P] : never;
+};
+
+// ❌ НЕПРАВИЛЬНО - игнорирование типов из @lumon/types
+interface User {
+  id: string;
+  name: string;
+  // Дублирование типов
+}
+```
+
+### ✅ ДЕЛАЙТЕ ТАК
+```tsx
+// ✅ ПРАВИЛЬНО - строгая типизация
+interface ButtonProps {
+  children: React.ReactNode;
+  onClick: () => void;
+  disabled?: boolean;
+}
+
+const GoodComponent: React.FC<ButtonProps> = ({ children, onClick, disabled }) => {
+  return (
+    <button onClick={onClick} disabled={disabled}>
+      {children}
+    </button>
+  );
+};
+
+// ✅ ПРАВИЛЬНО - использование типов из @lumon/types
+import { User, ApiResponse } from '@lumon/types';
+
+const UserComponent: React.FC<{ user: User }> = ({ user }) => {
+  return <div>{user.name}</div>;
+};
+
+// ✅ ПРАВИЛЬНО - простые generic типы
+interface ApiResponse<T> {
+  data: T;
+  success: boolean;
+  message?: string;
+}
+```
+
+## 🎯 ЛУЧШИЕ ПРАКТИКИ
+
+### 1. **Используйте типы из @lumon/types**
+```tsx
+// ✅ ПРАВИЛЬНО
+import { User, ApiResponse, PaginatedResponse } from '@lumon/types';
+```
+
+### 2. **Типизируйте все props**
+```tsx
+// ✅ ПРАВИЛЬНО
+interface ComponentProps {
+  title: string;
+  onClick: () => void;
+  children: React.ReactNode;
+}
+```
+
+### 3. **Используйте Zod для валидации**
+```tsx
+// ✅ ПРАВИЛЬНО
+const schema = z.object({
+  name: z.string().min(1),
+  email: z.string().email(),
+});
+```
+
+### 4. **Применяйте type guards**
+```tsx
+// ✅ ПРАВИЛЬНО
+const isUser = (obj: any): obj is User => {
+  return obj && typeof obj.id === 'string' && typeof obj.name === 'string';
+};
+```
+
+---
+
+**Помни**: TypeScript - это инструмент для безопасности типов. Используйте его правильно и не усложняйте.
