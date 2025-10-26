@@ -1,0 +1,234 @@
+---
+globs: front/**/*.tsx,packages/**/*.tsx
+description: Правила импортов в проекте Lumon
+---
+
+# 📦 Import Rules
+
+## 🎯 Основные правила
+
+### ✅ ПРАВИЛЬНЫЕ ИМПОРТЫ
+```typescript
+// 1. React и внешние библиотеки
+import React from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Brain, Zap } from 'lucide-react';
+
+// 2. Локальные компоненты (относительные пути)
+import { Button } from './Button';
+import { Card } from '../components/Card';
+import { useAuth } from '../../hooks/useAuth';
+
+// 3. Утилиты и константы
+import { formatDate } from '../utils/helpers';
+import { API_ENDPOINTS } from '../constants/api';
+```
+
+### ❌ ЗАПРЕЩЕНО
+```typescript
+// ❌ Сложные импорты из несуществующих пакетов
+import { Card } from '@lumon/ui';
+import { PageLayout } from '../../components/PageLayout';
+
+// ❌ CSS файлы - используйте Tailwind CSS классы
+import './styles.css';
+import './Button.module.css';
+
+// ❌ Импорты между приложениями
+import { AdminComponent } from '../admin-web/components/AdminComponent';
+
+// ❌ Прямые импорты из packages/
+import { Card } from '../../../packages/ui/src/Card';
+```
+
+## 📁 Структура импортов
+
+### 1. **Порядок импортов**
+```typescript
+// 1. React и внешние библиотеки
+import React from 'react';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Brain, Zap } from 'lucide-react';
+
+// 2. Локальные компоненты и хуки
+import { Button } from './Button';
+import { useAuth } from '../hooks/useAuth';
+
+// 3. Утилиты и константы
+import { formatDate } from '../utils/helpers';
+```
+
+### 2. **Именованные vs Default импорты**
+```typescript
+// ✅ ПРАВИЛЬНО - именованные импорты для утилит
+import { formatDate, parseDate } from '../utils/dateUtils';
+
+// ✅ ПРАВИЛЬНО - default импорты для компонентов
+import Button from './Button';
+import UserProfile from './UserProfile';
+
+// ❌ НЕПРАВИЛЬНО - смешивание
+import Button, { ButtonProps } from './Button';
+```
+
+## 📝 ПРИМЕРЫ ПРАВИЛЬНОЙ СТРУКТУРЫ
+
+### ✅ Компонент с правильными импортами
+```tsx
+// 1. React и хуки
+import React, { useState, useEffect } from 'react';
+
+// 2. Внешние библиотеки
+import { useNavigate } from 'react-router-dom';
+import { Brain, Zap, Users } from 'lucide-react';
+
+// 3. Локальные компоненты
+import { Button } from './Button';
+import { Card } from '../components/Card';
+
+// 4. Локальные хуки
+import { useAuth } from '../hooks/useAuth';
+import { useLocalStorage } from '../hooks/useLocalStorage';
+
+// 5. Утилиты
+import { formatDate } from '../utils/helpers';
+import { API_ENDPOINTS } from '../constants/api';
+
+interface MenuPageProps {
+  title: string;
+  onItemClick: (item: string) => void;
+}
+
+const MenuPage: React.FC<MenuPageProps> = ({ title, onItemClick }) => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const [items, setItems] = useLocalStorage('menuItems', []);
+
+  // Компонент логика...
+};
+```
+
+### ✅ Хук с правильными импортами
+```tsx
+// 1. React хуки
+import { useState, useEffect, useCallback } from 'react';
+
+// 2. Внешние библиотеки
+import { useNavigate } from 'react-router-dom';
+
+// 3. Утилиты
+import { apiClient } from '../utils/apiClient';
+import { validateEmail } from '../utils/validation';
+
+export const useAuth = () => {
+  // Хук логика...
+};
+```
+
+## 🚨 КРИТИЧЕСКИ ВАЖНО
+
+### ❌ НЕ СОЗДАВАЙТЕ
+- Сложные импорты `@lumon/*`
+- CSS файлы для стилей
+- Прямые импорты между приложениями
+- Избыточные barrel exports
+
+### ✅ СОЗДАВАЙТЕ
+- Простые относительные импорты
+- Логическую структуру папок
+- Переиспользуемые компоненты
+- Четкое разделение ответственности
+
+## 📂 РЕКОМЕНДУЕМАЯ СТРУКТУРА
+
+```
+front/
+├── components/           # Переиспользуемые компоненты
+│   ├── Button.tsx
+│   ├── Card.tsx
+│   └── index.ts         # Barrel export
+├── pages/               # Страницы
+│   ├── MenuPage.tsx
+│   └── VoiceAssistantPage.tsx
+├── hooks/               # Кастомные хуки
+│   ├── useAuth.ts
+│   └── useLocalStorage.ts
+├── utils/               # Утилиты
+│   ├── helpers.ts
+│   └── constants.ts
+└── types/               # TypeScript типы
+    ├── common.ts
+    └── api.ts
+```
+
+## 🔄 BARREL EXPORTS
+
+### ✅ Правильное использование
+```typescript
+// components/index.ts
+export { Button } from './Button';
+export { Card } from './Card';
+export { Modal } from './Modal';
+
+// Использование
+import { Button, Card } from '../components';
+```
+
+### ❌ Избегайте избыточности
+```typescript
+// ❌ НЕПРАВИЛЬНО - слишком много barrel exports
+export * from './Button';
+export * from './Card';
+export * from './Modal';
+export * from './Input';
+export * from './Select';
+// ... 20+ компонентов
+```
+
+## 🎯 ЛУЧШИЕ ПРАКТИКИ
+
+### 1. **Группировка импортов**
+```typescript
+// ✅ ПРАВИЛЬНО - логические группы
+import React from 'react';
+import { useState } from 'react';
+
+import { useNavigate } from 'react-router-dom';
+import { Brain, Zap } from 'lucide-react';
+
+import { Button } from './Button';
+import { useAuth } from '../hooks/useAuth';
+```
+
+### 2. **Избегайте глубокой вложенности**
+```typescript
+// ❌ НЕПРАВИЛЬНО - слишком глубоко
+import { Button } from '../../../components/Button';
+
+// ✅ ПРАВИЛЬНО - реструктурируйте папки
+import { Button } from '../components/Button';
+```
+
+### 3. **Используйте алиасы для длинных путей**
+```typescript
+// В tsconfig.json или vite.config.ts
+{
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./src/*"],
+      "@/components/*": ["./src/components/*"],
+      "@/hooks/*": ["./src/hooks/*"]
+    }
+  }
+}
+
+// Использование
+import { Button } from '@/components/Button';
+import { useAuth } from '@/hooks/useAuth';
+```
+
+---
+
+**Помни**: Простые импорты = простая поддержка. Не усложняйте структуру без необходимости.

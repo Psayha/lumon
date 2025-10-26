@@ -1,0 +1,478 @@
+---
+globs: front/**/*.tsx,packages/**/*.tsx
+description: Правила оптимизации производительности для Lumon
+---
+
+# ⚡ Performance Optimization Rules
+
+## 🎯 Основные принципы оптимизации
+
+### ✅ ПРОФИЛИРОВАНИЕ ПЕРЕД ОПТИМИЗАЦИЕЙ
+- Измеряйте производительность перед оптимизацией
+- Используйте React DevTools Profiler
+- Оптимизируйте только узкие места
+- Не оптимизируйте преждевременно
+
+### ✅ РЕАКТИВНЫЕ ОПТИМИЗАЦИИ
+- `useCallback` для функций, передаваемых в дочерние компоненты
+- `useMemo` для дорогих вычислений
+- `React.memo` для предотвращения лишних re-renders
+- `useMemo` для стабильных ссылок на объекты
+
+### ✅ КОМПОНЕНТНАЯ ОПТИМИЗАЦИЯ
+- Разбивайте большие компоненты на меньшие
+- Используйте lazy loading для тяжелых компонентов
+- Оптимизируйте списки с виртуализацией
+- Избегайте создания объектов в render
+
+## 📝 ПРИМЕРЫ ПРАВИЛЬНОЙ ОПТИМИЗАЦИИ
+
+### ✅ Оптимизированный список
+```tsx
+import React, { useState, useMemo, useCallback } from 'react';
+import { FixedSizeList as List } from 'react-window';
+
+interface User {
+  id: string;
+  name: string;
+  email: string;
+}
+
+interface UserListProps {
+  users: User[];
+  onUserSelect: (user: User) => void;
+}
+
+const UserList: React.FC<UserListProps> = ({ users, onUserSelect }) => {
+  const [searchTerm, setSearchTerm] = useState('');
+
+  // Мемоизация фильтрованных пользователей
+  const filteredUsers = useMemo(() => {
+    return users.filter(user =>
+      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [users, searchTerm]);
+
+  // Мемоизация callback функции
+  const handleUserClick = useCallback((user: User) => {
+    onUserSelect(user);
+  }, [onUserSelect]);
+
+  // Мемоизация render функции для виртуализации
+  const Row = useCallback(({ index, style }: { index: number; style: React.CSSProperties }) => {
+    const user = filteredUsers[index];
+    
+    return (
+      <div style={style} className="flex items-center p-4 border-b">
+        <div className="flex-1">
+          <h3 className="font-semibold">{user.name}</h3>
+          <p className="text-gray-600">{user.email}</p>
+        </div>
+        <button
+          onClick={() => handleUserClick(user)}
+          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+        >
+          Выбрать
+        </button>
+      </div>
+    );
+  }, [filteredUsers, handleUserClick]);
+
+  return (
+    <div className="h-96">
+      <input
+        type="text"
+        placeholder="Поиск пользователей..."
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        className="w-full p-3 border rounded-lg mb-4"
+      />
+      
+      <List
+        height={300}
+        itemCount={filteredUsers.length}
+        itemSize={80}
+        width="100%"
+      >
+        {Row}
+      </List>
+    </div>
+  );
+};
+
+export default React.memo(UserList);
+```
+
+### ✅ Оптимизированная форма
+```tsx
+import React, { useState, useCallback, useMemo } from 'react';
+
+interface FormData {
+  name: string;
+  email: string;
+  age: number;
+}
+
+interface OptimizedFormProps {
+  onSubmit: (data: FormData) => void;
+  initialData?: Partial<FormData>;
+}
+
+const OptimizedForm: React.FC<OptimizedFormProps> = ({ 
+  onSubmit, 
+  initialData = {} 
+}) => {
+  const [formData, setFormData] = useState<FormData>({
+    name: '',
+    email: '',
+    age: 0,
+    ...initialData
+  });
+
+  // Мемоизация валидации
+  const validation = useMemo(() => {
+    const errors: Record<string, string> = {};
+    
+    if (!formData.name.trim()) {
+      errors.name = 'Имя обязательно';
+    }
+    
+    if (!formData.email.includes('@')) {
+      errors.email = 'Некорректный email';
+    }
+    
+    if (formData.age < 0) {
+      errors.age = 'Возраст не может быть отрицательным';
+    }
+    
+    return {
+      errors,
+      isValid: Object.keys(errors).length === 0
+    };
+  }, [formData]);
+
+  // Мемоизация обработчиков
+  const handleInputChange = useCallback((field: keyof FormData) => 
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setFormData(prev => ({
+        ...prev,
+        [field]: e.target.value
+      }));
+    }, []);
+
+  const handleSubmit = useCallback((e: React.FormEvent) => {
+    e.preventDefault();
+    if (validation.isValid) {
+      onSubmit(formData);
+    }
+  }, [formData, validation.isValid, onSubmit]);
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <label className="block text-sm font-medium mb-1">Имя</label>
+        <input
+          type="text"
+          value={formData.name}
+          onChange={handleInputChange('name')}
+          className="w-full p-2 border rounded"
+        />
+        {validation.errors.name && (
+          <p className="text-red-500 text-sm">{validation.errors.name}</p>
+        )}
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium mb-1">Email</label>
+        <input
+          type="email"
+          value={formData.email}
+          onChange={handleInputChange('email')}
+          className="w-full p-2 border rounded"
+        />
+        {validation.errors.email && (
+          <p className="text-red-500 text-sm">{validation.errors.email}</p>
+        )}
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium mb-1">Возраст</label>
+        <input
+          type="number"
+          value={formData.age}
+          onChange={handleInputChange('age')}
+          className="w-full p-2 border rounded"
+        />
+        {validation.errors.age && (
+          <p className="text-red-500 text-sm">{validation.errors.age}</p>
+        )}
+      </div>
+
+      <button
+        type="submit"
+        disabled={!validation.isValid}
+        className="w-full py-2 bg-blue-500 text-white rounded disabled:bg-gray-300"
+      >
+        Отправить
+      </button>
+    </form>
+  );
+};
+
+export default React.memo(OptimizedForm);
+```
+
+### ✅ Lazy Loading компонентов
+```tsx
+import React, { Suspense, lazy } from 'react';
+
+// Lazy loading тяжелых компонентов
+const HeavyChart = lazy(() => import('./HeavyChart'));
+const DataTable = lazy(() => import('./DataTable'));
+const ReportGenerator = lazy(() => import('./ReportGenerator'));
+
+const Dashboard: React.FC = () => {
+  const [activeTab, setActiveTab] = useState('chart');
+
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'chart':
+        return (
+          <Suspense fallback={<div className="flex items-center justify-center h-64">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          </div>}>
+            <HeavyChart />
+          </Suspense>
+        );
+      case 'table':
+        return (
+          <Suspense fallback={<div className="flex items-center justify-center h-64">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          </div>}>
+            <DataTable />
+          </Suspense>
+        );
+      case 'report':
+        return (
+          <Suspense fallback={<div className="flex items-center justify-center h-64">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          </div>}>
+            <ReportGenerator />
+          </Suspense>
+        );
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div className="p-6">
+      <div className="flex space-x-4 mb-6">
+        {['chart', 'table', 'report'].map(tab => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={`px-4 py-2 rounded ${
+              activeTab === tab 
+                ? 'bg-blue-500 text-white' 
+                : 'bg-gray-200 text-gray-700'
+            }`}
+          >
+            {tab.charAt(0).toUpperCase() + tab.slice(1)}
+          </button>
+        ))}
+      </div>
+      
+      {renderTabContent()}
+    </div>
+  );
+};
+
+export default Dashboard;
+```
+
+### ✅ Оптимизированный контекст
+```tsx
+import React, { createContext, useContext, useMemo, useCallback } from 'react';
+
+interface User {
+  id: string;
+  name: string;
+  email: string;
+}
+
+interface UserContextType {
+  user: User | null;
+  login: (user: User) => void;
+  logout: () => void;
+  updateUser: (updates: Partial<User>) => void;
+}
+
+const UserContext = createContext<UserContextType | null>(null);
+
+export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [user, setUser] = useState<User | null>(null);
+
+  // Мемоизация функций контекста
+  const login = useCallback((userData: User) => {
+    setUser(userData);
+  }, []);
+
+  const logout = useCallback(() => {
+    setUser(null);
+  }, []);
+
+  const updateUser = useCallback((updates: Partial<User>) => {
+    setUser(prev => prev ? { ...prev, ...updates } : null);
+  }, []);
+
+  // Мемоизация значения контекста
+  const contextValue = useMemo(() => ({
+    user,
+    login,
+    logout,
+    updateUser
+  }), [user, login, logout, updateUser]);
+
+  return (
+    <UserContext.Provider value={contextValue}>
+      {children}
+    </UserContext.Provider>
+  );
+};
+
+export const useUser = () => {
+  const context = useContext(UserContext);
+  if (!context) {
+    throw new Error('useUser must be used within UserProvider');
+  }
+  return context;
+};
+```
+
+## 🚨 КРИТИЧЕСКИ ВАЖНО
+
+### ❌ НЕ ДЕЛАЙТЕ
+```tsx
+// ❌ НЕПРАВИЛЬНО - избыточная мемоизация
+const OverOptimized = () => {
+  const memoizedValue = useMemo(() => count + 1, [count]);
+  const memoizedCallback = useCallback(() => {}, []);
+  const memoizedObject = useMemo(() => ({ id: 1 }), []);
+  // Слишком много оптимизации для простого случая
+};
+
+// ❌ НЕПРАВИЛЬНО - создание объектов в render
+const BadComponent = () => {
+  return <ChildComponent style={{ margin: 10 }} />; // Новый объект каждый render
+};
+
+// ❌ НЕПРАВИЛЬНО - inline функции
+const BadList = ({ items }) => {
+  return (
+    <div>
+      {items.map(item => (
+        <Item 
+          key={item.id} 
+          onClick={() => handleClick(item.id)} // Новая функция каждый render
+        />
+      ))}
+    </div>
+  );
+};
+```
+
+### ✅ ДЕЛАЙТЕ ТАК
+```tsx
+// ✅ ПРАВИЛЬНО - простая оптимизация
+const SimpleComponent = () => {
+  const [count, setCount] = useState(0);
+  return <div>{count}</div>;
+};
+
+// ✅ ПРАВИЛЬНО - мемоизация стилей
+const GoodComponent = () => {
+  const style = useMemo(() => ({ margin: 10 }), []);
+  return <ChildComponent style={style} />;
+};
+
+// ✅ ПРАВИЛЬНО - мемоизация callback
+const GoodList = ({ items }) => {
+  const handleItemClick = useCallback((id: string) => {
+    // логика
+  }, []);
+
+  return (
+    <div>
+      {items.map(item => (
+        <Item 
+          key={item.id} 
+          onClick={handleItemClick}
+        />
+      ))}
+    </div>
+  );
+};
+```
+
+## 🎯 ЛУЧШИЕ ПРАКТИКИ
+
+### 1. **Измерение производительности**
+```tsx
+// Используйте React DevTools Profiler
+// Измеряйте время рендера компонентов
+// Анализируйте причины re-renders
+```
+
+### 2. **Оптимизация списков**
+```tsx
+// Для больших списков используйте виртуализацию
+import { FixedSizeList as List } from 'react-window';
+
+// Для средних списков используйте React.memo
+const ListItem = React.memo(({ item }) => {
+  return <div>{item.name}</div>;
+});
+```
+
+### 3. **Оптимизация изображений**
+```tsx
+// Lazy loading изображений
+const LazyImage = ({ src, alt }) => {
+  const [loaded, setLoaded] = useState(false);
+  
+  return (
+    <img
+      src={loaded ? src : '/placeholder.jpg'}
+      alt={alt}
+      onLoad={() => setLoaded(true)}
+      className="transition-opacity duration-200"
+    />
+  );
+};
+```
+
+## 🧪 ТЕСТИРОВАНИЕ ПРОИЗВОДИТЕЛЬНОСТИ
+
+### React DevTools Profiler
+```tsx
+// Включите Profiler в React DevTools
+// Записывайте производительность компонентов
+// Анализируйте время рендера и причины re-renders
+```
+
+### Performance API
+```tsx
+// Измерение времени выполнения
+const measurePerformance = (name: string, fn: () => void) => {
+  performance.mark(`${name}-start`);
+  fn();
+  performance.mark(`${name}-end`);
+  performance.measure(name, `${name}-start`, `${name}-end`);
+};
+```
+
+---
+
+**Помни**: Оптимизируйте только после измерения. Преждевременная оптимизация - корень всех зол.
