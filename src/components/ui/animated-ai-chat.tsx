@@ -1,0 +1,379 @@
+import { useEffect, useRef, useCallback, useTransition } from "react";
+import { useState } from "react";
+import {
+    FileText,
+    BarChart3,
+    MessageSquare,
+    CheckCircle,
+} from "lucide-react";
+import { motion } from "framer-motion";
+import * as React from "react";
+import { MessageList } from "./MessageList";
+import { WelcomeMessage } from "./WelcomeMessage";
+import { QuickCommands } from "./QuickCommands";
+import { InputArea } from "./InputArea";
+import { ChatHistory } from "./ChatHistory";
+
+function useAutoResizeTextarea({
+    value,
+    minHeight = 60,
+    maxHeight = 200,
+}: {
+    value: string;
+    minHeight?: number;
+    maxHeight?: number;
+}) {
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+    const adjustHeight = useCallback((reset = false) => {
+            const textarea = textareaRef.current;
+            if (!textarea) return;
+
+            if (reset) {
+                textarea.style.height = `${minHeight}px`;
+        }
+
+        const scrollHeight = textarea.scrollHeight;
+        const newHeight = Math.min(Math.max(scrollHeight, minHeight), maxHeight);
+            textarea.style.height = `${newHeight}px`;
+    }, [minHeight, maxHeight]);
+
+    useEffect(() => {
+        adjustHeight();
+    }, [value, adjustHeight]);
+
+    return { textareaRef, adjustHeight };
+}
+
+interface CommandSuggestion {
+    prefix: string;
+    label: string;
+    icon: React.ReactNode;
+    description: string;
+}
+
+interface Message {
+    id: string;
+    text: string;
+    isUser: boolean;
+    timestamp: Date;
+}
+
+interface AnimatedAIChatProps {
+    onTypingChange?: (isTyping: boolean) => void;
+    isListening?: boolean;
+    onListeningChange?: (isListening: boolean) => void;
+    isRecognizing?: boolean;
+    onRecognizingChange?: (isRecognizing: boolean) => void;
+}
+
+export function AnimatedAIChat({ 
+    onTypingChange, 
+    isListening: externalIsListening, 
+    onListeningChange, 
+    isRecognizing: externalIsRecognizing, 
+    onRecognizingChange 
+}: AnimatedAIChatProps) {
+    const [value, setValue] = useState("");
+    const [messages, setMessages] = useState<Message[]>([]);
+    const [isTyping, setIsTyping] = useState(false);
+    const [inputFocused, setInputFocused] = useState(false);
+    const [mousePosition] = useState({ x: 0, y: 0 });
+    const [attachments, setAttachments] = useState<string[]>([]);
+    const [selectedCommands, setSelectedCommands] = useState<string[]>([]);
+    const [showCommandPalette, setShowCommandPalette] = useState(false);
+    const [showChatHistory, setShowChatHistory] = useState(false);
+    const [activeSuggestion] = useState(0);
+    const [, startTransition] = useTransition();
+
+    const messagesEndRef = useRef<HTMLDivElement>(null);
+    const commandPaletteRef = useRef<HTMLDivElement>(null);
+
+    const { textareaRef, adjustHeight } = useAutoResizeTextarea({ value });
+
+    const isListening = externalIsListening ?? false;
+    const isRecognizing = externalIsRecognizing ?? false;
+
+    const commandSuggestions: CommandSuggestion[] = [
+        { 
+            prefix: "/resume",
+            label: "Создать резюме",
+            icon: <FileText className="w-4 h-4" />, 
+            description: "Помощь в создании профессионального резюме"
+        },
+        { 
+            prefix: "/kpi",
+            label: "Анализ KPI",
+            icon: <BarChart3 className="w-4 h-4" />, 
+            description: "Анализ ключевых показателей эффективности"
+        },
+        { 
+            prefix: "/sales",
+            label: "Скрипты продаж",
+            icon: <MessageSquare className="w-4 h-4" />, 
+            description: "Оптимизация скриптов для продаж"
+        },
+        { 
+            prefix: "/quality",
+            label: "Контроль качества",
+            icon: <CheckCircle className="w-4 h-4" />, 
+            description: "Управление качеством процессов"
+        }
+    ];
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+        if (e.key === "Escape") {
+                setShowCommandPalette(false);
+        } else if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            if (value.trim()) {
+                handleSendMessage();
+            }
+        }
+    };
+
+    const sendToAI = async (message: string): Promise<string> => {
+        try {
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            
+            const lowerMessage = message.toLowerCase();
+            
+            if (lowerMessage.includes('привет') || lowerMessage.includes('hello')) {
+                return 'Привет! Я ваш AI-помощник Lumon. Чем могу помочь?';
+            } else if (lowerMessage.includes('резюме') || lowerMessage.includes('resume')) {
+                return 'Я помогу составить профессиональное резюме. Расскажите о вашем опыте работы и навыках.';
+            } else if (lowerMessage.includes('kpi') || lowerMessage.includes('анализ')) {
+                return 'Для анализа KPI мне нужны данные о ваших показателях. Какие метрики вы хотите проанализировать?';
+            } else if (lowerMessage.includes('продаж') || lowerMessage.includes('скрипт')) {
+                return 'Я помогу оптимизировать ваши скрипты продаж. Поделитесь текущими скриптами для анализа.';
+            } else if (lowerMessage.includes('качество') || lowerMessage.includes('контроль')) {
+                return 'Для контроля качества процессов нужны детали о ваших текущих процедурах. Что именно хотите улучшить?';
+            } else {
+                return `Я получил ваше сообщение: "${message}". Как AI-помощник Lumon, я готов помочь с бизнес-задачами. Уточните, пожалуйста, что именно вас интересует?`;
+            }
+        } catch (error) {
+            console.error('Ошибка при обращении к AI:', error);
+            return 'Извините, произошла ошибка при обработке вашего запроса. Попробуйте еще раз.';
+        }
+    };
+
+    const handleSendMessage = async () => {
+        if (isListening || isRecognizing) {
+            return;
+        }
+        
+        if (value.trim()) {
+            const userMessage: Message = {
+                id: Date.now().toString(),
+                text: value.trim(),
+                isUser: true,
+                timestamp: new Date()
+            };
+
+            setMessages(prev => [...prev, userMessage]);
+            setValue("");
+            adjustHeight(true);
+
+            startTransition(() => {
+                setIsTyping(true);
+                onTypingChange?.(true);
+            });
+
+            try {
+                const aiResponse = await sendToAI(userMessage.text);
+                
+                const aiMessage: Message = {
+                    id: (Date.now() + 1).toString(),
+                    text: aiResponse,
+                    isUser: false,
+                    timestamp: new Date()
+                };
+
+                setMessages(prev => [...prev, aiMessage]);
+            } catch (error) {
+                console.error('Ошибка при получении ответа от AI:', error);
+            } finally {
+                setIsTyping(false);
+                onTypingChange?.(false);
+            }
+        }
+    };
+
+    const handleVoiceInput = () => {
+        if (isListening) {
+            if (onListeningChange) {
+                onListeningChange(false);
+            }
+            
+            if (onRecognizingChange) {
+                onRecognizingChange(true);
+            }
+            
+            setTimeout(() => {
+                setValue(prev => prev + " Голосовое сообщение");
+                
+                if (onRecognizingChange) {
+                    onRecognizingChange(false);
+                }
+            }, 3000);
+        } else {
+            if (onListeningChange) {
+                onListeningChange(true);
+            }
+        }
+    };
+
+    const handleAttachFile = () => {
+        if (isListening) {
+            return;
+        }
+        
+        const mockFileName = `file-${Math.floor(Math.random() * 1000)}.pdf`;
+        setAttachments(prev => [...prev, mockFileName]);
+    };
+
+    const removeAttachment = (index: number) => {
+        setAttachments(prev => prev.filter((_, i) => i !== index));
+    };
+    
+    const selectCommandSuggestion = (index: number) => {
+        if (isListening || selectedCommands.length > 0) {
+            return;
+        }
+        
+        const selectedCommand = commandSuggestions[index];
+        addSelectedCommand(selectedCommand.prefix);
+        setShowCommandPalette(false);
+    };
+
+    const addSelectedCommand = (command: string) => {
+        if (!selectedCommands.includes(command)) {
+            setSelectedCommands(prev => [...prev, command]);
+        }
+    };
+
+    const removeSelectedCommand = (command: string) => {
+        setSelectedCommands(prev => prev.filter(cmd => cmd !== command));
+    };
+
+    const handleSelectChat = (chatId: string) => {
+        console.log('Выбран чат:', chatId);
+        setShowChatHistory(false);
+        // TODO: Загрузить историю выбранного чата
+    };
+
+    const handleDeleteChat = (chatId: string) => {
+        console.log('Удален чат:', chatId);
+        // TODO: Удалить чат из истории
+    };
+
+    return (
+        <div className="h-full flex flex-col w-full bg-transparent text-gray-900 dark:text-white relative overflow-hidden">
+            {/* Фоновые эффекты */}
+        <div className="absolute inset-0 w-full h-full overflow-hidden">
+                <div className="absolute top-0 left-1/4 w-96 h-96 bg-violet-500/10 rounded-full mix-blend-normal filter blur-[128px] animate-pulse" />
+                <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-indigo-500/10 rounded-full mix-blend-normal filter blur-[128px] animate-pulse delay-700" />
+                <div className="absolute top-1/4 right-1/3 w-64 h-64 bg-fuchsia-500/10 rounded-full mix-blend-normal filter blur-[96px] animate-pulse delay-1000" />
+            </div>
+            
+            {/* Скроллируемый контент чата */}
+            <div className="flex-1 overflow-y-auto p-1">
+                <div className="w-full max-w-md mx-auto relative">
+                <motion.div 
+                    className={`relative z-10 ${messages.length > 0 ? 'space-y-6' : 'space-y-12'}`}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6, ease: "easeOut" }}
+                >
+                        {/* Приветственное сообщение */}
+                        {messages.length === 0 && <WelcomeMessage />}
+
+                    {/* История чата */}
+                    {messages.length > 0 && (
+                            <MessageList
+                                messages={messages}
+                                isTyping={isTyping}
+                            />
+                        )}
+
+                        {/* Быстрые команды */}
+                    {messages.length === 0 && selectedCommands.length === 0 && (
+                            <QuickCommands
+                                suggestions={commandSuggestions}
+                                onSelect={selectCommandSuggestion}
+                                isListening={isListening}
+                                selectedCommands={selectedCommands}
+                            />
+                    )}
+                </motion.div>
+                    <div ref={messagesEndRef} />
+                </div>
+            </div>
+
+            {/* Поле ввода и кнопка истории */}
+            <div className="flex-shrink-0">
+                <div className="w-full max-w-md mx-auto px-1">
+                    <InputArea
+                        value={value}
+                        onChange={setValue}
+                        onSend={handleSendMessage}
+                        onKeyDown={handleKeyDown}
+                        onFocus={() => setInputFocused(true)}
+                        onBlur={() => setInputFocused(false)}
+                        onVoiceInput={handleVoiceInput}
+                        onAttachFile={handleAttachFile}
+                        onToggleCommandPalette={() => setShowCommandPalette(prev => !prev)}
+                        isListening={isListening}
+                        isRecognizing={isRecognizing}
+                        isTyping={isTyping}
+                        attachments={attachments}
+                        onRemoveAttachment={removeAttachment}
+                        selectedCommands={selectedCommands}
+                        onRemoveSelectedCommand={removeSelectedCommand}
+                        commandSuggestions={commandSuggestions.map(s => ({
+                            icon: s.icon,
+                            label: s.label,
+                            prefix: s.prefix
+                        }))}
+                        showCommandPalette={showCommandPalette}
+                        commandPaletteRef={commandPaletteRef}
+                        activeSuggestion={activeSuggestion}
+                        onSelectCommand={selectCommandSuggestion}
+                        onToggleHistory={() => setShowChatHistory(prev => !prev)}
+                        textareaRef={textareaRef}
+                        adjustHeight={adjustHeight}
+                    />
+
+                    {/* Отступ от подвала */}
+                    <div className="pb-4"></div>
+                </div>
+            </div>
+
+            {/* Эффект фокуса */}
+            {inputFocused && (
+                <motion.div 
+                    className="fixed w-[50rem] h-[50rem] rounded-full pointer-events-none z-0 opacity-[0.02] bg-gradient-to-r from-violet-500 via-fuchsia-500 to-indigo-500 blur-[96px]"
+                    animate={{
+                        x: mousePosition.x - 400,
+                        y: mousePosition.y - 400,
+                    }}
+                    transition={{
+                        type: "spring",
+                        damping: 25,
+                        stiffness: 150,
+                        mass: 0.5,
+                    }}
+                />
+            )}
+
+            {/* Chat History Modal */}
+            <ChatHistory
+                isOpen={showChatHistory}
+                onClose={() => setShowChatHistory(false)}
+                onSelectChat={handleSelectChat}
+                onDeleteChat={handleDeleteChat}
+            />
+        </div>
+    );
+}
+

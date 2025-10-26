@@ -11,8 +11,8 @@ import {
   Bot
 } from 'lucide-react';
 import { Card } from '../src/components';
-import { ThemeToggle } from '../src/components/ThemeToggle';
-import { Header } from '../src/components/Header';
+import { AppHeader } from '../src/components/AppHeader';
+import { AppFooter } from '../src/components/AppFooter';
 
 const MenuPage: React.FC = () => {
   const navigate = useNavigate();
@@ -33,14 +33,10 @@ const MenuPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen gradient-bg">
-      <Header />
+    <div className="min-h-screen gradient-bg flex flex-col">
+      <AppHeader showHomeButton={false} />
       
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="text-center mb-12">
-        </div>
-
+      <div className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
         {/* Menu Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 sm:gap-8 lg:gap-12">
           {menuItems.map((item, index) => (
@@ -76,20 +72,12 @@ const MenuPage: React.FC = () => {
             </Card>
           ))}
         </div>
-
-        {/* Footer */}
-        <div className="mt-12 text-center">
-          <div className="border-t border-gray-200 dark:border-gray-700 pt-6 transition-colors duration-300">
-            {/* Theme Toggle */}
-            <div className="flex justify-center mb-4">
-              <ThemeToggle />
-            </div>
-            <p className="text-gray-500 dark:text-gray-400 text-sm transition-colors duration-300">
-              © 2024 Lumon Platform. Все права защищены.
-            </p>
-          </div>
-        </div>
+        
+        {/* Отступ от подвала */}
+        <div className="pb-4"></div>
       </div>
+
+      <AppFooter showHomeButton={true} />
     </div>
   );
 };

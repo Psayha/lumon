@@ -11,4 +11,6 @@ export { Badge } from './Badge';
 export { ThemeToggle } from './ThemeToggle';
 export { SimpleThemeToggle } from './SimpleThemeToggle';
 export { SplashScreen } from './SplashScreen';
+export { AppHeader } from './AppHeader';
+export { AppFooter } from './AppFooter';
 export { default as SearchComponent } from './SearchComponent';
