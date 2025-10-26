@@ -259,12 +259,52 @@ export function AnimatedAIChat({
     const handleSelectChat = (chatId: string) => {
         console.log('Выбран чат:', chatId);
         setShowChatHistory(false);
-        // TODO: Загрузить историю выбранного чата
+        
+        // Загружаем историю выбранного чата
+        const mockChatHistory = {
+            '1': [
+                { id: '1', text: 'Помогите составить резюме для позиции менеджера по продажам', isUser: true, timestamp: new Date(Date.now() - 1000 * 60 * 30) },
+                { id: '2', text: 'Конечно! Давайте создадим профессиональное резюме. Расскажите о вашем опыте работы в продажах.', isUser: false, timestamp: new Date(Date.now() - 1000 * 60 * 29) },
+                { id: '3', text: 'У меня 3 года опыта в B2B продажах, работал с крупными клиентами', isUser: true, timestamp: new Date(Date.now() - 1000 * 60 * 28) },
+                { id: '4', text: 'Отлично! Какие достижения можете выделить? Например, увеличение продаж или работа с ключевыми клиентами?', isUser: false, timestamp: new Date(Date.now() - 1000 * 60 * 27) }
+            ],
+            '2': [
+                { id: '1', text: 'Какие KPI нужно отслеживать для отдела продаж?', isUser: true, timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2) },
+                { id: '2', text: 'Для отдела продаж важно отслеживать: конверсию лидов, средний чек, время закрытия сделки, количество активных клиентов.', isUser: false, timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2 + 1000 * 60 * 5) }
+            ],
+            '3': [
+                { id: '1', text: 'Как улучшить конверсию в воронке продаж?', isUser: true, timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24) },
+                { id: '2', text: 'Для улучшения конверсии рекомендую: персонализировать подход, работать с возражениями, использовать социальные доказательства.', isUser: false, timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 + 1000 * 60 * 10) }
+            ],
+            '4': [
+                { id: '1', text: 'Какие процедуры контроля качества нужно внедрить?', isUser: true, timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2) },
+                { id: '2', text: 'Рекомендую внедрить: чек-листы для каждого этапа, регулярные аудиты, обратную связь от клиентов, метрики качества.', isUser: false, timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2 + 1000 * 60 * 15) }
+            ]
+        };
+        
+        const selectedChatMessages = mockChatHistory[chatId as keyof typeof mockChatHistory] || [];
+        setMessages(selectedChatMessages);
     };
 
     const handleDeleteChat = (chatId: string) => {
         console.log('Удален чат:', chatId);
-        // TODO: Удалить чат из истории
+        // В реальном приложении здесь будет API вызов для удаления чата
+        // Пока просто показываем уведомление
+        alert(`Чат "${chatId}" будет удален (в реальном приложении)`);
+    };
+
+    const handleCreateNewChat = () => {
+        console.log('Создание нового чата');
+        // Очищаем текущие сообщения
+        setMessages([]);
+        // Очищаем выбранные команды
+        setSelectedCommands([]);
+        // Очищаем вложения
+        setAttachments([]);
+        // Очищаем поле ввода
+        setValue("");
+        // Сбрасываем высоту textarea
+        adjustHeight(true);
     };
 
     return (
@@ -372,6 +412,7 @@ export function AnimatedAIChat({
                 onClose={() => setShowChatHistory(false)}
                 onSelectChat={handleSelectChat}
                 onDeleteChat={handleDeleteChat}
+                onCreateNewChat={handleCreateNewChat}
             />
         </div>
     );

@@ -6,6 +6,10 @@ import { SplashScreen } from './components/SplashScreen';
 // Lazy loading компонентов для лучшей производительности
 const MenuPage = lazy(() => import('../front/MenuPage'));
 const VoiceAssistantPage = lazy(() => import('../front/VoiceAssistantPage'));
+const CRMPage = lazy(() => import('../front/CRMPage'));
+const AnalyticsPage = lazy(() => import('../front/AnalyticsPage'));
+const KnowledgeBasePage = lazy(() => import('../front/KnowledgeBasePage'));
+const PricingPage = lazy(() => import('../front/PricingPage'));
 
 // Fallback компонент для Suspense
 const LoadingFallback: React.FC = () => (
@@ -30,6 +34,10 @@ const App: React.FC = () => {
             <Routes>
               <Route path="/" element={<MenuPage />} />
               <Route path="/voice-assistant" element={<VoiceAssistantPage />} />
+              <Route path="/app/crm" element={<CRMPage />} />
+              <Route path="/app/analytics" element={<AnalyticsPage />} />
+              <Route path="/app/knowledge" element={<KnowledgeBasePage />} />
+              <Route path="/app/payment" element={<PricingPage />} />
             </Routes>
           </Suspense>
         </Router>

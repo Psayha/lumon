@@ -21,9 +21,10 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
     <header className="sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         <div className="flex justify-center">
+          {/* Центральная кнопка Lumon */}
           <motion.button
             onClick={() => navigate('/voice-assistant')}
-            className={`flex items-center justify-center rounded-full px-6 py-2 relative overflow-hidden w-40 h-10 ${
+            className={`flex items-center justify-center rounded-full px-4 py-2 relative overflow-hidden w-40 h-9 ${
               isRecognizing
                 ? "bg-white dark:bg-gray-800 border-2 border-orange-500 dark:border-orange-400 shadow-2xl shadow-orange-500/40 ring-4 ring-orange-500/20"
                 : isListening
@@ -349,14 +350,14 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
               </div>
               <AnimatePresence mode="wait">
                 <motion.span 
-                  className="text-sm font-bold text-gray-900 dark:text-white whitespace-nowrap"
+                  className="text-xs font-bold text-gray-900 dark:text-white whitespace-nowrap"
                   key={isRecognizing ? "recognizing" : isListening ? "listening" : isTyping ? "thinking" : "lumon"}
                   initial={{ opacity: 0, y: 5 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -5 }}
                   transition={{ duration: 0.3, ease: "easeInOut" }}
                 >
-                  {isRecognizing ? "Распознаю" : isListening ? "Слушаю" : isTyping ? "Думаю" : "Lumon"}
+                  {isRecognizing ? "Распознаю" : isListening ? "Слушаю" : isTyping ? "Думаю" : "PROJECT LUMON"}
                 </motion.span>
               </AnimatePresence>
             </div>

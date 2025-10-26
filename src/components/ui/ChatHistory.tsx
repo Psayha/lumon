@@ -15,13 +15,15 @@ interface ChatHistoryProps {
   onClose: () => void;
   onSelectChat: (chatId: string) => void;
   onDeleteChat: (chatId: string) => void;
+  onCreateNewChat?: () => void;
 }
 
 export const ChatHistory: React.FC<ChatHistoryProps> = ({
   isOpen,
   onClose,
   onSelectChat,
-  onDeleteChat
+  onDeleteChat,
+  onCreateNewChat
 }) => {
   // Моковые данные для истории чатов
   const chatHistory: ChatHistoryItem[] = [
@@ -77,20 +79,26 @@ export const ChatHistory: React.FC<ChatHistoryProps> = ({
         <>
           {/* Backdrop */}
           <motion.div
-            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/30 backdrop-blur-md z-[60]"
+            initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
+            animate={{ opacity: 1, backdropFilter: "blur(8px)" }}
+            exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
             onClick={onClose}
           />
           
           {/* History Panel */}
           <motion.div
-            className="fixed left-0 top-0 h-full w-80 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 shadow-2xl z-50 flex flex-col"
-            initial={{ x: -320 }}
-            animate={{ x: 0 }}
-            exit={{ x: -320 }}
-            transition={{ type: "spring", damping: 25, stiffness: 200 }}
+            className="fixed left-0 top-0 h-full w-80 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-r border-gray-200 dark:border-gray-700 shadow-2xl z-[61] flex flex-col"
+            initial={{ x: -320, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: -320, opacity: 0 }}
+            transition={{ 
+              type: "spring", 
+              damping: 25, 
+              stiffness: 200,
+              opacity: { duration: 0.2 }
+            }}
           >
             {/* Header */}
             <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
@@ -163,8 +171,8 @@ export const ChatHistory: React.FC<ChatHistoryProps> = ({
             <div className="p-4 border-t border-gray-200 dark:border-gray-700">
               <button
                 onClick={() => {
-                  // TODO: Создать новый чат
-                  console.log('Создать новый чат');
+                  onCreateNewChat?.();
+                  onClose();
                 }}
                 className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium"
               >
