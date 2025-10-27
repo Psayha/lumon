@@ -24,7 +24,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           {/* Центральная кнопка Lumon */}
           <motion.button
             onClick={() => navigate('/voice-assistant')}
-            className={`flex items-center justify-center rounded-full px-4 py-2 relative overflow-hidden w-40 h-9 ${
+            className={`flex items-center justify-center rounded-full px-4 py-2 relative overflow-hidden w-44 h-9 ${
               isRecognizing
                 ? "bg-white dark:bg-gray-800 border-2 border-orange-500 dark:border-orange-400 shadow-2xl shadow-orange-500/40 ring-4 ring-orange-500/20"
                 : isListening
@@ -41,123 +41,55 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
               ease: "easeInOut"
             }}
           >
+            {/* Плавный эффект для состояния "Думаю" */}
             {isTyping && (
               <motion.div
-                className="absolute inset-0 rounded-full"
+                className="absolute inset-0 rounded-full bg-gradient-to-r from-orange-400/20 to-orange-600/20"
                 animate={{
-                  background: [
-                    "linear-gradient(45deg, rgba(249, 115, 22, 0.3) 0%, rgba(234, 88, 12, 0.3) 25%, rgba(194, 65, 12, 0.3) 50%, rgba(154, 52, 18, 0.3) 75%, rgba(249, 115, 22, 0.3) 100%)",
-                    "linear-gradient(45deg, rgba(154, 52, 18, 0.3) 0%, rgba(249, 115, 22, 0.3) 25%, rgba(234, 88, 12, 0.3) 50%, rgba(194, 65, 12, 0.3) 75%, rgba(154, 52, 18, 0.3) 100%)",
-                    "linear-gradient(45deg, rgba(194, 65, 12, 0.3) 0%, rgba(154, 52, 18, 0.3) 25%, rgba(249, 115, 22, 0.3) 50%, rgba(234, 88, 12, 0.3) 75%, rgba(194, 65, 12, 0.3) 100%)",
-                    "linear-gradient(45deg, rgba(234, 88, 12, 0.3) 0%, rgba(194, 65, 12, 0.3) 25%, rgba(154, 52, 18, 0.3) 50%, rgba(249, 115, 22, 0.3) 75%, rgba(234, 88, 12, 0.3) 100%)"
-                  ]
-                }}
-                transition={{
-                  duration: 3,
-                  repeat: Infinity,
-                  ease: "linear"
-                }}
-              />
-            )}
-            
-            {isTyping && (
-              <motion.div
-                className="absolute inset-0 rounded-full"
-                animate={{
-                  background: [
-                    "linear-gradient(135deg, rgba(249, 115, 22, 0.2) 0%, rgba(234, 88, 12, 0.2) 50%, rgba(194, 65, 12, 0.2) 100%)",
-                    "linear-gradient(135deg, rgba(194, 65, 12, 0.2) 0%, rgba(154, 52, 18, 0.2) 50%, rgba(249, 115, 22, 0.2) 100%)",
-                    "linear-gradient(135deg, rgba(154, 52, 18, 0.2) 0%, rgba(249, 115, 22, 0.2) 50%, rgba(234, 88, 12, 0.2) 100%)",
-                    "linear-gradient(135deg, rgba(234, 88, 12, 0.2) 0%, rgba(249, 115, 22, 0.2) 50%, rgba(194, 65, 12, 0.2) 100%)"
-                  ]
-                }}
-                transition={{
-                  duration: 2.5,
-                  repeat: Infinity,
-                  ease: "linear"
-                }}
-              />
-            )}
-            
-            {/* Эффекты микрофона */}
-            {isListening && (
-              <motion.div
-                className="absolute inset-0 rounded-full"
-                animate={{
-                  background: [
-                    "linear-gradient(45deg, rgba(239, 68, 68, 0.3) 0%, rgba(220, 38, 38, 0.3) 25%, rgba(185, 28, 28, 0.3) 50%, rgba(153, 27, 27, 0.3) 75%, rgba(239, 68, 68, 0.3) 100%)",
-                    "linear-gradient(45deg, rgba(153, 27, 27, 0.3) 0%, rgba(239, 68, 68, 0.3) 25%, rgba(220, 38, 38, 0.3) 50%, rgba(185, 28, 28, 0.3) 75%, rgba(153, 27, 27, 0.3) 100%)",
-                    "linear-gradient(45deg, rgba(185, 28, 28, 0.3) 0%, rgba(153, 27, 27, 0.3) 25%, rgba(239, 68, 68, 0.3) 50%, rgba(220, 38, 38, 0.3) 75%, rgba(185, 28, 28, 0.3) 100%)",
-                    "linear-gradient(45deg, rgba(220, 38, 38, 0.3) 0%, rgba(185, 28, 28, 0.3) 25%, rgba(153, 27, 27, 0.3) 50%, rgba(239, 68, 68, 0.3) 75%, rgba(220, 38, 38, 0.3) 100%)"
-                  ]
+                  opacity: [0.3, 0.6, 0.3],
+                  scale: [1, 1.02, 1]
                 }}
                 transition={{
                   duration: 2,
                   repeat: Infinity,
-                  ease: "linear"
+                  ease: "easeInOut"
                 }}
               />
             )}
             
+            {/* Плавный эффект для состояния "Слушаю" */}
             {isListening && (
               <motion.div
-                className="absolute inset-0 rounded-full"
+                className="absolute inset-0 rounded-full bg-gradient-to-r from-red-400/20 to-red-600/20"
                 animate={{
-                  background: [
-                    "linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(220, 38, 38, 0.2) 50%, rgba(185, 28, 28, 0.2) 100%)",
-                    "linear-gradient(135deg, rgba(185, 28, 28, 0.2) 0%, rgba(153, 27, 27, 0.2) 50%, rgba(239, 68, 68, 0.2) 100%)",
-                    "linear-gradient(135deg, rgba(153, 27, 27, 0.2) 0%, rgba(239, 68, 68, 0.2) 50%, rgba(220, 38, 38, 0.2) 100%)",
-                    "linear-gradient(135deg, rgba(220, 38, 38, 0.2) 0%, rgba(239, 68, 68, 0.2) 50%, rgba(185, 28, 28, 0.2) 100%)"
-                  ]
+                  opacity: [0.4, 0.8, 0.4],
+                  scale: [1, 1.05, 1]
                 }}
                 transition={{
                   duration: 1.5,
                   repeat: Infinity,
-                  ease: "linear"
+                  ease: "easeInOut"
                 }}
               />
             )}
             
-            {/* Эффекты распознавания */}
+            {/* Плавный эффект для состояния "Распознаю" */}
             {isRecognizing && (
               <motion.div
-                className="absolute inset-0 rounded-full"
+                className="absolute inset-0 rounded-full bg-gradient-to-r from-orange-400/25 to-orange-600/25"
                 animate={{
-                  background: [
-                    "linear-gradient(45deg, rgba(249, 115, 22, 0.3) 0%, rgba(234, 88, 12, 0.3) 25%, rgba(194, 65, 12, 0.3) 50%, rgba(154, 52, 18, 0.3) 75%, rgba(249, 115, 22, 0.3) 100%)",
-                    "linear-gradient(45deg, rgba(154, 52, 18, 0.3) 0%, rgba(249, 115, 22, 0.3) 25%, rgba(234, 88, 12, 0.3) 50%, rgba(194, 65, 12, 0.3) 75%, rgba(154, 52, 18, 0.3) 100%)",
-                    "linear-gradient(45deg, rgba(194, 65, 12, 0.3) 0%, rgba(154, 52, 18, 0.3) 25%, rgba(249, 115, 22, 0.3) 50%, rgba(234, 88, 12, 0.3) 75%, rgba(194, 65, 12, 0.3) 100%)",
-                    "linear-gradient(45deg, rgba(234, 88, 12, 0.3) 0%, rgba(194, 65, 12, 0.3) 25%, rgba(154, 52, 18, 0.3) 50%, rgba(249, 115, 22, 0.3) 75%, rgba(234, 88, 12, 0.3) 100%)"
-                  ]
+                  opacity: [0.3, 0.7, 0.3],
+                  scale: [1, 1.03, 1]
                 }}
                 transition={{
-                  duration: 2.5,
+                  duration: 1.8,
                   repeat: Infinity,
-                  ease: "linear"
+                  ease: "easeInOut"
                 }}
               />
             )}
             
-            {isRecognizing && (
-              <motion.div
-                className="absolute inset-0 rounded-full"
-                animate={{
-                  background: [
-                    "linear-gradient(135deg, rgba(249, 115, 22, 0.2) 0%, rgba(234, 88, 12, 0.2) 50%, rgba(194, 65, 12, 0.2) 100%)",
-                    "linear-gradient(135deg, rgba(194, 65, 12, 0.2) 0%, rgba(154, 52, 18, 0.2) 50%, rgba(249, 115, 22, 0.2) 100%)",
-                    "linear-gradient(135deg, rgba(154, 52, 18, 0.2) 0%, rgba(249, 115, 22, 0.2) 50%, rgba(234, 88, 12, 0.2) 100%)",
-                    "linear-gradient(135deg, rgba(234, 88, 12, 0.2) 0%, rgba(249, 115, 22, 0.2) 50%, rgba(194, 65, 12, 0.2) 100%)"
-                  ]
-                }}
-                transition={{
-                  duration: 2,
-                  repeat: Infinity,
-                  ease: "linear"
-                }}
-              />
-            )}
-            
-            <div className="relative z-10 flex items-center space-x-2">
+            <div className="relative z-10 flex items-center space-x-3">
               <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 relative overflow-hidden ${
                 isRecognizing
                   ? "bg-orange-600 dark:bg-orange-400"
@@ -167,174 +99,35 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                   ? "bg-orange-600 dark:bg-orange-400"
                   : "bg-blue-600 dark:bg-blue-400"
               }`}>
-                <AnimatePresence mode="wait">
-                  {isRecognizing ? (
-                    <motion.div
-                      key="recognizing"
-                      className="relative"
-                      initial={{ 
-                        opacity: 0, 
-                        scale: 0.5,
-                        rotate: -180,
-                        y: 10
-                      }}
-                      animate={{ 
-                        opacity: 1, 
-                        scale: 1,
-                        rotate: 0,
-                        y: 0
-                      }}
-                      exit={{ 
-                        opacity: 0, 
-                        scale: 0.5,
-                        rotate: 180,
-                        y: -10
-                      }}
-                      transition={{ 
-                        duration: 0.5, 
-                        ease: [0.4, 0, 0.2, 1],
-                        rotate: {
-                          duration: 0.5,
-                          ease: [0.4, 0, 0.2, 1]
-                        }
-                      }}
-                    >
+                  <AnimatePresence mode="wait">
+                    {isRecognizing ? (
                       <motion.div
-                        animate={{ 
-                          scale: [1, 1.1, 1],
-                          rotate: [0, 5, -5, 0]
+                        key="recognizing"
+                        className="absolute inset-0 flex items-center justify-center"
+                        initial={{ 
+                          opacity: 0, 
+                          scale: 0.6,
+                          rotate: -90
                         }}
-                        transition={{
-                          duration: 1.2,
-                          repeat: Infinity,
-                          ease: "easeInOut"
+                        animate={{ 
+                          opacity: 1, 
+                          scale: 1,
+                          rotate: 0
+                        }}
+                        exit={{ 
+                          opacity: 0, 
+                          scale: 0.6,
+                          rotate: 90
+                        }}
+                        transition={{ 
+                          duration: 0.5, 
+                          ease: [0.4, 0, 0.2, 1]
                         }}
                       >
-                        <MicIcon className="w-3 h-3 text-white" />
-                      </motion.div>
-                    </motion.div>
-                  ) : isListening ? (
-                    <motion.div
-                      key="listening"
-                      className="relative"
-                      initial={{ 
-                        opacity: 0, 
-                        scale: 0.5,
-                        rotate: -180,
-                        y: 10
-                      }}
-                      animate={{ 
-                        opacity: 1, 
-                        scale: 1,
-                        rotate: 0,
-                        y: 0
-                      }}
-                      exit={{ 
-                        opacity: 0, 
-                        scale: 0.5,
-                        rotate: 180,
-                        y: -10
-                      }}
-                      transition={{ 
-                        duration: 0.5, 
-                        ease: [0.4, 0, 0.2, 1],
-                        rotate: {
-                          duration: 0.5,
-                          ease: [0.4, 0, 0.2, 1]
-                        }
-                      }}
-                    >
                       <motion.div
                         animate={{ 
-                          scale: [1, 1.2, 1],
-                          rotate: [0, 10, -10, 0]
-                        }}
-                        transition={{
-                          duration: 1,
-                          repeat: Infinity,
-                          ease: "easeInOut"
-                        }}
-                      >
-                        <Mic className="w-3 h-3 text-white" />
-                      </motion.div>
-                    </motion.div>
-                  ) : isTyping ? (
-                    <motion.div
-                      key="loading"
-                      className="relative"
-                      initial={{ 
-                        opacity: 0, 
-                        scale: 0.5,
-                        rotate: -180,
-                        y: 10
-                      }}
-                      animate={{ 
-                        opacity: 1, 
-                        scale: 1,
-                        rotate: 0,
-                        y: 0
-                      }}
-                      exit={{ 
-                        opacity: 0, 
-                        scale: 0.5,
-                        rotate: 180,
-                        y: -10
-                      }}
-                      transition={{ 
-                        duration: 0.5, 
-                        ease: [0.4, 0, 0.2, 1],
-                        rotate: {
-                          duration: 0.5,
-                          ease: [0.4, 0, 0.2, 1]
-                        }
-                      }}
-                    >
-                      <motion.div
-                        animate={{ rotate: 360 }}
-                        transition={{
-                          duration: 1.5,
-                          repeat: Infinity,
-                          ease: "linear"
-                        }}
-                      >
-                        <LoaderIcon className="w-3 h-3 text-white" />
-                      </motion.div>
-                    </motion.div>
-                  ) : (
-                    <motion.div
-                      key="brain"
-                      className="relative"
-                      initial={{ 
-                        opacity: 0, 
-                        scale: 0.5,
-                        rotate: -180,
-                        y: 10
-                      }}
-                      animate={{ 
-                        opacity: 1, 
-                        scale: 1,
-                        rotate: 0,
-                        y: 0
-                      }}
-                      exit={{ 
-                        opacity: 0, 
-                        scale: 0.5,
-                        rotate: 180,
-                        y: -10
-                      }}
-                      transition={{ 
-                        duration: 0.5, 
-                        ease: [0.4, 0, 0.2, 1],
-                        rotate: {
-                          duration: 0.5,
-                          ease: [0.4, 0, 0.2, 1]
-                        }
-                      }}
-                    >
-                      <motion.div
-                        animate={{ 
-                          scale: [1, 1.1, 1],
-                          rotate: [0, 5, -5, 0]
+                          scale: [1, 1.05, 1],
+                          rotate: [0, 2, -2, 0]
                         }}
                         transition={{
                           duration: 2,
@@ -342,24 +135,141 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                           ease: "easeInOut"
                         }}
                       >
+                        <MicIcon className="w-3 h-3 text-white" />
+                      </motion.div>
+                    </motion.div>
+                    ) : isListening ? (
+                      <motion.div
+                        key="listening"
+                        className="absolute inset-0 flex items-center justify-center"
+                        initial={{ 
+                          opacity: 0, 
+                          scale: 0.6,
+                          rotate: -90
+                        }}
+                        animate={{ 
+                          opacity: 1, 
+                          scale: 1,
+                          rotate: 0
+                        }}
+                        exit={{ 
+                          opacity: 0, 
+                          scale: 0.6,
+                          rotate: 90
+                        }}
+                        transition={{ 
+                          duration: 0.5, 
+                          ease: [0.4, 0, 0.2, 1]
+                        }}
+                      >
+                      <motion.div
+                        animate={{ 
+                          scale: [1, 1.08, 1],
+                          rotate: [0, 3, -3, 0]
+                        }}
+                        transition={{
+                          duration: 1.5,
+                          repeat: Infinity,
+                          ease: "easeInOut"
+                        }}
+                      >
+                        <Mic className="w-3 h-3 text-white" />
+                      </motion.div>
+                    </motion.div>
+                    ) : isTyping ? (
+                      <motion.div
+                        key="loading"
+                        className="absolute inset-0 flex items-center justify-center"
+                        initial={{ 
+                          opacity: 0, 
+                          scale: 0.6,
+                          rotate: -90
+                        }}
+                        animate={{ 
+                          opacity: 1, 
+                          scale: 1,
+                          rotate: 0
+                        }}
+                        exit={{ 
+                          opacity: 0, 
+                          scale: 0.6,
+                          rotate: 90
+                        }}
+                        transition={{ 
+                          duration: 0.5, 
+                          ease: [0.4, 0, 0.2, 1]
+                        }}
+                      >
+                      <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{
+                          duration: 2,
+                          repeat: Infinity,
+                          ease: "easeInOut"
+                        }}
+                      >
+                        <LoaderIcon className="w-3 h-3 text-white" />
+                      </motion.div>
+                    </motion.div>
+                    ) : (
+                      <motion.div
+                        key="brain"
+                        className="absolute inset-0 flex items-center justify-center"
+                        initial={{ 
+                          opacity: 0, 
+                          scale: 0.6,
+                          rotate: -90
+                        }}
+                        animate={{ 
+                          opacity: 1, 
+                          scale: 1,
+                          rotate: 0
+                        }}
+                        exit={{ 
+                          opacity: 0, 
+                          scale: 0.6,
+                          rotate: 90
+                        }}
+                        transition={{ 
+                          duration: 0.5, 
+                          ease: [0.4, 0, 0.2, 1]
+                        }}
+                      >
+                      <motion.div
+                        animate={{ 
+                          scale: [1, 1.05, 1],
+                          rotate: [0, 2, -2, 0]
+                        }}
+                        transition={{
+                          duration: 3,
+                          repeat: Infinity,
+                          ease: "easeInOut"
+                        }}
+                      >
                         <Brain className="w-3 h-3 text-white" />
                       </motion.div>
                     </motion.div>
-                  )}
+                    )}
+                  </AnimatePresence>
+              </div>
+              <div className="relative w-24 h-4 flex items-center justify-center">
+                <AnimatePresence mode="wait">
+                  <motion.span 
+                    className="absolute text-xs font-bold text-gray-900 dark:text-white whitespace-nowrap"
+                    key={isRecognizing ? "recognizing" : isListening ? "listening" : isTyping ? "thinking" : "lumon"}
+                    initial={{ opacity: 0, scale: 0.8, y: 2 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.8, y: -2 }}
+                    transition={{ 
+                      duration: 0.4, 
+                      ease: [0.4, 0, 0.2, 1],
+                      scale: { duration: 0.3 }
+                    }}
+                  >
+                    {isRecognizing ? "Распознаю" : isListening ? "Слушаю" : isTyping ? "Думаю" : "PROJECT LUMON"}
+                  </motion.span>
                 </AnimatePresence>
               </div>
-              <AnimatePresence mode="wait">
-                <motion.span 
-                  className="text-xs font-bold text-gray-900 dark:text-white whitespace-nowrap"
-                  key={isRecognizing ? "recognizing" : isListening ? "listening" : isTyping ? "thinking" : "lumon"}
-                  initial={{ opacity: 0, y: 5 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -5 }}
-                  transition={{ duration: 0.3, ease: "easeInOut" }}
-                >
-                  {isRecognizing ? "Распознаю" : isListening ? "Слушаю" : isTyping ? "Думаю" : "PROJECT LUMON"}
-                </motion.span>
-              </AnimatePresence>
             </div>
           </motion.button>
         </div>

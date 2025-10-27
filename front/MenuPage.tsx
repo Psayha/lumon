@@ -232,7 +232,7 @@ const MenuPage: React.FC = () => {
       {/* Кнопка консультации */}
       <motion.button
         onClick={() => setShowConsultation(true)}
-        className="fixed bottom-6 right-6 z-50 w-16 h-16 bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:from-violet-600 hover:to-fuchsia-600 text-white rounded-full shadow-2xl hover:shadow-3xl transition-all duration-300 backdrop-blur-xl border border-white/20 flex items-center justify-center"
+        className="fixed bottom-6 right-6 z-50 w-16 h-16 bg-gradient-to-r from-blue-400 to-indigo-500 hover:from-blue-500 hover:to-indigo-600 text-white rounded-full shadow-2xl hover:shadow-3xl transition-all duration-300 backdrop-blur-xl border border-white/20 flex items-center justify-center"
         initial={{ opacity: 0, scale: 0.8, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.6, ease: "easeOut", delay: 0.8 }}
