@@ -21,7 +21,6 @@ interface FileWithProgress {
 
 const UploadDocumentsModal: React.FC<UploadDocumentsModalProps> = ({ isOpen, onClose }) => {
   const [selectedCategory, setSelectedCategory] = useState('about');
-  const [description, setDescription] = useState('');
   const [files, setFiles] = useState<FileWithProgress[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -124,14 +123,12 @@ const UploadDocumentsModal: React.FC<UploadDocumentsModalProps> = ({ isOpen, onC
     e.preventDefault();
     console.log('Загрузка документов:', {
       category: selectedCategory,
-      description,
       files: files.map(f => f.file.name)
     });
     
     // Закрываем модальное окно
     onClose();
     setFiles([]);
-    setDescription('');
   };
 
   const getFileIcon = (fileName: string) => {
@@ -179,7 +176,7 @@ const UploadDocumentsModal: React.FC<UploadDocumentsModalProps> = ({ isOpen, onC
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between px-3 py-4 border-b border-gray-200 dark:border-gray-700">
               <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center">
                   <Upload className="w-5 h-5 text-blue-600 dark:text-blue-400" />
@@ -202,43 +199,13 @@ const UploadDocumentsModal: React.FC<UploadDocumentsModalProps> = ({ isOpen, onC
             </div>
 
             {/* Content */}
-            <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
+            <div className="px-3 py-6 overflow-y-auto max-h-[calc(90vh-200px)]">
               <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Category Selection */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                    Категория документа
-                  </label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {categories.map((category) => (
-                      <button
-                        key={category.id}
-                        type="button"
-                        onClick={() => setSelectedCategory(category.id)}
-                        className={`p-3 text-left rounded-lg border transition-colors duration-200 ${
-                          selectedCategory === category.id
-                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300'
-                            : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 text-gray-700 dark:text-gray-300'
-                        }`}
-                      >
-                        {category.name}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Description */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Описание документа
-                  </label>
-                  <textarea
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Краткое описание содержимого документа..."
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                    rows={3}
-                  />
+                {/* AI Processing Info */}
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                  <p className="text-xs text-blue-800 dark:text-blue-200">
+                    Информация будет обработана ИИ для лучшего понимания ваших бизнес процессов
+                  </p>
                 </div>
 
                 {/* File Upload Area */}
@@ -342,18 +309,11 @@ const UploadDocumentsModal: React.FC<UploadDocumentsModalProps> = ({ isOpen, onC
             </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 transition-colors duration-200"
-              >
-                Отмена
-              </button>
+            <div className="flex items-center justify-center px-3 py-4 border-t border-gray-200 dark:border-gray-700">
               <button
                 onClick={handleSubmit}
                 disabled={files.length === 0}
-                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg transition-colors duration-200"
+                className="w-full px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg transition-colors duration-200"
               >
                 Загрузить ({files.length})
               </button>

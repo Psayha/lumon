@@ -345,17 +345,6 @@ Cookies — это небольшие текстовые файлы, котор�
             )}
           </div>
 
-          {/* Footer with Back Button for TMA */}
-          {isTelegramWebApp() && (
-            <div className="p-3 sm:p-4 border-t border-gray-200/50 dark:border-white/[0.05]">
-              <button
-                onClick={onDecline}
-                className="w-full py-2 px-4 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200"
-              >
-                Назад
-              </button>
-            </div>
-          )}
         </motion.div>
       </motion.div>
     </AnimatePresence>

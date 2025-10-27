@@ -1,21 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { 
-  Upload, 
-  Search, 
-  Eye, 
-  Edit, 
-  Download, 
-  Trash2,
-  Building,
-  Package,
-  MessageSquare,
-  FileCheck,
-  Presentation,
-  HelpCircle,
-  Users,
-  MoreHorizontal
-} from 'lucide-react';
+import { Upload } from 'lucide-react';
 import { AppHeader } from '../src/components/AppHeader';
 import { AppFooter } from '../src/components/AppFooter';
 import UploadDocumentsModal from '../src/components/modals/UploadDocumentsModal';
@@ -58,24 +43,17 @@ const mockDocuments = [
   }
 ];
 
-const categories = [
-  { id: 'about', name: 'О компании', icon: Building, count: 5 },
-  { id: 'products', name: 'Продукты и услуги', icon: Package, count: 8 },
-  { id: 'scripts', name: 'Скрипты продаж', icon: MessageSquare, count: 3 },
-  { id: 'policies', name: 'Политики и регламенты', icon: FileCheck, count: 12 },
-  { id: 'presentations', name: 'Презентации', icon: Presentation, count: 6 },
-  { id: 'faq', name: 'FAQ', icon: HelpCircle, count: 4 },
-  { id: 'competitors', name: 'Конкуренты', icon: Users, count: 2 },
-  { id: 'other', name: 'Прочее', icon: MoreHorizontal, count: 7 }
-];
 
 const KnowledgeBasePage: React.FC = () => {
   const [isOwner, setIsOwner] = useState(true);
-  const [activeCategory, setActiveCategory] = useState('about');
-  const [searchQuery, setSearchQuery] = useState('');
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showDocumentViewer, setShowDocumentViewer] = useState(false);
   const [selectedDocument, setSelectedDocument] = useState<any>(null);
+  const [documents] = useState(mockDocuments);
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  // Проверяем есть ли документы в обработке
+  const hasProcessingDocuments = documents.some(doc => doc.status === 'processing');
 
   const getFileIcon = (type: string) => {
     switch (type) {
@@ -105,9 +83,20 @@ const KnowledgeBasePage: React.FC = () => {
     }
   };
 
+  const handleDownload = () => {
+    setIsDownloading(true);
+    console.log('Начало скачивания документа:', selectedDocument?.name);
+    
+    // Симуляция процесса скачивания
+    setTimeout(() => {
+      setIsDownloading(false);
+      console.log('Скачивание завершено');
+    }, 3000);
+  };
+
   return (
     <div className="min-h-screen gradient-bg relative flex flex-col">
-      <AppHeader />
+      <AppHeader isDownloading={isDownloading} isTyping={hasProcessingDocuments} />
       
       {/* Фоновые эффекты */}
       <div className="absolute inset-0 w-full h-full overflow-hidden">
@@ -116,86 +105,42 @@ const KnowledgeBasePage: React.FC = () => {
         <div className="absolute top-1/4 right-1/3 w-64 h-64 bg-red-500/10 rounded-full mix-blend-normal filter blur-[96px] animate-pulse delay-1000" />
       </div>
       
-      <div className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full relative z-10">
+      <div className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 w-full relative z-10">
         {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-pink-600 via-rose-600 to-red-600 dark:from-pink-400 dark:via-rose-400 dark:to-red-400 mb-2">
-              База Знаний
-            </h1>
-            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">
-              Централизованное хранилище всех знаний и документов вашей компании
-            </p>
-          </div>
-          
-          {isOwner && (
+        <div className="text-center mb-2">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-pink-600 via-rose-600 to-red-600 dark:from-pink-400 dark:via-rose-400 dark:to-red-400 mb-2">
+            База Знаний
+          </h1>
+        </div>
+
+        {/* Upload Button */}
+        {isOwner && (
+          <div className="fixed bottom-6 right-6 z-50">
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => setShowUploadModal(true)}
-              className="flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors duration-200"
+              className="w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg transition-colors duration-200 flex items-center justify-center"
             >
-              <Upload className="w-4 h-4" />
-              <span>Загрузить документы</span>
+              <Upload className="w-6 h-6" />
             </motion.button>
-          )}
-        </div>
-
-        {/* Search */}
-        <div className="mb-6">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <input
-              type="text"
-              placeholder="Поиск по базе знаний... (ИИ понимает смысл запроса)"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
           </div>
-        </div>
+        )}
 
-        {/* Categories */}
-        <div className="mb-8">
-          <div className="flex flex-wrap gap-2">
-            {categories.map((category) => {
-              const IconComponent = category.icon;
-              return (
-                <motion.button
-                  key={category.id}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setActiveCategory(category.id)}
-                  className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors duration-200 ${
-                    activeCategory === category.id
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-white/80 dark:bg-white/[0.02] text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
-                  }`}
-                >
-                  <IconComponent className="w-4 h-4" />
-                  <span>{category.name}</span>
-                  <span className={`text-xs px-2 py-1 rounded-full ${
-                    activeCategory === category.id
-                      ? 'bg-blue-500 text-white'
-                      : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
-                  }`}>
-                    {category.count}
-                  </span>
-                </motion.button>
-              );
-            })}
-          </div>
-        </div>
 
         {/* Documents Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {mockDocuments.map((doc) => (
+          {documents.map((doc) => (
             <motion.div
               key={doc.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               whileHover={{ scale: 1.02 }}
-              className="relative backdrop-blur-xl bg-white/80 dark:bg-white/[0.02] rounded-2xl shadow-xl border border-gray-200/50 dark:border-white/[0.05] p-6 hover:shadow-2xl transition-all duration-300"
+              onClick={() => {
+                setSelectedDocument(doc);
+                setShowDocumentViewer(true);
+              }}
+              className="relative backdrop-blur-xl bg-white/80 dark:bg-white/[0.02] rounded-2xl shadow-xl border border-gray-200/50 dark:border-white/[0.05] p-3 hover:shadow-2xl transition-all duration-300 cursor-pointer"
             >
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center space-x-3">
@@ -204,14 +149,8 @@ const KnowledgeBasePage: React.FC = () => {
                     <h3 className="font-semibold text-gray-900 dark:text-white text-sm">
                       {doc.name}
                     </h3>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {doc.size} • {doc.uploadDate}
-                    </p>
                   </div>
                 </div>
-                <span className={`text-xs px-2 py-1 rounded-full ${getStatusColor(doc.status)}`}>
-                  {getStatusText(doc.status)}
-                </span>
               </div>
               
               <p className="text-sm text-gray-600 dark:text-gray-300 mb-4 line-clamp-2">
@@ -219,37 +158,9 @@ const KnowledgeBasePage: React.FC = () => {
               </p>
               
               <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2 text-xs text-gray-500 dark:text-gray-400">
-                  <Eye className="w-3 h-3" />
-                  <span>{doc.views} просмотров</span>
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                  <button
-                    onClick={() => {
-                      setSelectedDocument(doc);
-                      setShowDocumentViewer(true);
-                    }}
-                    className="p-2 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-200"
-                  >
-                    <Eye className="w-4 h-4" />
-                  </button>
-                  
-                  <button className="p-2 text-gray-600 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-colors duration-200">
-                    <Download className="w-4 h-4" />
-                  </button>
-                  
-                  {isOwner && (
-                    <>
-                      <button className="p-2 text-gray-600 dark:text-gray-400 hover:text-yellow-600 dark:hover:text-yellow-400 transition-colors duration-200">
-                        <Edit className="w-4 h-4" />
-                      </button>
-                      <button className="p-2 text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors duration-200">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </>
-                  )}
-                </div>
+                <span className={`text-xs px-2 py-1 rounded-full ${getStatusColor(doc.status)}`}>
+                  {getStatusText(doc.status)}
+                </span>
               </div>
             </motion.div>
           ))}
@@ -276,6 +187,7 @@ const KnowledgeBasePage: React.FC = () => {
         onClose={() => setShowDocumentViewer(false)}
         document={selectedDocument}
         isOwner={isOwner}
+        onDownload={handleDownload}
       />
     </div>
   );

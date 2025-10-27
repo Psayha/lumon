@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Brain, LoaderIcon, Mic, MicIcon } from 'lucide-react';
+import { Brain, LoaderIcon, Mic, MicIcon, Download } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface AppHeaderProps {
@@ -8,12 +8,14 @@ interface AppHeaderProps {
   showHomeButton?: boolean;
   isListening?: boolean;
   isRecognizing?: boolean;
+  isDownloading?: boolean;
 }
 
 export const AppHeader: React.FC<AppHeaderProps> = ({ 
   isTyping = false, 
   isListening = false,
-  isRecognizing = false
+  isRecognizing = false,
+  isDownloading = false
 }) => {
   const navigate = useNavigate();
 
@@ -25,7 +27,9 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           <motion.button
             onClick={() => navigate('/voice-assistant')}
             className={`flex items-center justify-center rounded-full px-4 py-2 relative overflow-hidden w-44 h-9 ${
-              isRecognizing
+              isDownloading
+                ? "bg-white dark:bg-gray-800 border-2 border-green-500 dark:border-green-400 shadow-2xl shadow-green-500/40 ring-4 ring-green-500/20"
+                : isRecognizing
                 ? "bg-white dark:bg-gray-800 border-2 border-orange-500 dark:border-orange-400 shadow-2xl shadow-orange-500/40 ring-4 ring-orange-500/20"
                 : isListening
                 ? "bg-white dark:bg-gray-800 border-2 border-red-500 dark:border-red-400 shadow-2xl shadow-red-500/40 ring-4 ring-red-500/20"
@@ -34,8 +38,8 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                 : "bg-white dark:bg-gray-800 border-2 border-blue-600 dark:border-blue-400 hover:bg-blue-50 dark:hover:bg-gray-700"
             }`}
             aria-label="Перейти к голосовому ассистенту Lumon"
-            whileHover={!isTyping && !isListening && !isRecognizing ? { scale: 1.05 } : {}}
-            whileTap={!isTyping && !isListening && !isRecognizing ? { scale: 0.95 } : {}}
+            whileHover={!isTyping && !isListening && !isRecognizing && !isDownloading ? { scale: 1.05 } : {}}
+            whileTap={!isTyping && !isListening && !isRecognizing && !isDownloading ? { scale: 0.95 } : {}}
             transition={{
               duration: 0.4,
               ease: "easeInOut"
@@ -73,6 +77,22 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
               />
             )}
             
+            {/* Плавный эффект для состояния "Скачивание" */}
+            {isDownloading && (
+              <motion.div
+                className="absolute inset-0 rounded-full bg-gradient-to-r from-green-400/25 to-green-600/25"
+                animate={{
+                  opacity: [0.3, 0.7, 0.3],
+                  scale: [1, 1.03, 1]
+                }}
+                transition={{
+                  duration: 1.8,
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+              />
+            )}
+            
             {/* Плавный эффект для состояния "Распознаю" */}
             {isRecognizing && (
               <motion.div
@@ -91,7 +111,9 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
             
             <div className="relative z-10 flex items-center space-x-3">
               <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 relative overflow-hidden ${
-                isRecognizing
+                isDownloading
+                  ? "bg-green-600 dark:bg-green-400"
+                  : isRecognizing
                   ? "bg-orange-600 dark:bg-orange-400"
                   : isListening 
                   ? "bg-red-600 dark:bg-red-400" 
@@ -100,7 +122,45 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                   : "bg-blue-600 dark:bg-blue-400"
               }`}>
                   <AnimatePresence mode="wait">
-                    {isRecognizing ? (
+                    {isDownloading ? (
+                      <motion.div
+                        key="downloading"
+                        className="absolute inset-0 flex items-center justify-center"
+                        initial={{ 
+                          opacity: 0, 
+                          scale: 0.6,
+                          rotate: -90
+                        }}
+                        animate={{ 
+                          opacity: 1, 
+                          scale: 1,
+                          rotate: 0
+                        }}
+                        exit={{ 
+                          opacity: 0, 
+                          scale: 0.6,
+                          rotate: 90
+                        }}
+                        transition={{ 
+                          duration: 0.5, 
+                          ease: [0.4, 0, 0.2, 1]
+                        }}
+                      >
+                      <motion.div
+                        animate={{ 
+                          scale: [1, 1.05, 1],
+                          rotate: [0, 2, -2, 0]
+                        }}
+                        transition={{
+                          duration: 2,
+                          repeat: Infinity,
+                          ease: "easeInOut"
+                        }}
+                      >
+                        <Download className="w-3 h-3 text-white" />
+                      </motion.div>
+                    </motion.div>
+                    ) : isRecognizing ? (
                       <motion.div
                         key="recognizing"
                         className="absolute inset-0 flex items-center justify-center"
@@ -256,7 +316,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                 <AnimatePresence mode="wait">
                   <motion.span 
                     className="absolute text-xs font-bold text-gray-900 dark:text-white whitespace-nowrap"
-                    key={isRecognizing ? "recognizing" : isListening ? "listening" : isTyping ? "thinking" : "lumon"}
+                    key={isDownloading ? "downloading" : isRecognizing ? "recognizing" : isListening ? "listening" : isTyping ? "thinking" : "lumon"}
                     initial={{ opacity: 0, scale: 0.8, y: 2 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.8, y: -2 }}
@@ -266,7 +326,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                       scale: { duration: 0.3 }
                     }}
                   >
-                    {isRecognizing ? "Распознаю" : isListening ? "Слушаю" : isTyping ? "Думаю" : "PROJECT LUMON"}
+                    {isDownloading ? "Скачивание" : isRecognizing ? "Распознаю" : isListening ? "Слушаю" : isTyping ? "Обработка.docx" : "PROJECT LUMON"}
                   </motion.span>
                 </AnimatePresence>
               </div>
