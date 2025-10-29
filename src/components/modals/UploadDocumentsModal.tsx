@@ -20,21 +20,11 @@ interface FileWithProgress {
 }
 
 const UploadDocumentsModal: React.FC<UploadDocumentsModalProps> = ({ isOpen, onClose }) => {
-  const [selectedCategory, setSelectedCategory] = useState('about');
   const [files, setFiles] = useState<FileWithProgress[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const categories = [
-    { id: 'about', name: 'О компании' },
-    { id: 'products', name: 'Продукты и услуги' },
-    { id: 'scripts', name: 'Скрипты продаж' },
-    { id: 'policies', name: 'Политики и регламенты' },
-    { id: 'presentations', name: 'Презентации' },
-    { id: 'faq', name: 'FAQ' },
-    { id: 'competitors', name: 'Конкуренты' },
-    { id: 'other', name: 'Прочее' }
-  ];
+  
 
   // Блокируем скролл фона при открытии модального окна
   useEffect(() => {
@@ -122,7 +112,6 @@ const UploadDocumentsModal: React.FC<UploadDocumentsModalProps> = ({ isOpen, onC
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     console.log('Загрузка документов:', {
-      category: selectedCategory,
       files: files.map(f => f.file.name)
     });
     
