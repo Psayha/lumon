@@ -1,7 +1,9 @@
-import React, { Suspense, lazy } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import React, { Suspense, lazy, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { ModernSplashScreen } from './components/ModernSplashScreen';
+import { useTelegram } from './hooks/useTelegram';
+import { useTelegramTheme } from './hooks/useTelegramTheme';
 
 // Lazy loading компонентов для лучшей производительности
 const MenuPage = lazy(() => import('../front/MenuPage'));
@@ -53,11 +55,49 @@ const LoadingFallback: React.FC = () => (
 );
 
 const App: React.FC = () => {
+  const TelegramUIManager: React.FC = () => {
+    const location = useLocation();
+    const navigate = useNavigate();
+    const { tg, isReady } = useTelegram();
+    const { themeParams } = useTelegramTheme();
+
+    // Синхронизация цветов заголовка/фона и safe-area
+    useEffect(() => {
+      if (!isReady || !tg) return;
+      const bg = themeParams.bg_color || '#ffffff';
+      const text = themeParams.text_color || '#000000';
+      try {
+        tg.setHeaderColor?.(bg);
+        tg.setBackgroundColor?.(bg);
+      } catch {}
+      document.body.style.backgroundColor = bg;
+      document.body.style.color = text;
+    }, [isReady, tg, themeParams.bg_color, themeParams.text_color]);
+
+    // Логика Back/Close: на главной скрываем Back, на внутренних показываем и возвращаемся назад
+    useEffect(() => {
+      if (!isReady || !tg) return;
+      const isRoot = location.pathname === '/';
+      if (isRoot) {
+        tg.BackButton.hide();
+        return;
+      }
+
+      tg.BackButton.show();
+      tg.BackButton.onClick(() => {
+        navigate(-1);
+      });
+    }, [isReady, tg, location.pathname, navigate]);
+
+    return null;
+  };
+
   return (
     <ModernSplashScreen>
       <div className="min-h-screen safe-area-inset gradient-bg">
         <ErrorBoundary>
           <Router>
+            <TelegramUIManager />
             <Suspense fallback={<LoadingFallback />}>
               <Routes>
                 <Route path="/" element={<MenuPage />} />
