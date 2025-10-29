@@ -26,7 +26,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           {/* Центральная кнопка Lumon */}
           <motion.button
             onClick={() => navigate('/voice-assistant')}
-            className={`flex items-center justify-center rounded-full px-4 py-2 relative overflow-hidden w-44 h-9 ${
+            className={`flex items-center justify-center rounded-full px-4 py-2 relative overflow-hidden w-44 h-9 translate-x-[6px] md:translate-x-0 ${
               isDownloading
                 ? "bg-white dark:bg-gray-800 border-2 border-green-500 dark:border-green-400 shadow-2xl shadow-green-500/40 ring-4 ring-green-500/20"
                 : isRecognizing

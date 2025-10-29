@@ -5,6 +5,19 @@ import './index.css'
 
 // Инициализация темы: по умолчанию используем системную
 const initializeTheme = () => {
+  // Telegram Mini App интеграция: если доступно, используем colorScheme
+  const tg = (window as any).Telegram?.WebApp;
+  if (tg && tg.colorScheme) {
+    const isDark = tg.colorScheme === 'dark';
+    document.documentElement.classList.toggle('dark', isDark);
+    try {
+      tg.onEvent?.('themeChanged', () => {
+        const nowDark = tg.colorScheme === 'dark';
+        document.documentElement.classList.toggle('dark', nowDark);
+      });
+    } catch (_) {}
+  }
+
   const saved = localStorage.getItem('theme') as 'light' | 'dark' | 'system' | null;
   const preferDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
   const effective = saved && saved !== 'system' ? saved : (preferDark ? 'dark' : 'light');
