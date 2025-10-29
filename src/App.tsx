@@ -55,20 +55,22 @@ const LoadingFallback: React.FC = () => (
 const App: React.FC = () => {
   return (
     <ModernSplashScreen>
-      <ErrorBoundary>
-        <Router>
-          <Suspense fallback={<LoadingFallback />}>
-            <Routes>
-              <Route path="/" element={<MenuPage />} />
-              <Route path="/voice-assistant" element={<VoiceAssistantPage />} />
-              <Route path="/app/crm" element={<CRMPage />} />
-              <Route path="/app/analytics" element={<AnalyticsPage />} />
-              <Route path="/app/knowledge" element={<KnowledgeBasePage />} />
-              <Route path="/app/payment" element={<PricingPage />} />
-            </Routes>
-          </Suspense>
-        </Router>
-      </ErrorBoundary>
+      <div className="min-h-screen safe-area-inset bg-white dark:bg-gray-900">
+        <ErrorBoundary>
+          <Router>
+            <Suspense fallback={<LoadingFallback />}>
+              <Routes>
+                <Route path="/" element={<MenuPage />} />
+                <Route path="/voice-assistant" element={<VoiceAssistantPage />} />
+                <Route path="/app/crm" element={<CRMPage />} />
+                <Route path="/app/analytics" element={<AnalyticsPage />} />
+                <Route path="/app/knowledge" element={<KnowledgeBasePage />} />
+                <Route path="/app/payment" element={<PricingPage />} />
+              </Routes>
+            </Suspense>
+          </Router>
+        </ErrorBoundary>
+      </div>
     </ModernSplashScreen>
   );
 };

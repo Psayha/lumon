@@ -54,6 +54,26 @@ html {
   scrollbar-width: none;
 }
 
+/* Safe area support for mobile (iOS notch etc.) */
+:root {
+  --safe-top: env(safe-area-inset-top);
+  --safe-right: env(safe-area-inset-right);
+  --safe-bottom: env(safe-area-inset-bottom);
+  --safe-left: env(safe-area-inset-left);
+}
+
+.safe-area-inset {
+  padding-top: var(--safe-top);
+  padding-right: var(--safe-right);
+  padding-bottom: var(--safe-bottom);
+  padding-left: var(--safe-left);
+}
+
+.pt-safe { padding-top: var(--safe-top); }
+.pr-safe { padding-right: var(--safe-right); }
+.pb-safe { padding-bottom: var(--safe-bottom); }
+.pl-safe { padding-left: var(--safe-left); }
+
 /* Анимации для SplashScreen */
 @keyframes fadeIn {
   from {
