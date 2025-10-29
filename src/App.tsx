@@ -3,7 +3,6 @@ import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate } from
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { ModernSplashScreen } from './components/ModernSplashScreen';
 import { useTelegram } from './hooks/useTelegram';
-import { useTelegramTheme } from './hooks/useTelegramTheme';
 
 // Lazy loading компонентов для лучшей производительности
 const MenuPage = lazy(() => import('../front/MenuPage'));
@@ -59,17 +58,17 @@ const App: React.FC = () => {
     const location = useLocation();
     const navigate = useNavigate();
     const { tg, isReady } = useTelegram();
-    const { themeParams } = useTelegramTheme();
 
     // Применяем тему Telegram к CSS-переменным и классу dark
     useEffect(() => {
       if (!isReady || !tg) return;
-      const bg = themeParams.bg_color || '#ffffff';
-      const text = themeParams.text_color || '#000000';
-      const hint = themeParams.hint_color || '#e5e5e5';
-      const secondaryBg = themeParams.secondary_bg_color || '#f8f9fa';
-      const button = themeParams.button_color || '#2481cc';
-      const buttonText = themeParams.button_text_color || '#ffffff';
+      const params = (tg as any).initDataUnsafe?.theme_params || (tg as any).themeParams || {};
+      const bg = params.bg_color || '#ffffff';
+      const text = params.text_color || '#000000';
+      const hint = params.hint_color || '#e5e5e5';
+      const secondaryBg = params.secondary_bg_color || '#f8f9fa';
+      const button = params.button_color || '#2481cc';
+      const buttonText = params.button_text_color || '#ffffff';
 
       try {
         tg.setHeaderColor?.(bg);
@@ -94,7 +93,8 @@ const App: React.FC = () => {
       // Переключаем dark-класс согласно Telegram colorScheme
       const isDark = (tg as any).colorScheme === 'dark';
       root.classList.toggle('dark', isDark);
-    }, [isReady, tg, themeParams.bg_color, themeParams.text_color, themeParams.hint_color, themeParams.secondary_bg_color, themeParams.button_color, themeParams.button_text_color]);
+      document.body.classList.toggle('dark', isDark);
+    }, [isReady, tg]);
 
     // Подписка на изменения темы (WebApp.onEvent('themeChanged'))
     useEffect(() => {
@@ -126,6 +126,7 @@ const App: React.FC = () => {
         root.style.setProperty('--tg-button-text', buttonText);
         const isDark = (tg as any).colorScheme === 'dark';
         root.classList.toggle('dark', isDark);
+        document.body.classList.toggle('dark', isDark);
       };
       (tg as any).onEvent('themeChanged', onThemeChanged);
       return () => {
