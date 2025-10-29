@@ -12,6 +12,22 @@ const initializeTheme = () => {
 
   if (effective === 'dark') root.classList.add('dark');
   else root.classList.remove('dark');
+
+  // Если выбрана системная тема или тема не сохранена — слушаем изменения системы
+  if (!saved || saved === 'system') {
+    const media = window.matchMedia('(prefers-color-scheme: dark)');
+    const apply = () => {
+      if (media.matches) root.classList.add('dark');
+      else root.classList.remove('dark');
+    };
+    try {
+      media.addEventListener('change', apply);
+    } catch (_) {
+      // Safari
+      // @ts-ignore
+      media.addListener(apply);
+    }
+  }
 };
 
 // Инициализируем тему до рендера

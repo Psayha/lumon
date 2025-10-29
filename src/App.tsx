@@ -55,7 +55,7 @@ const LoadingFallback: React.FC = () => (
 const App: React.FC = () => {
   return (
     <ModernSplashScreen>
-      <div className="min-h-screen safe-area-inset bg-white dark:bg-gray-900">
+      <div className="min-h-screen safe-area-inset gradient-bg">
         <ErrorBoundary>
           <Router>
             <Suspense fallback={<LoadingFallback />}>
