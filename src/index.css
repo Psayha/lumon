@@ -144,3 +144,9 @@ html {
   max-height: 100vh;
   box-sizing: border-box;
 }
+
+/* Контейнер приложения: отступы под фиксированный header и нижние системные панели */
+.app-content {
+  padding-top: calc(var(--safe-top, 0px) + 56px);
+  padding-bottom: calc(var(--safe-bottom, 0px) + 72px);
+}

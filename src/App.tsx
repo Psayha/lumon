@@ -179,14 +179,16 @@ const App: React.FC = () => {
           <Router>
             <TelegramUIManager />
             <Suspense fallback={<LoadingFallback />}>
-              <Routes>
-                <Route path="/" element={<MenuPage />} />
-                <Route path="/voice-assistant" element={<VoiceAssistantPage />} />
-                <Route path="/app/crm" element={<CRMPage />} />
-                <Route path="/app/analytics" element={<AnalyticsPage />} />
-                <Route path="/app/knowledge" element={<KnowledgeBasePage />} />
-                <Route path="/app/payment" element={<PricingPage />} />
-              </Routes>
+              <div className="app-content">
+                <Routes>
+                  <Route path="/" element={<MenuPage />} />
+                  <Route path="/voice-assistant" element={<VoiceAssistantPage />} />
+                  <Route path="/app/crm" element={<CRMPage />} />
+                  <Route path="/app/analytics" element={<AnalyticsPage />} />
+                  <Route path="/app/knowledge" element={<KnowledgeBasePage />} />
+                  <Route path="/app/payment" element={<PricingPage />} />
+                </Routes>
+              </div>
             </Suspense>
           </Router>
         </ErrorBoundary>
