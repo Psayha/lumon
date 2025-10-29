@@ -61,18 +61,77 @@ const App: React.FC = () => {
     const { tg, isReady } = useTelegram();
     const { themeParams } = useTelegramTheme();
 
-    // Синхронизация цветов заголовка/фона и safe-area
+    // Применяем тему Telegram к CSS-переменным и классу dark
     useEffect(() => {
       if (!isReady || !tg) return;
       const bg = themeParams.bg_color || '#ffffff';
       const text = themeParams.text_color || '#000000';
+      const hint = themeParams.hint_color || '#e5e5e5';
+      const secondaryBg = themeParams.secondary_bg_color || '#f8f9fa';
+      const button = themeParams.button_color || '#2481cc';
+      const buttonText = themeParams.button_text_color || '#ffffff';
+
       try {
         tg.setHeaderColor?.(bg);
         tg.setBackgroundColor?.(bg);
+        // Сентябрь 2024+: нижняя панель
+        (tg as any).setBottomBarColor?.(bg);
       } catch {}
-      document.body.style.backgroundColor = bg;
-      document.body.style.color = text;
-    }, [isReady, tg, themeParams.bg_color, themeParams.text_color]);
+
+      const root = document.documentElement;
+      root.style.setProperty('--bg-primary', bg);
+      root.style.setProperty('--bg-secondary', secondaryBg);
+      root.style.setProperty('--text-primary', text);
+      root.style.setProperty('--text-secondary', hint);
+      // для градиента используем оттенки темы
+      root.style.setProperty('--gradient-from', bg);
+      root.style.setProperty('--gradient-via', secondaryBg);
+      root.style.setProperty('--gradient-to', bg);
+      // кнопки (могут использоваться в компонентах)
+      root.style.setProperty('--tg-button', button);
+      root.style.setProperty('--tg-button-text', buttonText);
+
+      // Переключаем dark-класс согласно Telegram colorScheme
+      const isDark = (tg as any).colorScheme === 'dark';
+      root.classList.toggle('dark', isDark);
+    }, [isReady, tg, themeParams.bg_color, themeParams.text_color, themeParams.hint_color, themeParams.secondary_bg_color, themeParams.button_color, themeParams.button_text_color]);
+
+    // Подписка на изменения темы (WebApp.onEvent('themeChanged'))
+    useEffect(() => {
+      if (!isReady || !tg || !(tg as any).onEvent) return;
+      const onThemeChanged = () => {
+        // Тригерим эффект применения темы, изменив зависимость через no-op
+        // Здесь достаточно форснуть re-render сменой location.key, но проще напрямую запустить установку стилей
+        const params = (tg as any).initDataUnsafe?.theme_params || (tg as any).themeParams || {};
+        const bg = params.bg_color || '#ffffff';
+        const text = params.text_color || '#000000';
+        const hint = params.hint_color || '#e5e5e5';
+        const secondaryBg = params.secondary_bg_color || '#f8f9fa';
+        const button = params.button_color || '#2481cc';
+        const buttonText = params.button_text_color || '#ffffff';
+        try {
+          tg.setHeaderColor?.(bg);
+          tg.setBackgroundColor?.(bg);
+          (tg as any).setBottomBarColor?.(bg);
+        } catch {}
+        const root = document.documentElement;
+        root.style.setProperty('--bg-primary', bg);
+        root.style.setProperty('--bg-secondary', secondaryBg);
+        root.style.setProperty('--text-primary', text);
+        root.style.setProperty('--text-secondary', hint);
+        root.style.setProperty('--gradient-from', bg);
+        root.style.setProperty('--gradient-via', secondaryBg);
+        root.style.setProperty('--gradient-to', bg);
+        root.style.setProperty('--tg-button', button);
+        root.style.setProperty('--tg-button-text', buttonText);
+        const isDark = (tg as any).colorScheme === 'dark';
+        root.classList.toggle('dark', isDark);
+      };
+      (tg as any).onEvent('themeChanged', onThemeChanged);
+      return () => {
+        (tg as any).offEvent?.('themeChanged', onThemeChanged);
+      };
+    }, [isReady, tg]);
 
     // Логика Back/Close: на главной скрываем Back, на внутренних показываем и возвращаемся назад
     useEffect(() => {
@@ -88,6 +147,27 @@ const App: React.FC = () => {
         navigate(-1);
       });
     }, [isReady, tg, location.pathname, navigate]);
+
+    // Слушаем safe-area Telegram и маппим в CSS переменные
+    useEffect(() => {
+      if (!isReady || !tg) return;
+      const applySafeArea = () => {
+        const inset = (tg as any).safeAreaInset || (tg as any).contentSafeAreaInset;
+        if (!inset) return;
+        const root = document.documentElement;
+        if (inset.top != null) root.style.setProperty('--safe-top', `${inset.top}px`);
+        if (inset.right != null) root.style.setProperty('--safe-right', `${inset.right}px`);
+        if (inset.bottom != null) root.style.setProperty('--safe-bottom', `${inset.bottom}px`);
+        if (inset.left != null) root.style.setProperty('--safe-left', `${inset.left}px`);
+      };
+      applySafeArea();
+      (tg as any).onEvent?.('safeAreaChanged', applySafeArea);
+      (tg as any).onEvent?.('contentSafeAreaChanged', applySafeArea);
+      return () => {
+        (tg as any).offEvent?.('safeAreaChanged', applySafeArea);
+        (tg as any).offEvent?.('contentSafeAreaChanged', applySafeArea);
+      };
+    }, [isReady, tg]);
 
     return null;
   };

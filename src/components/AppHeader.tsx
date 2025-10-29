@@ -20,13 +20,13 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   const navigate = useNavigate();
 
   return (
-    <header className="sticky top-0 z-50 pt-safe">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+    <header className="fixed top-0 left-0 right-0 z-50 pt-safe pointer-events-none">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
         <div className="flex justify-center">
           {/* Центральная кнопка Lumon */}
           <motion.button
             onClick={() => navigate('/voice-assistant')}
-            className={`flex items-center justify-center rounded-full px-4 py-2 relative overflow-hidden w-44 h-9 translate-x-[6px] md:translate-x-0 ${
+            className={`pointer-events-auto flex items-center justify-center rounded-full px-4 py-2 relative overflow-hidden w-44 h-9 ${
               isDownloading
                 ? "bg-white dark:bg-gray-800 border-2 border-green-500 dark:border-green-400 shadow-2xl shadow-green-500/40 ring-4 ring-green-500/20"
                 : isRecognizing
