@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Brain, Zap, Sparkles } from 'lucide-react';
+import { Brain, Sparkles } from 'lucide-react';
 
 interface ModernSplashScreenProps {
   children: React.ReactNode;
