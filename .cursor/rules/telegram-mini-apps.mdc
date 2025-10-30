@@ -573,3 +573,137 @@ const SafeComponent = () => {
 ---
 
 **Помни**: TMA - это специфичная среда Telegram. Следуйте нативным паттернам и адаптируйтесь к пользовательским темам.
+
+## 🆕 Дополнения по Mini Apps (Bot API 7.0 → 9.1)
+
+Ниже — практичные блоки, которые можно вставлять в простые компоненты/страницы. Перед использованием — проверяйте поддержку фич.
+
+### Bottom/Secondary/Settings Buttons
+```tsx
+const ButtonsDemo: React.FC = () => {
+  const { tg, isReady } = useTelegram();
+
+  React.useEffect(() => {
+    if (!isReady || !tg) return;
+    const hasBottom = !!(tg as any).BottomButton;
+    const hasSecondary = !!(tg as any).SecondaryButton;
+    const hasSettings = !!(tg as any).SettingsButton;
+
+    if (hasBottom) {
+      (tg as any).BottomButton.setText('Продолжить');
+      (tg as any).BottomButton.show();
+      (tg as any).BottomButton.onClick(() => {/* ... */});
+    } else {
+      tg.MainButton.setText('Продолжить');
+      tg.MainButton.show();
+      tg.MainButton.onClick(() => {/* ... */});
+    }
+
+    if (hasSecondary) {
+      (tg as any).SecondaryButton.show();
+      (tg as any).onEvent?.('secondaryButtonClicked', () => {/* ... */});
+    }
+
+    if (hasSettings) {
+      (tg as any).SettingsButton.show?.();
+    }
+
+    return () => {
+      if (hasBottom) (tg as any).BottomButton.hide(); else tg.MainButton.hide();
+      (tg as any).SecondaryButton?.hide?.();
+      (tg as any).SettingsButton?.hide?.();
+    };
+  }, [tg, isReady]);
+
+  return null;
+};
+```
+
+### Полноэкранный режим и Safe Area
+```tsx
+const FullscreenToggle: React.FC = () => {
+  const handleToggle = () => {
+    const app = (window as any).Telegram?.WebApp;
+    if (!app) return;
+    if (app.isFullscreen) app.exitFullscreen?.(); else app.requestFullscreen?.();
+  };
+  return (
+    <TelegramButton onClick={handleToggle} className="w-full">Полноэкранный режим</TelegramButton>
+  );
+};
+```
+
+### Домашний экран
+```tsx
+const AddToHome: React.FC = () => (
+  <TelegramButton onClick={async () => (window as any).Telegram?.WebApp?.addToHomeScreen?.()} className="w-full">
+    Добавить на экран
+  </TelegramButton>
+);
+```
+
+### Шеринг и загрузка файлов
+```tsx
+const ShareAndDownload: React.FC = () => (
+  <div className="grid grid-cols-2 gap-2">
+    <TelegramButton onClick={async () => (window as any).Telegram?.WebApp?.shareMessage?.({ text: 'Hi!' })}>Поделиться</TelegramButton>
+    <TelegramButton onClick={async () => (window as any).Telegram?.WebApp?.downloadFile?.({ url: 'https://example.com/file.pdf' })}>Скачать</TelegramButton>
+  </div>
+);
+```
+
+### Геолокация
+```tsx
+const RequestLocation: React.FC = () => (
+  <TelegramButton onClick={async () => (window as any).Telegram?.WebApp?.LocationManager?.requestLocation?.()} className="w-full">
+    Запросить геолокацию
+  </TelegramButton>
+);
+```
+
+### Датчики и ориентация
+```tsx
+const LockOrientation: React.FC = () => (
+  <TelegramButton onClick={() => (window as any).Telegram?.WebApp?.lockOrientation?.('portrait')} className="w-full">
+    Зафиксировать портрет
+  </TelegramButton>
+);
+```
+
+### Хранилища
+```tsx
+const StorageDemo: React.FC = () => (
+  <div className="space-y-2">
+    <TelegramButton onClick={async () => (window as any).Telegram?.WebApp?.CloudStorage?.setItem?.('k', 'v')} className="w-full">Cloud set</TelegramButton>
+    <TelegramButton onClick={async () => (window as any).Telegram?.WebApp?.DeviceStorage?.setItem?.('k', 'v')} className="w-full">Device set</TelegramButton>
+    <TelegramButton onClick={async () => (window as any).Telegram?.WebApp?.SecureStorage?.setItem?.('k', 'secret')} className="w-full">Secure set</TelegramButton>
+  </div>
+);
+```
+
+### Вертикальные свайпы, QR и буфер обмена, права
+```tsx
+const MiscUX: React.FC = () => {
+  const enableSwipes = () => (window as any).Telegram?.WebApp?.enableVerticalSwipes?.();
+  const scanQR = () => (window as any).Telegram?.WebApp?.showScanQrPopup?.({ text: 'Scan' });
+  const readClipboard = async () => await (window as any).Telegram?.WebApp?.readTextFromClipboard?.();
+  const requestWrite = async () => await (window as any).Telegram?.WebApp?.requestWriteAccess?.();
+  const requestContact = async () => await (window as any).Telegram?.WebApp?.requestContact?.();
+  const hideKb = () => (window as any).Telegram?.WebApp?.hideKeyboard?.();
+  return (
+    <div className="grid grid-cols-2 gap-2">
+      <TelegramButton onClick={enableSwipes}>Свайпы</TelegramButton>
+      <TelegramButton onClick={scanQR}>QR</TelegramButton>
+      <TelegramButton onClick={readClipboard}>Буфер</TelegramButton>
+      <TelegramButton onClick={requestWrite}>Write Access</TelegramButton>
+      <TelegramButton onClick={requestContact}>Контакт</TelegramButton>
+      <TelegramButton onClick={hideKb}>Скрыть клавиатуру</TelegramButton>
+    </div>
+  );
+};
+```
+
+### Рекомендации
+- Используйте простые, независимые блоки UI; включайте только поддерживаемые фичи.
+- Обрабатывайте события ошибок и отказы; показывайте обратную связь пользователю.
+- Для слабых устройств снижайте визуальные эффекты.

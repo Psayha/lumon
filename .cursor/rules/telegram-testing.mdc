@@ -467,3 +467,140 @@ it('allows user to submit form', async () => {
 ---
 
 **Помни**: Тестирование TMA должно быть простым и фокусироваться на пользовательском опыте.
+
+## 🆕 Дополнения к тестам (Bot API 7.0 → 9.1)
+
+### Расширенный mock Telegram WebApp
+```tsx
+// __mocks__/telegram-extended.ts
+export const mockTelegramWebApp = {
+  ready: jest.fn(),
+  close: jest.fn(),
+  expand: jest.fn(),
+  isFullscreen: false,
+  requestFullscreen: jest.fn(function() { (this as any).isFullscreen = true; }),
+  exitFullscreen: jest.fn(function() { (this as any).isFullscreen = false; }),
+  onEvent: jest.fn(),
+  addToHomeScreen: jest.fn(),
+  checkHomeScreenStatus: jest.fn(),
+  shareMessage: jest.fn(),
+  downloadFile: jest.fn(),
+  readTextFromClipboard: jest.fn().mockResolvedValue('clipboard text'),
+  showScanQrPopup: jest.fn(),
+  closeScanQrPopup: jest.fn(),
+  requestWriteAccess: jest.fn(),
+  requestContact: jest.fn(),
+  hideKeyboard: jest.fn(),
+  setHeaderColor: jest.fn(),
+  setBackgroundColor: jest.fn(),
+  enableVerticalSwipes: jest.fn(),
+  disableVerticalSwipes: jest.fn(),
+  LocationManager: { requestLocation: jest.fn() },
+  CloudStorage: { setItem: jest.fn(), getItem: jest.fn(), removeItem: jest.fn() },
+  DeviceStorage: { setItem: jest.fn(), getItem: jest.fn(), removeItem: jest.fn() },
+  SecureStorage: { setItem: jest.fn(), getItem: jest.fn(), removeItem: jest.fn() },
+  BottomButton: { show: jest.fn(), hide: jest.fn(), setText: jest.fn(), onClick: jest.fn() },
+  SecondaryButton: { show: jest.fn(), hide: jest.fn() },
+  SettingsButton: { show: jest.fn(), hide: jest.fn() },
+  BackButton: { show: jest.fn(), hide: jest.fn(), onClick: jest.fn() },
+  MainButton: { show: jest.fn(), hide: jest.fn(), setText: jest.fn(), onClick: jest.fn(), showProgress: jest.fn(), hideProgress: jest.fn() },
+  HapticFeedback: { impactOccurred: jest.fn(), notificationOccurred: jest.fn(), selectionChanged: jest.fn() },
+  initData: '',
+  initDataUnsafe: {
+    user: { id: 1, first_name: 'Test' },
+    theme_params: { bg_color: '#fff', text_color: '#000', button_color: '#2481cc' }
+  },
+  themeParams: { bg_color: '#fff', text_color: '#000', button_color: '#2481cc' },
+  colorScheme: 'light'
+};
+
+Object.defineProperty(window, 'Telegram', { value: { WebApp: mockTelegramWebApp }, writable: true });
+```
+
+### Тест: Bottom/Secondary/Settings Buttons
+```tsx
+import { renderHook, act } from '@testing-library/react';
+import { useTelegram } from '../useTelegram';
+
+jest.mock('../__mocks__/telegram-extended');
+
+it('shows bottom button and handles click', () => {
+  const { result } = renderHook(() => useTelegram());
+  const tg = result.current.tg as any;
+  act(() => {
+    tg.BottomButton.show();
+    tg.BottomButton.setText('Go');
+    tg.BottomButton.onClick.mock.calls[0]?.[0]?.();
+  });
+  expect(tg.BottomButton.show).toHaveBeenCalled();
+  expect(tg.BottomButton.setText).toHaveBeenCalledWith('Go');
+});
+```
+
+### Тест: Полноэкранный режим и safe area события
+```tsx
+it('toggles fullscreen', () => {
+  const tg = (window as any).Telegram.WebApp;
+  expect(tg.isFullscreen).toBe(false);
+  tg.requestFullscreen();
+  expect(tg.isFullscreen).toBe(true);
+  tg.exitFullscreen();
+  expect(tg.isFullscreen).toBe(false);
+});
+```
+
+### Тест: Add to Home, Sharing, Download
+```tsx
+it('adds to home screen', async () => {
+  const tg = (window as any).Telegram.WebApp;
+  await tg.addToHomeScreen();
+  expect(tg.addToHomeScreen).toHaveBeenCalled();
+});
+
+it('shares message and downloads file', async () => {
+  const tg = (window as any).Telegram.WebApp;
+  await tg.shareMessage({ text: 'Hi' });
+  await tg.downloadFile({ url: 'https://example.com/file.pdf' });
+  expect(tg.shareMessage).toHaveBeenCalled();
+  expect(tg.downloadFile).toHaveBeenCalled();
+});
+```
+
+### Тест: Геолокация и хранилища
+```tsx
+it('requests location', async () => {
+  const tg = (window as any).Telegram.WebApp;
+  await tg.LocationManager.requestLocation();
+  expect(tg.LocationManager.requestLocation).toHaveBeenCalled();
+});
+
+it('uses storages', async () => {
+  const tg = (window as any).Telegram.WebApp;
+  await tg.CloudStorage.setItem('k', 'v');
+  await tg.DeviceStorage.setItem('k', 'v');
+  await tg.SecureStorage.setItem('k', 'secret');
+  expect(tg.CloudStorage.setItem).toHaveBeenCalledWith('k', 'v');
+  expect(tg.DeviceStorage.setItem).toHaveBeenCalledWith('k', 'v');
+  expect(tg.SecureStorage.setItem).toHaveBeenCalledWith('k', 'secret');
+});
+```
+
+### Playwright: e2e для новых UX
+```tsx
+test('can toggle fullscreen and share', async ({ page }) => {
+  await page.addInitScript(() => {
+    // Упростим: только нужные методы
+    window.Telegram = { WebApp: {
+      requestFullscreen: () => {}, exitFullscreen: () => {},
+      shareMessage: () => {}, addToHomeScreen: () => {},
+    }} as any;
+  });
+  await page.goto('/');
+  await expect(page).toHaveTitle(/.+/);
+});
+```
+
+### Отладка: включение WebView инспекции
+- iOS: Settings → 10x tap → Allow Web View Inspection → Safari Develop.
+- Android: Settings → удержать версию → Enable WebView Debug → chrome://inspect.
+- Desktop beta: включить webview inspection, Inspect Element.

@@ -486,3 +486,145 @@ const SafeComponent = () => {
 ---
 
 **Помни**: Telegram WebApp - это специфичная среда. Используйте нативные возможности и адаптируйтесь к темам пользователей.
+
+## 🆕 Обновления API (Bot API 7.0 → 9.1)
+
+Ниже — ключевые возможности, которых не было в ранних версиях примеров выше. Используйте feature detection перед вызовами.
+
+### Кнопки и нижняя панель
+- Переименование: `MainButton` → `BottomButton` (7.10) + добавлен `SecondaryButton` и событие `secondaryButtonClicked`.
+- Добавлен `SettingsButton` (7.0).
+- Цвет нижней панели: `setBottomBarColor` и `bottom_bar_bg_color` (7.10).
+
+Пример безопасной инициализации в Layout:
+```tsx
+React.useEffect(() => {
+  if (!isReady || !tg) return;
+
+  // BottomButton / SecondaryButton (fallback на MainButton)
+  const hasBottom = !!(tg as any).BottomButton;
+  const hasSecondary = !!(tg as any).SecondaryButton;
+
+  if (showMainButton) {
+    if (hasBottom) {
+      (tg as any).BottomButton.setText(mainButtonText);
+      (tg as any).BottomButton.show();
+      (tg as any).BottomButton.onClick(onMainButtonClick || (() => {}));
+    } else {
+      tg.MainButton.setText(mainButtonText);
+      tg.MainButton.show();
+      tg.MainButton.onClick(onMainButtonClick || (() => {}));
+    }
+  } else {
+    if (hasBottom) (tg as any).BottomButton.hide(); else tg.MainButton.hide();
+  }
+
+  if (hasSecondary) {
+    (tg as any).SecondaryButton.show();
+    (tg as any).onEvent?.('secondaryButtonClicked', () => {/* ... */});
+  }
+}, [isReady, tg, showMainButton, mainButtonText, onMainButtonClick]);
+```
+
+### Полноэкранный режим и безопасные области (8.0+)
+- `requestFullscreen`, `exitFullscreen`, `isFullscreen`, события `fullscreenChanged/fullscreenFailed`.
+- Безопасные области: `safeAreaInset`, `contentSafeAreaInset`, события `safeAreaChanged/contentSafeAreaChanged`.
+
+```tsx
+const enableFullscreen = () => {
+  const webapp = (window as any).Telegram?.WebApp;
+  webapp?.requestFullscreen?.();
+};
+
+React.useEffect(() => {
+  const webapp = (window as any).Telegram?.WebApp;
+  if (!webapp?.onEvent) return;
+  webapp.onEvent('fullscreenChanged', ({ isFullscreen }: any) => {
+    // Реакция на смену режима
+  });
+  webapp.onEvent('safeAreaChanged', ({ inset }: any) => {
+    // Адаптируйте отступы UI
+  });
+}, []);
+```
+
+### Домашний экран (8.0+)
+- `addToHomeScreen`, `checkHomeScreenStatus`, события `homeScreenAdded/homeScreenChecked`.
+
+```tsx
+const handleAddToHome = async () => {
+  const tg = (window as any).Telegram?.WebApp;
+  if (!tg?.addToHomeScreen) return;
+  await tg.addToHomeScreen();
+};
+```
+
+### Emoji статус (8.0+)
+- `setEmojiStatus`, `requestEmojiStatusAccess`, события `emojiStatusSet/emojiStatusFailed/emojiStatusAccessRequested`.
+
+### Медиа/файлы (8.0+)
+- Шеринг: `shareMessage`, события `shareMessageSent/shareMessageFailed`.
+- Скачивание: `downloadFile`, событие `fileDownloadRequested`.
+
+```tsx
+const handleShare = async () => {
+  const tg = (window as any).Telegram?.WebApp;
+  if (!tg?.shareMessage) return;
+  await tg.shareMessage({ text: 'Hello from Mini App' });
+};
+```
+
+### Геолокация (8.0+)
+- `LocationManager`, события `locationManagerUpdated/locationRequested`.
+
+```tsx
+const requestLocation = async () => {
+  const tg = (window as any).Telegram?.WebApp;
+  await tg?.LocationManager?.requestLocation?.();
+};
+```
+
+### Датчики и ориентация (8.0+)
+- `Accelerometer`, `DeviceOrientation`, `Gyroscope`, `lockOrientation/unlockOrientation` и связанные события `*_Started/Stopped/Changed/Failed`.
+
+### Хранилища
+- `CloudStorage` (6.9), `DeviceStorage` и `SecureStorage` (9.0).
+
+```tsx
+const saveSecure = async () => {
+  const tg = (window as any).Telegram?.WebApp;
+  await tg?.SecureStorage?.setItem?.('token', 'secure_value');
+};
+```
+
+### Прочее
+- Вертикальные свайпы: `isVerticalSwipesEnabled`, `enableVerticalSwipes/disableVerticalSwipes` (7.7).
+- Сканирование и буфер обмена: `showScanQrPopup/closeScanQrPopup`, `readTextFromClipboard` и события (6.4).
+- Запросы прав: `requestWriteAccess`, `requestContact` (6.9).
+- Клавиатура: `hideKeyboard` (9.1).
+
+## 🔍 Feature Detection (рекомендуется)
+```ts
+export const supports = (feature: string): boolean => {
+  const tg = (window as any).Telegram?.WebApp;
+  if (!tg) return false;
+  switch (feature) {
+    case 'bottomButton': return !!(tg as any).BottomButton;
+    case 'secondaryButton': return !!(tg as any).SecondaryButton;
+    case 'fullscreen': return typeof tg.requestFullscreen === 'function';
+    case 'addToHome': return typeof tg.addToHomeScreen === 'function';
+    case 'shareMessage': return typeof tg.shareMessage === 'function';
+    case 'downloadFile': return typeof tg.downloadFile === 'function';
+    case 'location': return !!tg.LocationManager;
+    case 'sensors': return !!((tg as any).Accelerometer || (tg as any).Gyroscope || (tg as any).DeviceOrientation);
+    case 'secureStorage': return !!(tg as any).SecureStorage;
+    default: return false;
+  }
+};
+```
+
+## 🧭 Рекомендации по UX/безопасности
+- Всегда показывайте fallback, если фича недоступна.
+- Для `SecureStorage` храните только чувствительные данные; для кэша — `DeviceStorage`.
+- Обрабатывайте все события ошибок (`*_Failed`) и отказы пользователя.
+- Для слабых устройств (Android UA с классом `LOW`) снижайте интенсивность анимаций.
