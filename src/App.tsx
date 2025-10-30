@@ -44,8 +44,7 @@ const LoadingFallback: React.FC = () => (
         {[0, 1, 2].map((index) => (
           <div
             key={index}
-            className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"
-            style={{ animationDelay: `${index * 0.2}s` }}
+            className={`w-2 h-2 bg-blue-500 rounded-full animate-bounce ${index === 0 ? 'animate-delay-0' : index === 1 ? 'animate-delay-200' : 'animate-delay-400'}`}
           />
         ))}
       </div>

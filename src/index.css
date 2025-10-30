@@ -150,3 +150,10 @@ html {
   padding-top: calc(var(--safe-top, 0px) + 56px);
   padding-bottom: calc(var(--safe-bottom, 0px) + 72px);
 }
+
+/* Tailwind utility classes for animation delays */
+@layer utilities {
+  .animate-delay-0 { animation-delay: 0s; }
+  .animate-delay-200 { animation-delay: 0.2s; }
+  .animate-delay-400 { animation-delay: 0.4s; }
+}
