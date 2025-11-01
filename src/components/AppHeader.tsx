@@ -21,10 +21,14 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 pt-safe pointer-events-none">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
-        <div className="flex justify-center">
-          {/* Центральная кнопка Lumon */}
-          <motion.button
+      <div 
+        className="absolute left-1/2 top-0 transform -translate-x-1/2"
+        style={{
+          paddingTop: 'calc(max(var(--safe-top, 0px), env(safe-area-inset-top, 0px)) + 0.5rem)',
+        }}
+      >
+        {/* Центральная кнопка Lumon */}
+        <motion.button
             onClick={() => navigate('/voice-assistant')}
             className={`pointer-events-auto flex items-center justify-center rounded-full px-4 py-2 relative overflow-hidden w-44 h-9 ${
               isDownloading
@@ -332,7 +336,6 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
               </div>
             </div>
           </motion.button>
-        </div>
       </div>
     </header>
   );
