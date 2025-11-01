@@ -423,8 +423,8 @@ export function AnimatedAIChat({
             </div>
 
             {/* Поле ввода и кнопка истории */}
-            <div className="flex-shrink-0 relative z-10 w-full overflow-hidden">
-                <div className="w-full max-w-md mx-auto px-1 overflow-hidden">
+            <div className="flex-shrink-0 relative z-10 w-full overflow-visible">
+                <div className="w-full max-w-md mx-auto px-1 overflow-visible">
                     <InputArea
                         value={value}
                         onChange={setValue}

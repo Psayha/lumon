@@ -83,7 +83,7 @@ export const InputArea: React.FC<InputAreaProps> = ({
                         {showCommandPalette && (
                             <motion.div 
                                 ref={commandPaletteRef}
-                                className="absolute left-0 right-0 bottom-full mb-2 backdrop-blur-xl bg-white/95 dark:bg-black/90 rounded-lg z-[60] shadow-lg border border-gray-200/50 dark:border-white/10 overflow-hidden"
+                                className="absolute left-0 right-0 bottom-full mb-2 backdrop-blur-xl bg-white/95 dark:bg-black/90 rounded-lg z-[100] shadow-lg border border-gray-200/50 dark:border-white/10 overflow-hidden"
                                 initial={{ opacity: 0, y: 5 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: 5 }}
