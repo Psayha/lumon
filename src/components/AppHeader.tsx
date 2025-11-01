@@ -51,34 +51,45 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
       }
 
       // Fallback на CSS переменные (они устанавливаются в App.tsx)
-      if (safeLeft === 0 && safeRight === 0) {
-        const root = getComputedStyle(document.documentElement);
-        const cssLeft = root.getPropertyValue('--safe-left').trim();
-        const cssRight = root.getPropertyValue('--safe-right').trim();
-        safeLeft = cssLeft ? parseInt(cssLeft) : 0;
-        safeRight = cssRight ? parseInt(cssRight) : 0;
-      }
+      const root = getComputedStyle(document.documentElement);
+      const cssLeft = root.getPropertyValue('--safe-left').trim();
+      const cssRight = root.getPropertyValue('--safe-right').trim();
+      const cssLeftValue = cssLeft ? parseInt(cssLeft) : null;
+      const cssRightValue = cssRight ? parseInt(cssRight) : null;
+      
+      // Используем значения из CSS переменных, если они установлены
+      if (cssLeftValue !== null && cssLeftValue > 0) safeLeft = cssLeftValue;
+      if (cssRightValue !== null && cssRightValue > 0) safeRight = cssRightValue;
 
-      // Если все еще 0, используем типичные размеры системных кнопок Telegram
-      // BackButton обычно ~56-64px (с текстом "Назад" ~68-72px), SettingsButton ~44-48px
-      if (safeLeft === 0 && safeRight === 0) {
+      // Если значения все еще 0, используем типичные размеры системных кнопок Telegram
+      // НО только если это действительно fallback (нет данных из Telegram API)
+      const hasTelegramData = isReady && tg && (
+        ((tg as any).safeAreaInset || (tg as any).contentSafeAreaInset) || 
+        (cssLeftValue !== null && cssLeftValue > 0) ||
+        (cssRightValue !== null && cssRightValue > 0)
+      );
+
+      if (!hasTelegramData) {
         const isRoot = location.pathname === '/';
         
         // Проверяем, видна ли BackButton на текущей странице
         if (!isRoot && isReady && tg && tg.BackButton) {
-          // BackButton видна на внутренних страницах - размер зависит от текста
-          // Если текст "Назад" - кнопка шире, если иконка - уже
-          safeLeft = 68; // Типичный размер BackButton с текстом "Назад"
+          // BackButton видна на внутренних страницах с текстом "Назад"
+          // Реальный размер зависит от языка и длины текста
+          // Для русского "Назад" обычно 58-65px
+          safeLeft = 60; // Немного уменьшил для более точного центрирования
         } else {
-          // BackButton скрыта на главной странице или отсутствует
+          // BackButton скрыта на главной странице
           safeLeft = 0;
         }
         
-        // SettingsButton обычно всегда видна
-        safeRight = 44; // Стандартный размер SettingsButton
+        // SettingsButton всегда видна, размер обычно 44-48px
+        // Уменьшил для более точного центрирования на главной
+        safeRight = 44; // Минимальный размер SettingsButton
       }
 
       // Вычисляем центр доступного пространства между кнопками
+      // Формула: начало левой области + половина доступной ширины
       const availableWidth = window.innerWidth - safeLeft - safeRight;
       const centerX = safeLeft + availableWidth / 2;
       
