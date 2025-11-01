@@ -113,22 +113,37 @@ export function AnimatedAIChat({
     // Закрытие палитры команд при клике вне её области
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
+            const target = event.target as Element;
+            
+            // Не закрываем, если клик по кнопке команды
+            if (target.closest('[data-command-button]')) {
+                return;
+            }
+            
+            // Не закрываем, если клик внутри палитры
             if (
-                showCommandPalette &&
                 commandPaletteRef.current &&
-                !commandPaletteRef.current.contains(event.target as Node) &&
-                !(event.target as Element).closest('[data-command-button]')
+                commandPaletteRef.current.contains(target)
             ) {
+                return;
+            }
+            
+            // Закрываем палитру
+            if (showCommandPalette) {
                 setShowCommandPalette(false);
             }
         };
 
-        if (showCommandPalette) {
-            document.addEventListener('mousedown', handleClickOutside);
-        }
+        // Используем setTimeout, чтобы onClick кнопки успел сработать первым
+        const timeoutId = setTimeout(() => {
+            if (showCommandPalette) {
+                document.addEventListener('click', handleClickOutside, true);
+            }
+        }, 0);
 
         return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
+            clearTimeout(timeoutId);
+            document.removeEventListener('click', handleClickOutside, true);
         };
     }, [showCommandPalette]);
 

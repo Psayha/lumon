@@ -243,7 +243,13 @@ export const InputArea: React.FC<InputAreaProps> = ({
                         <motion.button
                             type="button"
                             data-command-button
-                            onClick={onToggleCommandPalette}
+                            onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                if (!isListening && !isRecognizing) {
+                                    onToggleCommandPalette();
+                                }
+                            }}
                             disabled={isListening || isRecognizing}
                             whileTap={!isListening && !isRecognizing ? { scale: 0.94 } : {}}
                             className={cn(
