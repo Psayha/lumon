@@ -72,10 +72,10 @@ export const InputArea: React.FC<InputAreaProps> = ({
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -10 }}
                             transition={{ duration: 0.3 }}
-                            className="absolute left-1/2 -translate-x-1/2 bottom-full mb-3 z-30 flex items-center gap-2 px-3 py-2 bg-orange-500/90 dark:bg-orange-600/90 backdrop-blur-sm rounded-lg shadow-lg text-white text-xs font-medium max-w-[calc(100vw-2rem)] sm:whitespace-nowrap"
+                            className="absolute left-0 right-0 bottom-full mb-3 z-30 flex items-center gap-2 px-3 py-2 bg-orange-500/90 dark:bg-orange-600/90 backdrop-blur-sm rounded-lg shadow-lg text-white text-xs font-medium"
                         >
                             <Lightbulb className="w-3.5 h-3.5 flex-shrink-0" />
-                            <span className="text-center">Закончили говорить? Сделайте паузу — распознавание начнётся автоматически</span>
+                            <span className="flex-1 text-center">Закончили говорить? Сделайте паузу — распознавание начнётся автоматически</span>
                         </motion.div>
                     )}
                 </AnimatePresence>
