@@ -61,37 +61,54 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
       if (cssLeftValue !== null && cssLeftValue > 0) safeLeft = cssLeftValue;
       if (cssRightValue !== null && cssRightValue > 0) safeRight = cssRightValue;
 
-      // Если значения все еще 0, используем типичные размеры системных кнопок Telegram
-      // НО только если это действительно fallback (нет данных из Telegram API)
-      const hasTelegramData = isReady && tg && (
-        ((tg as any).safeAreaInset || (tg as any).contentSafeAreaInset) || 
-        (cssLeftValue !== null && cssLeftValue > 0) ||
-        (cssRightValue !== null && cssRightValue > 0)
-      );
+      // Проверяем, получили ли мы реальные данные из Telegram API
+      const hasRealTelegramData = (safeLeft > 0 || safeRight > 0) && 
+        (cssLeftValue !== null && cssLeftValue > 0 || cssRightValue !== null && cssRightValue > 0 || 
+         (isReady && tg && ((tg as any).safeAreaInset || (tg as any).contentSafeAreaInset)));
 
-      if (!hasTelegramData) {
+      // Если нет реальных данных, используем fallback на основе видимости кнопок
+      if (!hasRealTelegramData) {
         const isRoot = location.pathname === '/';
         
-        // Проверяем, видна ли BackButton на текущей странице
+        // На главной странице BackButton скрыта, справа SettingsButton
+        // На внутренних страницах обе кнопки видимы
         if (!isRoot && isReady && tg && tg.BackButton) {
-          // BackButton видна на внутренних страницах с текстом "Назад"
-          // Реальный размер зависит от языка и длины текста
-          // Для русского "Назад" обычно 58-65px
-          safeLeft = 60; // Немного уменьшил для более точного центрирования
-        } else {
-          // BackButton скрыта на главной странице
-          safeLeft = 0;
+          // BackButton с текстом "Назад" обычно 58-62px
+          // Используем чуть меньше для более точного центрирования
+          safeLeft = safeLeft || 58;
         }
-        
-        // SettingsButton всегда видна, размер обычно 44-48px
-        // Уменьшил для более точного центрирования на главной
-        safeRight = 44; // Минимальный размер SettingsButton
+        // SettingsButton всегда видна (кроме полноэкранного режима)
+        // Реальный размер 42-46px в зависимости от платформы
+        safeRight = safeRight || 42;
       }
 
-      // Вычисляем центр доступного пространства между кнопками
-      // Формула: начало левой области + половина доступной ширины
+      // Вычисляем центр доступного пространства между видимыми кнопками
+      // Если слева нет кнопки (safeLeft = 0), центр должен учитывать только правую кнопку
+      // Если справа нет кнопки (safeRight = 0), центр должен учитывать только левую кнопку
+      // Если обе кнопки видимы, центр между ними
+      
+      let centerX: number;
       const availableWidth = window.innerWidth - safeLeft - safeRight;
-      const centerX = safeLeft + availableWidth / 2;
+      
+      if (safeLeft === 0 && safeRight > 0) {
+        // Только правая кнопка видна (главная страница)
+        // Центр должен быть между левым краем экрана (0) и началом SettingsButton
+        // SettingsButton находится справа, занимает safeRight пикселей
+        // Центр доступного пространства: (ширина экрана - правая кнопка) / 2
+        // Это даст правильное центрирование относительно левого края и правой кнопки
+        centerX = (window.innerWidth - safeRight) / 2;
+      } else if (safeLeft > 0 && safeRight === 0) {
+        // Только левая кнопка видна (редкий случай)
+        // Центр: левая кнопка + (ширина экрана - левая кнопка) / 2
+        centerX = safeLeft + (window.innerWidth - safeLeft) / 2;
+      } else if (safeLeft > 0 && safeRight > 0) {
+        // Обе кнопки видимы (внутренние страницы)
+        // Центр: левая кнопка + (ширина экрана - левая кнопка - правая кнопка) / 2
+        centerX = safeLeft + availableWidth / 2;
+      } else {
+        // Нет кнопок (fallback на центр экрана)
+        centerX = window.innerWidth / 2;
+      }
       
       // Логирование для отладки
       console.log('[AppHeader] Center calculation:', {
