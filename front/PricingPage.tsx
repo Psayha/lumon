@@ -1,10 +1,21 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Check, Star, Zap } from 'lucide-react';
 import { AppHeader } from '../src/components/AppHeader';
 // import { AppFooter } from '../src/components/AppFooter';
 
 const PricingPage: React.FC = () => {
+  // Фиксируем страницу - предотвращаем скролл body
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+    
+    return () => {
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+    };
+  }, []);
+
   const plans = [
     {
       name: 'Basic',
@@ -43,17 +54,26 @@ const PricingPage: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen gradient-bg relative flex flex-col">
-      <AppHeader />
-      
-      {/* Фоновые эффекты */}
-      <div className="absolute inset-0 w-full h-full overflow-hidden">
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-emerald-500/10 rounded-full mix-blend-normal filter blur-[128px] animate-pulse" />
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-teal-500/10 rounded-full mix-blend-normal filter blur-[128px] animate-pulse delay-700" />
-        <div className="absolute top-1/4 right-1/3 w-64 h-64 bg-cyan-500/10 rounded-full mix-blend-normal filter blur-[96px] animate-pulse delay-1000" />
-      </div>
-      
-      <div className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full relative z-10">
+    <>
+      {/* Контент занимает весь экран, включая safe-area */}
+      <div 
+        className="fixed gradient-bg overflow-hidden flex flex-col inset-0"
+        style={{
+          height: '100dvh'
+        }}
+      >
+        <AppHeader />
+        
+        {/* Фоновые эффекты */}
+        <div className="absolute inset-0 w-full h-full overflow-hidden">
+          <div className="absolute top-0 left-1/4 w-96 h-96 bg-emerald-500/10 rounded-full mix-blend-normal filter blur-[128px] animate-pulse" />
+          <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-teal-500/10 rounded-full mix-blend-normal filter blur-[128px] animate-pulse delay-700" />
+          <div className="absolute top-1/4 right-1/3 w-64 h-64 bg-cyan-500/10 rounded-full mix-blend-normal filter blur-[96px] animate-pulse delay-1000" />
+        </div>
+        
+        {/* Скроллируемый контент с отступом от header */}
+        <div className="flex-1 overflow-y-auto min-h-0 pt-[calc(var(--safe-top,0px)+52px)]">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full relative z-10">
         {/* Header */}
         <motion.div
           className="text-center mb-8 sm:mb-12"
@@ -170,10 +190,47 @@ const PricingPage: React.FC = () => {
             </motion.button>
           </div>
         </motion.div>
+          </div>
+        </div>
+
+        {/* <AppFooter /> */}
       </div>
 
-      {/* <AppFooter /> */}
-    </div>
+      {/* Градиентное размытие сверху с плавным переходом */}
+      <div 
+        className="fixed top-0 left-0 right-0 z-[100] pointer-events-none overflow-hidden"
+        style={{
+          height: `calc(var(--safe-top, 0px) + 40px)`,
+        }}
+      >
+        <div 
+          className="absolute top-0 left-0 right-0 bg-white/10 dark:bg-black/10"
+          style={{
+            height: `calc(var(--safe-top, 0px) + 40px)`,
+            backdropFilter: 'blur(24px)',
+            WebkitBackdropFilter: 'blur(24px)',
+            maskImage: 'linear-gradient(to bottom, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0.7) 40%, rgba(0, 0, 0, 0) 100%)',
+            WebkitMaskImage: 'linear-gradient(to bottom, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0.7) 40%, rgba(0, 0, 0, 0) 100%)',
+          }}
+        />
+      </div>
+      
+      {/* Правая safe-area с glass эффектом */}
+      <div 
+        className="fixed top-0 right-0 bottom-0 z-[100] backdrop-blur-xl pointer-events-none bg-white/10 dark:bg-black/10"
+        style={{
+          width: 'var(--safe-right, 0px)'
+        }}
+      />
+      
+      {/* Левая safe-area с glass эффектом */}
+      <div 
+        className="fixed top-0 left-0 bottom-0 z-[100] backdrop-blur-xl pointer-events-none bg-white/10 dark:bg-black/10"
+        style={{
+          width: 'var(--safe-left, 0px)'
+        }}
+      />
+    </>
   );
 };
 
