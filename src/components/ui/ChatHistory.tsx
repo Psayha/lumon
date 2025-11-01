@@ -1,6 +1,8 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, MessageSquare, Calendar, Trash2 } from 'lucide-react';
+import { useTelegramTheme } from '../../hooks/useTelegramTheme';
+import { useTelegram } from '../../hooks/useTelegram';
 
 interface ChatHistoryItem {
   id: string;
@@ -25,6 +27,8 @@ export const ChatHistory: React.FC<ChatHistoryProps> = ({
   onDeleteChat,
   onCreateNewChat
 }) => {
+  const { themeParams } = useTelegramTheme();
+  const { tg, isReady } = useTelegram();
   // Моковые данные для истории чатов
   const chatHistory: ChatHistoryItem[] = [
     {
@@ -57,6 +61,36 @@ export const ChatHistory: React.FC<ChatHistoryProps> = ({
     }
   ];
 
+  // Haptic feedback при взаимодействии
+  const triggerHaptic = (style: 'light' | 'medium' | 'heavy' = 'light') => {
+    if (isReady && tg?.HapticFeedback) {
+      try {
+        tg.HapticFeedback.impactOccurred(style);
+      } catch (error) {
+        console.warn('Haptic feedback error:', error);
+      }
+    }
+  };
+
+  // Обработчик выбора чата с haptic feedback
+  const handleSelectChat = (chatId: string) => {
+    triggerHaptic('medium');
+    onSelectChat(chatId);
+  };
+
+  // Обработчик удаления чата с haptic feedback
+  const handleDeleteChat = (chatId: string) => {
+    triggerHaptic('heavy');
+    onDeleteChat(chatId);
+  };
+
+  // Обработчик создания нового чата с haptic feedback
+  const handleCreateNewChat = () => {
+    triggerHaptic('light');
+    onCreateNewChat?.();
+    onClose();
+  };
+
   const formatTime = (date: Date) => {
     const now = new Date();
     const diff = now.getTime() - date.getTime();
@@ -79,17 +113,33 @@ export const ChatHistory: React.FC<ChatHistoryProps> = ({
         <>
           {/* Backdrop */}
           <motion.div
-            className="fixed inset-0 bg-black/30 backdrop-blur-md z-[60]"
+            className="fixed inset-0 backdrop-blur-md z-[60]"
+            style={{
+              backgroundColor: themeParams.bg_color 
+                ? `${themeParams.bg_color}CC` 
+                : 'rgba(0, 0, 0, 0.3)'
+            }}
             initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
             animate={{ opacity: 1, backdropFilter: "blur(8px)" }}
             exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
             transition={{ duration: 0.3, ease: "easeInOut" }}
-            onClick={onClose}
+            onClick={() => {
+              triggerHaptic('light');
+              onClose();
+            }}
           />
           
           {/* History Panel */}
           <motion.div
-            className="fixed left-0 top-0 h-full w-80 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-r border-gray-200 dark:border-gray-700 shadow-2xl z-[61] flex flex-col"
+            className="fixed left-0 top-0 h-full backdrop-blur-xl border-r shadow-2xl z-[61] flex flex-col"
+            style={{
+              width: 'min(320px, 85vw)',
+              backgroundColor: themeParams.secondary_bg_color || themeParams.bg_color || 'rgba(255, 255, 255, 0.95)',
+              borderColor: themeParams.hint_color || 'rgba(229, 231, 235, 1)',
+              paddingTop: 'max(var(--safe-top, 0px), env(safe-area-inset-top, 0px))',
+              paddingBottom: 'max(var(--safe-bottom, 0px), env(safe-area-inset-bottom, 0px))',
+              paddingLeft: 'max(var(--safe-left, 0px), env(safe-area-inset-left, 0px))'
+            }}
             initial={{ x: -320, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: -320, opacity: 0 }}
@@ -101,23 +151,50 @@ export const ChatHistory: React.FC<ChatHistoryProps> = ({
             }}
           >
             {/* Header */}
-            <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+            <div 
+              className="p-4 border-b flex items-center justify-between"
+              style={{
+                borderColor: themeParams.hint_color || 'rgba(229, 231, 235, 1)'
+              }}
+            >
+              <h2 
+                className="text-lg font-semibold"
+                style={{
+                  color: themeParams.text_color || '#000000'
+                }}
+              >
                 История чатов
               </h2>
               <button
-                onClick={onClose}
-                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                onClick={() => {
+                  triggerHaptic('light');
+                  onClose();
+                }}
+                className="p-2 rounded-lg transition-colors"
+                style={{
+                  color: themeParams.hint_color || '#6B7280'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = themeParams.secondary_bg_color || 'rgba(243, 244, 246, 1)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }}
                 aria-label="Закрыть историю"
               >
-                <X className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Chat List */}
             <div className="flex-1 overflow-y-auto">
               {chatHistory.length === 0 ? (
-                <div className="p-4 text-center text-gray-500 dark:text-gray-400">
+                <div 
+                  className="p-4 text-center"
+                  style={{
+                    color: themeParams.hint_color || '#6B7280'
+                  }}
+                >
                   <MessageSquare className="w-12 h-12 mx-auto mb-3 opacity-50" />
                   <p>История чатов пуста</p>
                 </div>
@@ -126,25 +203,54 @@ export const ChatHistory: React.FC<ChatHistoryProps> = ({
                   {chatHistory.map((chat) => (
                     <motion.div
                       key={chat.id}
-                      className="group p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors mb-1"
-                      onClick={() => onSelectChat(chat.id)}
+                      className="group p-3 rounded-lg cursor-pointer transition-colors mb-1"
+                      style={{
+                        backgroundColor: 'transparent'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = themeParams.secondary_bg_color || 'rgba(249, 250, 251, 1)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                      }}
+                      onClick={() => handleSelectChat(chat.id)}
                       whileHover={{ scale: 1.01 }}
                       whileTap={{ scale: 0.99 }}
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex-1 min-w-0">
-                          <h3 className="font-medium text-gray-900 dark:text-white truncate">
+                          <h3 
+                            className="font-medium truncate"
+                            style={{
+                              color: themeParams.text_color || '#000000'
+                            }}
+                          >
                             {chat.title}
                           </h3>
-                          <p className="text-sm text-gray-500 dark:text-gray-400 truncate mt-1">
+                          <p 
+                            className="text-sm truncate mt-1"
+                            style={{
+                              color: themeParams.hint_color || '#6B7280'
+                            }}
+                          >
                             {chat.lastMessage}
                           </p>
                           <div className="flex items-center gap-2 mt-2">
-                            <div className="flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500">
+                            <div 
+                              className="flex items-center gap-1 text-xs"
+                              style={{
+                                color: themeParams.hint_color || '#9CA3AF'
+                              }}
+                            >
                               <Calendar className="w-3 h-3" />
                               {formatTime(chat.timestamp)}
                             </div>
-                            <div className="text-xs text-gray-400 dark:text-gray-500">
+                            <div 
+                              className="text-xs"
+                              style={{
+                                color: themeParams.hint_color || '#9CA3AF'
+                              }}
+                            >
                               {chat.messageCount} сообщений
                             </div>
                           </div>
@@ -153,12 +259,21 @@ export const ChatHistory: React.FC<ChatHistoryProps> = ({
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            onDeleteChat(chat.id);
+                            handleDeleteChat(chat.id);
                           }}
-                          className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/20 transition-all"
+                          className="opacity-0 group-hover:opacity-100 p-1 rounded transition-all"
+                          style={{
+                            color: '#DC2626'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = 'rgba(254, 242, 242, 1)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = 'transparent';
+                          }}
                           aria-label="Удалить чат"
                         >
-                          <Trash2 className="w-4 h-4 text-red-500" />
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     </motion.div>
@@ -168,13 +283,34 @@ export const ChatHistory: React.FC<ChatHistoryProps> = ({
             </div>
 
             {/* Footer */}
-            <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+            <div 
+              className="p-4 border-t"
+              style={{
+                borderColor: themeParams.hint_color || 'rgba(229, 231, 235, 1)',
+                paddingBottom: `calc(1rem + max(var(--safe-bottom, 0px), env(safe-area-inset-bottom, 0px)))`
+              }}
+            >
               <button
-                onClick={() => {
-                  onCreateNewChat?.();
-                  onClose();
+                onClick={handleCreateNewChat}
+                className="w-full py-2 px-4 rounded-lg transition-colors font-medium"
+                style={{
+                  backgroundColor: themeParams.button_color || '#2481cc',
+                  color: themeParams.button_text_color || '#ffffff'
                 }}
-                className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium"
+                onMouseEnter={(e) => {
+                  const buttonColor = themeParams.button_color || '#2481cc';
+                  // Небольшое затемнение при hover
+                  const rgb = buttonColor.match(/\d+/g);
+                  if (rgb) {
+                    const r = Math.max(0, parseInt(rgb[0]) - 10);
+                    const g = Math.max(0, parseInt(rgb[1]) - 10);
+                    const b = Math.max(0, parseInt(rgb[2]) - 10);
+                    e.currentTarget.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = themeParams.button_color || '#2481cc';
+                }}
               >
                 Новый чат
               </button>
