@@ -87,6 +87,48 @@ back/
 - `documents` - документы базы знаний
 - `analytics_events` - события аналитики
 
+## 📝 Следующие шаги
+
+### 1. Настройка n8n Workflows
+
+1. Откройте n8n: http://localhost:5678
+2. Создайте базовые workflows для API endpoints:
+   - `/webhook/save-message` - сохранение сообщений чата
+   - `/webhook/get-chat-history` - получение истории чата
+   - `/webhook/create-user` - создание пользователя
+   - `/webhook/analytics` - отправка аналитики
+
+### 2. Создание API Workflows
+
+Каждый workflow должен:
+- Получать данные через Webhook Trigger
+- Валидировать входные данные
+- Сохранять в PostgreSQL через Supabase
+- Возвращать JSON ответ
+
+### 3. Интеграция с Frontend
+
+1. Создайте конфигурацию API в frontend:
+   ```typescript
+   // src/config/api.ts
+   export const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5678';
+   ```
+
+2. Используйте `useApi` хук для запросов:
+   ```typescript
+   const { data, loading, error } = useApi(`${API_BASE_URL}/webhook/save-message`, {
+     method: 'POST',
+     body: JSON.stringify({ message, userId })
+   });
+   ```
+
+### 4. Переменные окружения Frontend
+
+Создайте `.env` в корне проекта:
+```
+REACT_APP_API_URL=http://localhost:5678
+```
+
 ## 🔧 Управление
 
 ### Остановка сервисов
@@ -144,4 +186,3 @@ cp .env.example .env
 
 - [n8n Documentation](https://docs.n8n.io/)
 - [Supabase Documentation](https://supabase.com/docs)
-
