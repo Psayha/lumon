@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Brain, Sparkles } from 'lucide-react';
+import { Brain, Sparkles, Zap } from 'lucide-react';
 import { useTelegram } from '../hooks/useTelegram';
 
 interface ModernSplashScreenProps {
@@ -10,247 +10,229 @@ interface ModernSplashScreenProps {
 export const ModernSplashScreen: React.FC<ModernSplashScreenProps> = ({ children }) => {
   console.log('[SplashScreen] Компонент ModernSplashScreen монтируется');
   const [isLoading, setIsLoading] = useState(true);
-  const [progress, setProgress] = useState(0);
   const { tg, isReady } = useTelegram();
   
   console.log('[SplashScreen] useTelegram результат:', { hasTg: !!tg, isReady });
 
-  // Сообщения загрузки с приоритетом Telegram
-  const loadingSteps = [
-    { message: "Подключение к Telegram...", progress: 25 },
-    { message: "Загрузка Telegram SDK...", progress: 50 },
-    { message: "Получение данных пользователя...", progress: 75 },
-    { message: "Инициализация AI...", progress: 90 },
-    { message: "Подготовка интерфейса...", progress: 95 },
-    { message: "Готово!", progress: 100 }
-  ];
-
-  const [currentStep, setCurrentStep] = useState(0);
-  const [isTelegramReady, setIsTelegramReady] = useState(false);
-  const currentMessage = loadingSteps[currentStep]?.message || loadingSteps[0].message;
-
-  // Отслеживаем готовность Telegram
+  // Отслеживаем готовность Telegram и скрываем экран загрузки
   useEffect(() => {
     if (isReady) {
-      setIsTelegramReady(true);
-      setCurrentStep(2); // "Получение данных пользователя..."
+      // Небольшая задержка для плавного перехода
+      const timer = setTimeout(() => {
+        setIsLoading(false);
+      }, 800);
+      return () => clearTimeout(timer);
     }
   }, [isReady]);
-
-  // Управление прогрессом загрузки
-  useEffect(() => {
-    let progressInterval: ReturnType<typeof setInterval>;
-
-    if (!isTelegramReady) {
-      // Ждём Telegram SDK - прогресс до 75%
-      progressInterval = setInterval(() => {
-        setProgress(prev => {
-          // Меняем шаг в зависимости от прогресса
-          if (prev < 50 && currentStep !== 0) {
-            setCurrentStep(0); // "Подключение к Telegram..."
-          } else if (prev >= 50 && prev < 75 && currentStep !== 1) {
-            setCurrentStep(1); // "Загрузка Telegram SDK..."
-          }
-          
-          if (prev >= 75) return 75; // Останавливаемся на 75% пока не готов Telegram
-          return prev + 1;
-        });
-      }, 50);
-    } else {
-      // Telegram готов - завершаем загрузку
-      setProgress(75); // Начинаем с 75%
-      
-      progressInterval = setInterval(() => {
-        setProgress(prev => {
-          if (prev < 75) return 75;
-          
-          // Меняем шаги в зависимости от прогресса
-          if (prev >= 90 && currentStep === 2) {
-            setCurrentStep(3); // "Инициализация AI..."
-          } else if (prev >= 95 && currentStep === 3) {
-            setCurrentStep(4); // "Подготовка интерфейса..."
-          }
-          
-          if (prev >= 100) {
-            setCurrentStep(5); // "Готово!"
-            clearInterval(progressInterval);
-            setTimeout(() => setIsLoading(false), 500);
-            return 100;
-          }
-          
-          return prev + 2;
-        });
-      }, 40);
-    }
-
-    return () => {
-      if (progressInterval) clearInterval(progressInterval);
-    };
-  }, [isTelegramReady, currentStep]);
 
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-indigo-900 flex items-center justify-center relative overflow-hidden">
-        {/* Анимированный фон */}
+        {/* Современный анимированный фон с градиентными волнами */}
         <div className="absolute inset-0">
           <motion.div
-            className="absolute top-1/4 left-1/4 w-72 h-72 bg-blue-400/20 rounded-full blur-3xl"
+            className="absolute top-1/4 left-1/4 w-96 h-96 bg-gradient-to-br from-blue-400/30 to-transparent rounded-full blur-3xl"
             animate={{
-              scale: [1, 1.2, 1],
-              opacity: [0.3, 0.6, 0.3],
+              scale: [1, 1.3, 1],
+              opacity: [0.2, 0.4, 0.2],
+              x: [0, 50, 0],
+              y: [0, 30, 0],
             }}
             transition={{
-              duration: 4,
+              duration: 6,
               repeat: Infinity,
               ease: "easeInOut"
             }}
           />
           <motion.div
-            className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-indigo-400/20 rounded-full blur-3xl"
+            className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-gradient-to-tl from-indigo-400/30 to-purple-400/20 rounded-full blur-3xl"
             animate={{
               scale: [1.2, 1, 1.2],
-              opacity: [0.6, 0.3, 0.6],
+              opacity: [0.3, 0.5, 0.3],
+              x: [0, -40, 0],
+              y: [0, -20, 0],
             }}
             transition={{
-              duration: 4,
+              duration: 7,
               repeat: Infinity,
               ease: "easeInOut",
-              delay: 2
+              delay: 1.5
+            }}
+          />
+          <motion.div
+            className="absolute top-1/2 left-1/2 w-80 h-80 bg-gradient-to-r from-purple-400/20 to-pink-400/20 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"
+            animate={{
+              scale: [1, 1.4, 1],
+              opacity: [0.1, 0.3, 0.1],
+              rotate: [0, 180, 360],
+            }}
+            transition={{
+              duration: 8,
+              repeat: Infinity,
+              ease: "easeInOut"
             }}
           />
         </div>
 
-        <div className="relative z-10 text-center max-w-md mx-auto px-6">
-          {/* Логотип */}
+        {/* Плавающие частицы */}
+        {[...Array(6)].map((_, i) => (
           <motion.div
-            className="relative mb-8"
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
+            key={i}
+            className="absolute w-2 h-2 bg-blue-400/40 dark:bg-blue-300/30 rounded-full"
+            style={{
+              left: `${20 + i * 15}%`,
+              top: `${30 + (i % 3) * 20}%`,
+            }}
+            animate={{
+              y: [0, -30, 0],
+              opacity: [0.3, 0.7, 0.3],
+              scale: [1, 1.5, 1],
+            }}
+            transition={{
+              duration: 3 + i * 0.5,
+              repeat: Infinity,
+              ease: "easeInOut",
+              delay: i * 0.3,
+            }}
+          />
+        ))}
+
+        <div className="relative z-10 text-center max-w-md mx-auto px-6">
+          {/* Логотип с современным дизайном */}
+          <motion.div
+            className="relative mb-10"
+            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease: "easeOut" }}
           >
-            <div className="w-24 h-24 mx-auto bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 dark:border-slate-700/50 flex items-center justify-center relative overflow-hidden">
-              {/* Градиентный фон */}
+            <div className="w-28 h-28 mx-auto bg-white/90 dark:bg-slate-800/90 backdrop-blur-2xl rounded-3xl shadow-2xl border-2 border-white/30 dark:border-slate-700/50 flex items-center justify-center relative overflow-hidden">
+              {/* Анимированный градиентный фон */}
               <motion.div
-                className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-indigo-500/10 to-purple-500/10"
+                className="absolute inset-0"
                 animate={{
                   background: [
-                    "linear-gradient(45deg, rgba(59, 130, 246, 0.1) 0%, rgba(99, 102, 241, 0.1) 50%, rgba(147, 51, 234, 0.1) 100%)",
-                    "linear-gradient(45deg, rgba(147, 51, 234, 0.1) 0%, rgba(59, 130, 246, 0.1) 50%, rgba(99, 102, 241, 0.1) 100%)",
-                    "linear-gradient(45deg, rgba(99, 102, 241, 0.1) 0%, rgba(147, 51, 234, 0.1) 50%, rgba(59, 130, 246, 0.1) 100%)"
+                    "linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(99, 102, 241, 0.15) 50%, rgba(147, 51, 234, 0.15) 100%)",
+                    "linear-gradient(135deg, rgba(147, 51, 234, 0.15) 0%, rgba(59, 130, 246, 0.15) 50%, rgba(99, 102, 241, 0.15) 100%)",
+                    "linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(147, 51, 234, 0.15) 50%, rgba(59, 130, 246, 0.15) 100%)"
                   ]
                 }}
                 transition={{
-                  duration: 3,
+                  duration: 4,
                   repeat: Infinity,
                   ease: "linear"
                 }}
               />
               
-              {/* Иконка */}
+              {/* Свечение вокруг иконки */}
               <motion.div
+                className="absolute inset-0 bg-gradient-to-br from-blue-400/20 to-indigo-400/20 rounded-3xl"
                 animate={{
-                  rotate: [0, 360],
-                  scale: [1, 1.1, 1]
-                }}
-                transition={{
-                  rotate: {
-                    duration: 8,
-                    repeat: Infinity,
-                    ease: "linear"
-                  },
-                  scale: {
-                    duration: 2,
-                    repeat: Infinity,
-                    ease: "easeInOut"
-                  }
-                }}
-              >
-                <Brain className="w-12 h-12 text-blue-600 dark:text-blue-400" />
-              </motion.div>
-
-              {/* Декоративные элементы */}
-              <motion.div
-                className="absolute -top-1 -right-1"
-                animate={{
-                  scale: [1, 1.2, 1],
-                  opacity: [0.7, 1, 0.7]
+                  opacity: [0.5, 0.8, 0.5],
+                  scale: [1, 1.1, 1],
                 }}
                 transition={{
                   duration: 2,
                   repeat: Infinity,
                   ease: "easeInOut"
                 }}
+              />
+              
+              {/* Иконка с плавным вращением */}
+              <motion.div
+                className="relative z-10"
+                animate={{
+                  rotate: [0, 360],
+                  scale: [1, 1.05, 1]
+                }}
+                transition={{
+                  rotate: {
+                    duration: 10,
+                    repeat: Infinity,
+                    ease: "linear"
+                  },
+                  scale: {
+                    duration: 2.5,
+                    repeat: Infinity,
+                    ease: "easeInOut"
+                  }
+                }}
               >
-                <Sparkles className="w-4 h-4 text-yellow-500" />
+                <Brain className="w-14 h-14 text-blue-600 dark:text-blue-400" strokeWidth={1.5} />
+              </motion.div>
+
+              {/* Декоративные элементы */}
+              <motion.div
+                className="absolute -top-2 -right-2 z-20"
+                animate={{
+                  scale: [1, 1.3, 1],
+                  opacity: [0.6, 1, 0.6],
+                  rotate: [0, 180, 360],
+                }}
+                transition={{
+                  duration: 3,
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+              >
+                <Sparkles className="w-5 h-5 text-yellow-500 dark:text-yellow-400" />
+              </motion.div>
+
+              <motion.div
+                className="absolute -bottom-1 -left-1 z-20"
+                animate={{
+                  scale: [1, 1.2, 1],
+                  opacity: [0.5, 0.9, 0.5],
+                  rotate: [0, -180, -360],
+                }}
+                transition={{
+                  duration: 2.5,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                  delay: 0.5
+                }}
+              >
+                <Zap className="w-4 h-4 text-indigo-500 dark:text-indigo-400" />
               </motion.div>
             </div>
           </motion.div>
 
-          {/* Название */}
+          {/* Название с градиентом */}
           <motion.h1
-            className="text-4xl font-bold text-slate-800 dark:text-slate-100 mb-2"
+            className="text-5xl font-bold mb-3 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 dark:from-blue-400 dark:via-indigo-400 dark:to-purple-400 bg-clip-text text-transparent"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3, duration: 0.6 }}
+            transition={{ delay: 0.3, duration: 0.8, ease: "easeOut" }}
           >
             Lumon
           </motion.h1>
 
           <motion.p
-            className="text-lg text-slate-600 dark:text-slate-300 mb-8 font-medium"
+            className="text-lg text-slate-600 dark:text-slate-400 mb-12 font-medium tracking-wide"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.5, duration: 0.6 }}
+            transition={{ delay: 0.5, duration: 0.8 }}
           >
             AI-Powered Business Platform
           </motion.p>
 
-          {/* Прогресс бар */}
+          {/* Современный индикатор загрузки (пульсирующие точки) */}
           <motion.div
-            className="mb-6"
+            className="flex justify-center items-center space-x-3"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.7, duration: 0.6 }}
           >
-            <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2 overflow-hidden">
-              <motion.div
-                className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full"
-                initial={{ width: "0%" }}
-                animate={{ width: `${progress}%` }}
-                transition={{ duration: 0.1 }}
-              />
-            </div>
-            <div className="flex justify-between items-center mt-2">
-              <span className="text-sm text-slate-500 dark:text-slate-400">{progress}%</span>
-              <motion.span
-                className="text-sm text-slate-600 dark:text-slate-300 font-medium"
-                key={currentMessage}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3 }}
-              >
-                {currentMessage}
-              </motion.span>
-            </div>
-          </motion.div>
-
-          {/* Декоративные элементы */}
-          <motion.div
-            className="flex justify-center space-x-2"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.9, duration: 0.6 }}
-          >
             {[0, 1, 2].map((index) => (
               <motion.div
                 key={index}
-                className="w-2 h-2 bg-blue-500 rounded-full"
+                className="w-3 h-3 bg-gradient-to-br from-blue-500 to-indigo-500 dark:from-blue-400 dark:to-indigo-400 rounded-full shadow-lg"
                 animate={{
-                  scale: [1, 1.5, 1],
-                  opacity: [0.4, 1, 0.4]
+                  scale: [1, 1.4, 1],
+                  opacity: [0.4, 1, 0.4],
+                  y: [0, -8, 0],
                 }}
                 transition={{
-                  duration: 1.5,
+                  duration: 1.2,
                   repeat: Infinity,
                   delay: index * 0.2,
                   ease: "easeInOut"
