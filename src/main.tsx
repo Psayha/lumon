@@ -63,6 +63,32 @@ const initializeTheme = () => {
 // Инициализируем тему до рендера
 initializeTheme();
 
+console.log('[Main] Инициализация приложения, проверка Telegram SDK...');
+const tgCheck = (window as any)?.Telegram?.WebApp;
+console.log('[Main] Telegram SDK при загрузке:', { 
+  exists: !!tgCheck, 
+  hasReady: typeof tgCheck?.ready === 'function',
+  hasExpand: typeof tgCheck?.expand === 'function',
+  version: tgCheck?.version || 'неизвестно',
+  platform: tgCheck?.platform || 'неизвестно'
+});
+
+// Проверяем наличие Telegram SDK ПЕРЕД рендером React
+console.log('[Bootstrap] Проверка перед рендером React...');
+const preRenderCheck = () => {
+  const tgPre = (window as any)?.Telegram?.WebApp;
+  if (tgPre) {
+    console.log('[Bootstrap] ✅ Telegram SDK обнаружен ДО рендера React:', {
+      version: tgPre.version,
+      platform: tgPre.platform,
+      hasInitData: !!tgPre.initData
+    });
+  } else {
+    console.warn('[Bootstrap] ⚠️ Telegram SDK НЕ обнаружен ДО рендера React');
+  }
+};
+preRenderCheck();
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <App />

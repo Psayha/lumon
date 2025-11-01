@@ -1,49 +1,92 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Brain, Sparkles } from 'lucide-react';
+import { useTelegram } from '../hooks/useTelegram';
 
 interface ModernSplashScreenProps {
   children: React.ReactNode;
 }
 
 export const ModernSplashScreen: React.FC<ModernSplashScreenProps> = ({ children }) => {
+  console.log('[SplashScreen] Компонент ModernSplashScreen монтируется');
   const [isLoading, setIsLoading] = useState(true);
   const [progress, setProgress] = useState(0);
+  const { tg, isReady } = useTelegram();
+  
+  console.log('[SplashScreen] useTelegram результат:', { hasTg: !!tg, isReady });
 
-  const loadingMessages = [
-    "Инициализация AI...",
-    "Загрузка данных...",
-    "Подготовка интерфейса...",
-    "Готово!"
+  // Сообщения загрузки с приоритетом Telegram
+  const loadingSteps = [
+    { message: "Подключение к Telegram...", progress: 25 },
+    { message: "Загрузка Telegram SDK...", progress: 50 },
+    { message: "Получение данных пользователя...", progress: 75 },
+    { message: "Инициализация AI...", progress: 90 },
+    { message: "Подготовка интерфейса...", progress: 95 },
+    { message: "Готово!", progress: 100 }
   ];
 
-  const [currentMessage, setCurrentMessage] = useState(loadingMessages[0]);
+  const [currentStep, setCurrentStep] = useState(0);
+  const [isTelegramReady, setIsTelegramReady] = useState(false);
+  const currentMessage = loadingSteps[currentStep]?.message || loadingSteps[0].message;
 
+  // Отслеживаем готовность Telegram
   useEffect(() => {
-    const progressInterval = setInterval(() => {
-      setProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(progressInterval);
-          setTimeout(() => setIsLoading(false), 500);
-          return 100;
-        }
-        return prev + 2;
-      });
-    }, 40);
+    if (isReady) {
+      setIsTelegramReady(true);
+      setCurrentStep(2); // "Получение данных пользователя..."
+    }
+  }, [isReady]);
 
-    const messageInterval = setInterval(() => {
-      setCurrentMessage(prev => {
-        const currentIndex = loadingMessages.indexOf(prev);
-        const nextIndex = (currentIndex + 1) % loadingMessages.length;
-        return loadingMessages[nextIndex];
-      });
-    }, 800);
+  // Управление прогрессом загрузки
+  useEffect(() => {
+    let progressInterval: NodeJS.Timeout;
+
+    if (!isTelegramReady) {
+      // Ждём Telegram SDK - прогресс до 75%
+      progressInterval = setInterval(() => {
+        setProgress(prev => {
+          // Меняем шаг в зависимости от прогресса
+          if (prev < 50 && currentStep !== 0) {
+            setCurrentStep(0); // "Подключение к Telegram..."
+          } else if (prev >= 50 && prev < 75 && currentStep !== 1) {
+            setCurrentStep(1); // "Загрузка Telegram SDK..."
+          }
+          
+          if (prev >= 75) return 75; // Останавливаемся на 75% пока не готов Telegram
+          return prev + 1;
+        });
+      }, 50);
+    } else {
+      // Telegram готов - завершаем загрузку
+      setProgress(75); // Начинаем с 75%
+      
+      progressInterval = setInterval(() => {
+        setProgress(prev => {
+          if (prev < 75) return 75;
+          
+          // Меняем шаги в зависимости от прогресса
+          if (prev >= 90 && currentStep === 2) {
+            setCurrentStep(3); // "Инициализация AI..."
+          } else if (prev >= 95 && currentStep === 3) {
+            setCurrentStep(4); // "Подготовка интерфейса..."
+          }
+          
+          if (prev >= 100) {
+            setCurrentStep(5); // "Готово!"
+            clearInterval(progressInterval);
+            setTimeout(() => setIsLoading(false), 500);
+            return 100;
+          }
+          
+          return prev + 2;
+        });
+      }, 40);
+    }
 
     return () => {
-      clearInterval(progressInterval);
-      clearInterval(messageInterval);
+      if (progressInterval) clearInterval(progressInterval);
     };
-  }, []);
+  }, [isTelegramReady, currentStep]);
 
   if (isLoading) {
     return (

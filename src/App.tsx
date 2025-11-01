@@ -53,7 +53,10 @@ const LoadingFallback: React.FC = () => (
 );
 
 const App: React.FC = () => {
+  console.log('[App] Компонент App монтируется');
+  
   const TelegramUIManager: React.FC = () => {
+    console.log('[App] TelegramUIManager монтируется');
     const location = useLocation();
     const navigate = useNavigate();
     const { tg, isReady } = useTelegram();
@@ -70,11 +73,21 @@ const App: React.FC = () => {
       const buttonText = params.button_text_color || '#ffffff';
 
       try {
-        tg.setHeaderColor?.(bg);
-        tg.setBackgroundColor?.(bg);
+        // Эти методы могут быть не доступны в старых версиях API (например, 6.0)
+        if (tg.setHeaderColor) {
+          tg.setHeaderColor(bg);
+        }
+        if (tg.setBackgroundColor) {
+          tg.setBackgroundColor(bg);
+        }
         // Сентябрь 2024+: нижняя панель
-        (tg as any).setBottomBarColor?.(bg);
-      } catch {}
+        if ((tg as any).setBottomBarColor) {
+          (tg as any).setBottomBarColor(bg);
+        }
+      } catch (error) {
+        // Тихая обработка - методы могут быть не поддерживаемы в старых версиях
+        console.debug('[Telegram] Некоторые методы UI не поддерживаются в текущей версии API');
+      }
 
       const root = document.documentElement;
       root.style.setProperty('--bg-primary', bg);
@@ -109,10 +122,20 @@ const App: React.FC = () => {
         const button = params.button_color || '#2481cc';
         const buttonText = params.button_text_color || '#ffffff';
         try {
-          tg.setHeaderColor?.(bg);
-          tg.setBackgroundColor?.(bg);
-          (tg as any).setBottomBarColor?.(bg);
-        } catch {}
+          // Эти методы могут быть не доступны в старых версиях API (например, 6.0)
+          if (tg.setHeaderColor) {
+            tg.setHeaderColor(bg);
+          }
+          if (tg.setBackgroundColor) {
+            tg.setBackgroundColor(bg);
+          }
+          if ((tg as any).setBottomBarColor) {
+            (tg as any).setBottomBarColor(bg);
+          }
+        } catch (error) {
+          // Тихая обработка - методы могут быть не поддерживаемы в старых версиях
+          console.debug('[Telegram] Некоторые методы UI не поддерживаются в текущей версии API');
+        }
         const root = document.documentElement;
         root.style.setProperty('--bg-primary', bg);
         root.style.setProperty('--bg-secondary', secondaryBg);
@@ -136,27 +159,42 @@ const App: React.FC = () => {
     // Логика Back/Close: на главной скрываем Back, на внутренних показываем и возвращаемся назад
     useEffect(() => {
       if (!isReady || !tg) return;
+      
+      // Проверяем наличие BackButton (не поддерживается в версиях API < 6.1)
+      if (!tg.BackButton) {
+        console.warn('[Telegram] BackButton не поддерживается в текущей версии API');
+        return;
+      }
+
       const isRoot = location.pathname === '/';
       
       if (isRoot) {
         // На главной странице скрываем BackButton - системная кнопка закрыть будет закрывать приложение
-        tg.BackButton.hide();
+        try {
+          tg.BackButton.hide();
+        } catch (error) {
+          console.warn('[Telegram] Ошибка при скрытии BackButton:', error);
+        }
         return;
       }
 
       // На внутренних страницах показываем BackButton - системная кнопка закрыть будет работать как "назад"
-      tg.BackButton.show();
-      
-      // Настраиваем обработчик: при нажатии на системную кнопку закрыть возвращаемся назад в истории
-      tg.BackButton.onClick(() => {
-        const historyLength = window.history.length;
-        if (historyLength > 1) {
-          navigate(-1);
-        } else {
-          // Если нет истории, переходим на главную
-          navigate('/');
-        }
-      });
+      try {
+        tg.BackButton.show();
+        
+        // Настраиваем обработчик: при нажатии на системную кнопку закрыть возвращаемся назад в истории
+        tg.BackButton.onClick(() => {
+          const historyLength = window.history.length;
+          if (historyLength > 1) {
+            navigate(-1);
+          } else {
+            // Если нет истории, переходим на главную
+            navigate('/');
+          }
+        });
+      } catch (error) {
+        console.warn('[Telegram] Ошибка при работе с BackButton:', error);
+      }
     }, [isReady, tg, location.pathname, navigate]);
 
     // Слушаем safe-area Telegram и маппим в CSS переменные
