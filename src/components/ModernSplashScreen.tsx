@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Brain, Sparkles, Zap } from 'lucide-react';
 import { useTelegram } from '../hooks/useTelegram';
@@ -11,18 +11,27 @@ export const ModernSplashScreen: React.FC<ModernSplashScreenProps> = ({ children
   console.log('[SplashScreen] Компонент ModernSplashScreen монтируется');
   const [isLoading, setIsLoading] = useState(true);
   const { tg, isReady } = useTelegram();
+  const startTimeRef = useRef<number>(Date.now());
+  const MIN_LOADING_TIME = 2000; // Минимум 2 секунды показа загрузочного экрана
   
   console.log('[SplashScreen] useTelegram результат:', { hasTg: !!tg, isReady });
 
   // Отслеживаем готовность Telegram и скрываем экран загрузки
+  // Загрузочный экран показывается минимум 2 секунды для сбора данных
   useEffect(() => {
-    if (isReady) {
-      // Небольшая задержка для плавного перехода
-      const timer = setTimeout(() => {
+    if (!isReady) return;
+
+    const checkAndHide = () => {
+      const elapsedTime = Date.now() - startTimeRef.current;
+      const remainingTime = Math.max(0, MIN_LOADING_TIME - elapsedTime);
+      
+      // Ждем минимум 2 секунды показа экрана, даже если Telegram уже готов
+      setTimeout(() => {
         setIsLoading(false);
-      }, 800);
-      return () => clearTimeout(timer);
-    }
+      }, remainingTime + 300); // +300ms для плавного перехода
+    };
+
+    checkAndHide();
   }, [isReady]);
 
   if (isLoading) {
