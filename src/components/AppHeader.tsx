@@ -76,7 +76,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
         // На главной странице есть кнопка "Закрыть" слева (не BackButton, но занимает место)
         // Нужно учитывать её размер для правильного центрирования
         if (isRoot) {
-          safeLeft = (windowWidth * 0.15); // ~15% для кнопки "Закрыть" на главной
+          safeLeft = (windowWidth * 0.16); // ~16% для кнопки "Закрыть" на главной
           safeRight = (windowWidth * 0.10); // ~10% для SettingsButton (увеличено)
         } else {
           // На внутренних страницах BackButton с текстом "Назад"
@@ -89,7 +89,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
         // Если получили частичные данные от Telegram, дополняем недостающие
         if (safeLeft === 0) {
           // На главной странице есть кнопка "Закрыть", на внутренних - BackButton
-          safeLeft = isRoot ? (windowWidth * 0.15) : (isReady && tg && tg.BackButton ? (windowWidth * 0.11) : 0);
+          safeLeft = isRoot ? (windowWidth * 0.16) : (isReady && tg && tg.BackButton ? (windowWidth * 0.11) : 0);
         }
         if (safeRight === 0) {
           safeRight = isRoot ? (windowWidth * 0.10) : (windowWidth * 0.09); // 10% на главной, 9% на детальных
