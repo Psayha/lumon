@@ -1,9 +1,7 @@
-version: '3.8'
-
 services:
-  # Supabase PostgreSQL + Studio
+  # Supabase PostgreSQL
   supabase-db:
-    image: supabase/postgres:15.1.0.147
+    image: postgres:15-alpine
     container_name: lumon-supabase-db
     environment:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-lumon_dev_password}
@@ -19,21 +17,24 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
 
+  # Supabase Studio (Database UI)
   supabase-studio:
-    image: supabase/studio:20240415-54b6c5f
+    image: supabase/studio:latest
     container_name: lumon-supabase-studio
     ports:
       - "3001:3000"
     environment:
       DEFAULT_ORGANIZATION_NAME: Lumon
       DEFAULT_PROJECT_NAME: Lumon Development
-      SUPABASE_URL: http://supabase-api:8000
-      SUPABASE_PUBLIC_URL: http://localhost:8000
-      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-your-anon-key}
-      SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY:-your-service-key}
+      STUDIO_PG_META_URL: http://supabase-db:5432
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-lumon_dev_password}
+      POSTGRES_DB: ${POSTGRES_DB:-lumon}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
     depends_on:
-      - supabase-db
+      supabase-db:
+        condition: service_healthy
     restart: unless-stopped
 
   # n8n Workflow Automation
