@@ -1,11 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Clock, User, CheckCircle } from 'lucide-react';
-
-// Telegram WebApp detection
-const isTelegramWebApp = () => {
-  return typeof window !== 'undefined' && (window as any).Telegram?.WebApp;
-};
+import { isTelegramWebApp } from '../../hooks/useTelegram';
 
 interface ConsultationModalProps {
   isOpen: boolean;

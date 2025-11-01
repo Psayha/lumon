@@ -1,11 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Upload, X, AlertCircle, CheckCircle, Trash2 } from 'lucide-react';
-
-// Telegram WebApp detection
-const isTelegramWebApp = () => {
-  return typeof window !== 'undefined' && (window as any).Telegram?.WebApp;
-};
+import { isTelegramWebApp } from '../../hooks/useTelegram';
 
 interface UploadDocumentsModalProps {
   isOpen: boolean;
