@@ -74,8 +74,8 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
       // Всегда используем процентные fallback значения
       if (safeLeft === 0 && safeRight === 0) {
         // SettingsButton всегда видна (кроме полноэкранного режима)
-        // Используем процентное значение вместо фиксированных пикселей
-        safeRight = (windowWidth * 0.09); // ~9% от ширины экрана (примерно 54px на экране 600px)
+        // На главной странице используем меньший процент для правильного центрирования
+        safeRight = isRoot ? (windowWidth * 0.06) : (windowWidth * 0.09); // 6% на главной, 9% на детальных
         
         if (!isRoot && isReady && tg && tg.BackButton) {
           // BackButton с текстом "Назад" видна на скриншоте
@@ -88,7 +88,8 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           safeLeft = (windowWidth * 0.11); // ~11% от ширины экрана
         }
         if (safeRight === 0) {
-          safeRight = (windowWidth * 0.09); // ~9% от ширины экрана
+          // На главной странице используем меньший процент для правильного центрирования
+          safeRight = isRoot ? (windowWidth * 0.06) : (windowWidth * 0.09);
         }
       }
 
