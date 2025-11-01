@@ -72,9 +72,9 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
         // На внутренних страницах обе кнопки видимы
         
         // SettingsButton всегда видна (кроме полноэкранного режима)
-        // На основе визуального анализа: SettingsButton занимает ~46-50px
+        // На основе визуального анализа: SettingsButton занимает ~42-46px
         // Для главной страницы используем меньшее значение для правильного центрирования
-        safeRight = isRoot ? 46 : 54;
+        safeRight = isRoot ? 42 : 54;
         
         if (!isRoot && isReady && tg && tg.BackButton) {
           // BackButton с текстом "Назад" видна на скриншоте
@@ -88,50 +88,51 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           safeLeft = 66;
         }
         if (safeRight === 0) {
-          safeRight = isRoot ? 46 : 54;
+          safeRight = isRoot ? 42 : 54;
         }
       }
 
       // Вычисляем центр доступного пространства между видимыми кнопками
-      // Если слева нет кнопки (safeLeft = 0), центр должен учитывать только правую кнопку
-      // Если справа нет кнопки (safeRight = 0), центр должен учитывать только левую кнопку
-      // Если обе кнопки видимы, центр между ними
+      // Используем проценты вместо пикселей для адаптивности под разные ширины экранов
       
-      let centerX: number;
-      const availableWidth = window.innerWidth - safeLeft - safeRight;
+      let centerPercent: number;
+      const windowWidth = window.innerWidth;
+      
+      // Конвертируем пиксели в проценты для адаптивности
+      const safeLeftPercent = (safeLeft / windowWidth) * 100;
+      const safeRightPercent = (safeRight / windowWidth) * 100;
       
       if (safeLeft === 0 && safeRight > 0) {
         // Только правая кнопка видна (главная страница)
-        // Центр должен быть между левым краем экрана (0) и началом SettingsButton
-        // SettingsButton находится справа, занимает safeRight пикселей
-        // Центр доступного пространства: (ширина экрана - правая кнопка) / 2
-        // Это даст правильное центрирование относительно левого края и правой кнопки
-        centerX = (window.innerWidth - safeRight) / 2;
+        // Центр доступного пространства в процентах: (100% - правая кнопка %) / 2
+        centerPercent = (100 - safeRightPercent) / 2;
       } else if (safeLeft > 0 && safeRight === 0) {
         // Только левая кнопка видна (редкий случай)
-        // Центр: левая кнопка + (ширина экрана - левая кнопка) / 2
-        centerX = safeLeft + (window.innerWidth - safeLeft) / 2;
+        // Центр: левая кнопка % + (100% - левая кнопка %) / 2
+        centerPercent = safeLeftPercent + (100 - safeLeftPercent) / 2;
       } else if (safeLeft > 0 && safeRight > 0) {
         // Обе кнопки видимы (внутренние страницы)
-        // Центр: левая кнопка + (ширина экрана - левая кнопка - правая кнопка) / 2
-        centerX = safeLeft + availableWidth / 2;
+        // Центр: левая кнопка % + (100% - левая кнопка % - правая кнопка %) / 2
+        centerPercent = safeLeftPercent + (100 - safeLeftPercent - safeRightPercent) / 2;
       } else {
         // Нет кнопок (fallback на центр экрана)
-        centerX = window.innerWidth / 2;
+        centerPercent = 50;
       }
       
       // Логирование для отладки
+      const centerX = (centerPercent / 100) * windowWidth;
       console.log('[AppHeader] Center calculation:', {
         pathname: location.pathname,
         safeLeft,
         safeRight,
-        windowWidth: window.innerWidth,
-        availableWidth,
-        centerX,
-        centerPercent: ((centerX / window.innerWidth) * 100).toFixed(1) + '%'
+        safeLeftPercent: safeLeftPercent.toFixed(2) + '%',
+        safeRightPercent: safeRightPercent.toFixed(2) + '%',
+        windowWidth,
+        centerPercent: centerPercent.toFixed(2) + '%',
+        centerX: Math.round(centerX) + 'px'
       });
       
-      setCenterPosition(`${centerX}px`);
+      setCenterPosition(`${centerPercent}%`);
     };
 
     updateCenterPosition();
