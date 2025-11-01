@@ -112,17 +112,12 @@ const App: React.FC = () => {
     return <TelegramOnlyPage />;
   }
 
-  // Если проверка ещё не завершена - показываем загрузку
+  // Если проверка ещё не завершена - показываем только ModernSplashScreen (без дублирования экранов)
   if (isTelegram === null) {
     return (
-      <div className="min-h-screen gradient-bg flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 mx-auto bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 dark:border-slate-700/50 flex items-center justify-center mb-4">
-            <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
-          </div>
-          <p className="text-slate-600 dark:text-slate-300">Проверка платформы...</p>
-        </div>
-      </div>
+      <ModernSplashScreen>
+        <div />
+      </ModernSplashScreen>
     );
   }
   
