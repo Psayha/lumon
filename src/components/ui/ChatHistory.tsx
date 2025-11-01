@@ -203,7 +203,7 @@ export const ChatHistory: React.FC<ChatHistoryProps> = ({
               className="text-lg font-semibold text-center fixed left-0 right-0 z-[62] pointer-events-none"
               style={{
                 color: themeParams.text_color || '#000000',
-                top: 'calc(max(var(--safe-top, 0px), env(safe-area-inset-top, 0px)) + 2.5rem)',
+                top: 'calc(max(var(--safe-top, 0px), env(safe-area-inset-top, 0px)) + 1rem)',
                 width: '100vw',
                 left: 0,
                 right: 0
@@ -219,7 +219,7 @@ export const ChatHistory: React.FC<ChatHistoryProps> = ({
                 scrollbarWidth: 'none',
                 msOverflowStyle: 'none',
                 WebkitOverflowScrolling: 'touch',
-                paddingTop: 'calc(max(var(--safe-top, 0px), env(safe-area-inset-top, 0px)) + 4.5rem)'
+                paddingTop: 'calc(max(var(--safe-top, 0px), env(safe-area-inset-top, 0px)) + 3rem)'
               }}
             >
               {chatHistory.length === 0 ? (
@@ -320,7 +320,7 @@ export const ChatHistory: React.FC<ChatHistoryProps> = ({
             <div 
               className="flex-shrink-0"
               style={{
-                paddingTop: '2.5rem',
+                paddingTop: '3.5rem',
                 paddingBottom: `calc(1rem + max(var(--safe-bottom, 0px), env(safe-area-inset-bottom, 0px)))`,
                 paddingLeft: '1rem',
                 paddingRight: '1rem'
