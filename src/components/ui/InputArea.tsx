@@ -241,16 +241,16 @@ export const InputArea: React.FC<InputAreaProps> = ({
                             data-command-button
                             onClick={(e) => {
                                 e.stopPropagation();
-                                if (selectedCommands.length > 0 || isListening) {
+                                if (selectedCommands.length > 0 || isListening || isRecognizing) {
                                     return;
                                 }
                                 onToggleCommandPalette();
                             }}
-                            whileTap={selectedCommands.length === 0 && !isListening ? { scale: 0.94 } : {}}
-                            disabled={isListening || selectedCommands.length > 0}
+                            whileTap={selectedCommands.length === 0 && !isListening && !isRecognizing ? { scale: 0.94 } : {}}
+                            disabled={isListening || isRecognizing || selectedCommands.length > 0}
                             className={cn(
                                 "p-2 rounded-lg transition-colors relative group",
-                                selectedCommands.length > 0 || isListening
+                                selectedCommands.length > 0 || isListening || isRecognizing
                                     ? "text-gray-400 dark:text-white/20 cursor-not-allowed"
                                     : showCommandPalette 
                                     ? "bg-gray-200/50 dark:bg-white/10 text-gray-700 dark:text-white/90"
