@@ -30,16 +30,34 @@ function useAutoResizeTextarea({
             if (!textarea) return;
 
             if (reset) {
+                textarea.style.height = 'auto';
                 textarea.style.height = `${minHeight}px`;
+                textarea.style.overflowY = 'hidden';
+                return;
         }
 
+        // Сначала сбрасываем высоту для правильного расчета scrollHeight
+        textarea.style.height = 'auto';
         const scrollHeight = textarea.scrollHeight;
-        const newHeight = Math.min(Math.max(scrollHeight, minHeight), maxHeight);
+        
+        // Если контент превышает maxHeight, фиксируем на maxHeight и включаем скролл
+        if (scrollHeight > maxHeight) {
+            textarea.style.height = `${maxHeight}px`;
+            textarea.style.overflowY = 'auto';
+        } else {
+            const newHeight = Math.max(scrollHeight, minHeight);
             textarea.style.height = `${newHeight}px`;
+            textarea.style.overflowY = 'hidden';
+        }
     }, [minHeight, maxHeight]);
 
     useEffect(() => {
-        adjustHeight();
+        if (!value || value.trim() === '') {
+            // Если значение пустое, сбрасываем высоту
+            adjustHeight(true);
+        } else {
+            adjustHeight();
+        }
     }, [value, adjustHeight]);
 
     return { textareaRef, adjustHeight };
@@ -172,7 +190,10 @@ export function AnimatedAIChat({
 
             setMessages(prev => [...prev, userMessage]);
             setValue("");
-            adjustHeight(true);
+            // Сбрасываем высоту после очистки значения
+            setTimeout(() => {
+                adjustHeight(true);
+            }, 0);
 
             startTransition(() => {
                 setIsTyping(true);
@@ -317,10 +338,10 @@ export function AnimatedAIChat({
             </div>
             
             {/* Скроллируемый контент чата */}
-            <div className="flex-1 overflow-y-auto p-1">
-                <div className="w-full max-w-md mx-auto relative">
+            <div className="flex-1 overflow-y-auto p-1 pb-32 relative z-0">
+                <div className={`w-full max-w-md mx-auto relative ${messages.length === 0 ? 'min-h-[calc(100vh-200px)] flex items-center py-8' : ''}`}>
                 <motion.div 
-                    className={`relative z-10 ${messages.length > 0 ? 'space-y-6' : 'space-y-12'}`}
+                    className={`relative z-0 ${messages.length > 0 ? 'space-y-6' : 'space-y-12 w-full'}`}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6, ease: "easeOut" }}
@@ -351,8 +372,8 @@ export function AnimatedAIChat({
             </div>
 
             {/* Поле ввода и кнопка истории */}
-            <div className="flex-shrink-0">
-                <div className="w-full max-w-md mx-auto px-1">
+            <div className="flex-shrink-0 relative z-10 w-full overflow-hidden">
+                <div className="w-full max-w-md mx-auto px-1 overflow-hidden">
                     <InputArea
                         value={value}
                         onChange={setValue}
@@ -383,9 +404,6 @@ export function AnimatedAIChat({
                         textareaRef={textareaRef}
                         adjustHeight={adjustHeight}
                     />
-
-                    {/* Отступ от подвала */}
-                    <div className="pb-4"></div>
                 </div>
             </div>
 

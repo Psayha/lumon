@@ -16,7 +16,7 @@ interface MessageListProps {
 export const MessageList: React.FC<MessageListProps> = ({ messages, isTyping }) => {
     return (
         <motion.div 
-            className="w-full max-w-2xl mx-auto space-y-4 max-h-[60vh] overflow-y-auto"
+            className="w-full max-w-md mx-auto space-y-4"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
@@ -24,19 +24,29 @@ export const MessageList: React.FC<MessageListProps> = ({ messages, isTyping }) 
             {messages.map((message) => (
                 <motion.div
                     key={message.id}
-                    className={`flex ${message.isUser ? 'justify-end' : 'justify-start'}`}
+                    className={`flex ${message.isUser ? 'justify-end' : 'justify-start'} min-w-0`}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3 }}
                 >
                     <div
-                        className={`max-w-[80%] px-4 py-3 rounded-2xl ${
+                        className={`max-w-[80%] px-4 py-3 rounded-2xl break-words min-w-0 ${
                             message.isUser
                                 ? 'bg-blue-600 text-white'
                                 : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white'
                         }`}
+                        style={{
+                            wordWrap: 'break-word',
+                            overflowWrap: 'anywhere',
+                            wordBreak: 'break-word',
+                            minWidth: 0,
+                        }}
                     >
-                        <p className="text-sm leading-relaxed">{message.text}</p>
+                        <p className="text-sm leading-relaxed break-words" style={{
+                            wordWrap: 'break-word',
+                            overflowWrap: 'anywhere',
+                            wordBreak: 'break-word',
+                        }}>{message.text}</p>
                         <p className={`text-xs mt-1 ${
                             message.isUser 
                                 ? 'text-blue-100' 

@@ -24,12 +24,19 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
             "placeholder:text-muted-foreground",
             "disabled:cursor-not-allowed disabled:opacity-50",
             "leading-relaxed",
+            "break-words",
             showRing ? "focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0" : "",
             className
           )}
           ref={ref}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
+          style={{
+            wordWrap: "break-word",
+            overflowWrap: "anywhere",
+            wordBreak: "break-word",
+            ...props.style
+          }}
           {...props}
         />
         

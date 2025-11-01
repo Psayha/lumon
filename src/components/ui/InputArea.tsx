@@ -62,11 +62,11 @@ export const InputArea: React.FC<InputAreaProps> = ({
     adjustHeight
 }) => {
     return (
-        <div className="flex-shrink-0">
-            <div className="w-full max-w-md mx-auto px-1">
+        <div className="flex-shrink-0 w-full overflow-hidden">
+            <div className="w-full max-w-md mx-auto px-1 overflow-hidden">
                 <motion.div 
                     className={cn(
-                        "relative backdrop-blur-2xl bg-white/80 dark:bg-white/[0.02] rounded-2xl shadow-2xl",
+                        "relative backdrop-blur-xl bg-white/60 dark:bg-white/[0.03] rounded-2xl shadow-2xl z-20 w-full overflow-hidden",
                         isRecognizing
                             ? "border-2 border-orange-500 dark:border-orange-400"
                             : isListening
@@ -172,11 +172,17 @@ export const InputArea: React.FC<InputAreaProps> = ({
                                 "text-gray-900 dark:text-white/90 text-sm",
                                 "focus:outline-none",
                                 "placeholder:text-gray-500 dark:placeholder:text-white/20",
-                                "min-h-[60px]"
+                                "min-h-[60px]",
+                                "break-words"
                             )}
-                            style={{
-                                overflow: "auto",
-                            }}
+                        style={{
+                            overflowX: "hidden",
+                            wordWrap: "break-word",
+                            overflowWrap: "anywhere",
+                            wordBreak: "break-word",
+                            minWidth: 0,
+                            width: "100%",
+                        }}
                             showRing={false}
                         />
                     </div>
