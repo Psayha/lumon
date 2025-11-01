@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useLocation, useNavigate } from 'react-router-dom';
 import { Upload, X, AlertCircle, CheckCircle, Trash2 } from 'lucide-react';
 import { isTelegramWebApp } from '../../hooks/useTelegram';
 
@@ -20,8 +19,6 @@ const UploadDocumentsModal: React.FC<UploadDocumentsModalProps> = ({ isOpen, onC
   const [files, setFiles] = useState<FileWithProgress[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const location = useLocation();
-  const navigate = useNavigate();
 
   
 
@@ -43,54 +40,12 @@ const UploadDocumentsModal: React.FC<UploadDocumentsModalProps> = ({ isOpen, onC
       }
     } else {
       document.body.style.overflow = 'unset';
-      
-      // Восстанавливаем правильное поведение BackButton при закрытии модального окна
-      if (isTelegramWebApp()) {
-        const tg = (window as any).Telegram.WebApp;
-        const isRoot = location.pathname === '/';
-        
-        if (isRoot) {
-          // На главной странице скрываем BackButton - закрывает приложение
-          tg.BackButton.hide();
-        } else {
-          // На внутренних страницах показываем BackButton - возвращает на предыдущую страницу
-          tg.BackButton.show();
-          tg.BackButton.onClick(() => {
-            const historyLength = window.history.length;
-            if (historyLength > 1) {
-              navigate(-1);
-            } else {
-              navigate('/');
-            }
-          });
-        }
-      }
     }
 
     return () => {
       document.body.style.overflow = 'unset';
-      
-      // Восстанавливаем правильное поведение BackButton при размонтировании
-      if (isTelegramWebApp()) {
-        const tg = (window as any).Telegram.WebApp;
-        const isRoot = location.pathname === '/';
-        
-        if (isRoot) {
-          tg.BackButton.hide();
-        } else {
-          tg.BackButton.show();
-          tg.BackButton.onClick(() => {
-            const historyLength = window.history.length;
-            if (historyLength > 1) {
-              navigate(-1);
-            } else {
-              navigate('/');
-            }
-          });
-        }
-      }
     };
-  }, [isOpen, onClose, location.pathname, navigate]);
+  }, [isOpen, onClose]);
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
