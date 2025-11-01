@@ -19,21 +19,38 @@ export const PricingModal: React.FC<PricingModalProps> = ({
     if (isOpen) {
       document.body.style.overflow = 'hidden';
       
-      // Для Telegram Mini App скрываем штатные кнопки
+      // Для Telegram Mini App настраиваем кнопку "Назад" для закрытия модального окна
       if (isTelegramWebApp()) {
         const tg = (window as any).Telegram.WebApp;
-        tg.BackButton.hide();
         tg.MainButton.hide();
+        
+        // Показываем кнопку "Назад" и привязываем к закрытию модального окна
+        tg.BackButton.show();
+        tg.BackButton.onClick(() => {
+          onClose();
+        });
       }
     } else {
       document.body.style.overflow = 'unset';
+      
+      // Скрываем кнопку "Назад" при закрытии модального окна
+      if (isTelegramWebApp()) {
+        const tg = (window as any).Telegram.WebApp;
+        tg.BackButton.hide();
+      }
     }
 
     // Очищаем стили при размонтировании
     return () => {
       document.body.style.overflow = 'unset';
+      
+      // Очистка при размонтировании компонента
+      if (isTelegramWebApp()) {
+        const tg = (window as any).Telegram.WebApp;
+        tg.BackButton.hide();
+      }
     };
-  }, [isOpen]);
+  }, [isOpen, onClose]);
 
   const plans = [
     {
