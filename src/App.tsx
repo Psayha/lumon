@@ -4,7 +4,6 @@ import { motion } from 'framer-motion';
 import { Brain, Sparkles, Zap } from 'lucide-react';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { ModernSplashScreen } from './components/ModernSplashScreen';
-import { SystemButtonsDebug } from './components/SystemButtonsDebug';
 import { useTelegram, isTelegramWebApp } from './hooks/useTelegram';
 import TelegramOnlyPage from '../front/TelegramOnlyPage';
 
@@ -439,7 +438,6 @@ const App: React.FC = () => {
         <ErrorBoundary>
           <Router>
             <TelegramUIManager />
-            <SystemButtonsDebug />
             <Suspense fallback={<LoadingFallback />}>
               <div className="app-content">
                 <Routes>
