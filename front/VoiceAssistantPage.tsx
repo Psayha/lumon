@@ -44,13 +44,24 @@ const VoiceAssistantPage: React.FC = () => {
         <AppFooter showHomeButton={true} />
       </div>
 
-      {/* Верхняя safe-area с glass эффектом */}
+      {/* Градиентное размытие сверху с плавным переходом */}
       <div 
-        className="fixed top-0 left-0 right-0 z-[100] backdrop-blur-xl pointer-events-none bg-white/10 dark:bg-black/10"
+        className="fixed top-0 left-0 right-0 z-[100] pointer-events-none overflow-hidden"
         style={{
-          height: 'var(--safe-top, 0px)'
+          height: `calc(var(--safe-top, 0px) + 40px)`,
         }}
-      />
+      >
+        <div 
+          className="absolute top-0 left-0 right-0 bg-white/10 dark:bg-black/10"
+          style={{
+            height: `calc(var(--safe-top, 0px) + 40px)`,
+            backdropFilter: 'blur(24px)',
+            WebkitBackdropFilter: 'blur(24px)',
+            maskImage: 'linear-gradient(to bottom, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0.7) 40%, rgba(0, 0, 0, 0) 100%)',
+            WebkitMaskImage: 'linear-gradient(to bottom, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0.7) 40%, rgba(0, 0, 0, 0) 100%)',
+          }}
+        />
+      </div>
       
       {/* Правая safe-area с glass эффектом */}
       <div 
