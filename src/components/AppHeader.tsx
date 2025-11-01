@@ -93,30 +93,18 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
 
       // Вычисляем центр доступного пространства между видимыми кнопками
       // Используем проценты вместо пикселей для адаптивности под разные ширины экранов
+      // Унифицированная формула для всех страниц
       
-      let centerPercent: number;
       const windowWidth = window.innerWidth;
       
       // Конвертируем пиксели в проценты для адаптивности
       const safeLeftPercent = (safeLeft / windowWidth) * 100;
       const safeRightPercent = (safeRight / windowWidth) * 100;
       
-      if (safeLeft === 0 && safeRight > 0) {
-        // Только правая кнопка видна (главная страница)
-        // Центр доступного пространства в процентах: (100% - правая кнопка %) / 2
-        centerPercent = (100 - safeRightPercent) / 2;
-      } else if (safeLeft > 0 && safeRight === 0) {
-        // Только левая кнопка видна (редкий случай)
-        // Центр: левая кнопка % + (100% - левая кнопка %) / 2
-        centerPercent = safeLeftPercent + (100 - safeLeftPercent) / 2;
-      } else if (safeLeft > 0 && safeRight > 0) {
-        // Обе кнопки видимы (внутренние страницы)
-        // Центр: левая кнопка % + (100% - левая кнопка % - правая кнопка %) / 2
-        centerPercent = safeLeftPercent + (100 - safeLeftPercent - safeRightPercent) / 2;
-      } else {
-        // Нет кнопок (fallback на центр экрана)
-        centerPercent = 50;
-      }
+      // Единая формула для всех случаев: центр = левая кнопка % + половина доступного пространства
+      // На главной странице safeLeft = 0, формула все равно работает корректно
+      const availableWidthPercent = 100 - safeLeftPercent - safeRightPercent;
+      const centerPercent = safeLeftPercent + (availableWidthPercent / 2);
       
       // Логирование для отладки
       const centerX = (centerPercent / 100) * windowWidth;
