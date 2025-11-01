@@ -85,19 +85,21 @@ export const SystemButtonsDebug: React.FC = () => {
       if (cssRightValue !== null && cssRightValue > 0) safeRight = cssRightValue;
 
       // Применяем fallback значения (те же, что в AppHeader)
+      // Используем процентные значения для адаптивности
       const isRoot = location.pathname === '/';
+      const windowWidth = window.innerWidth;
       
       if (safeLeft === 0 && safeRight === 0) {
-        safeRight = 54;
+        safeRight = (windowWidth * 0.09); // ~9% от ширины экрана
         if (!isRoot && isReady && tg && tg.BackButton) {
-          safeLeft = 66;
+          safeLeft = (windowWidth * 0.11); // ~11% от ширины экрана
         }
       } else {
         if (safeLeft === 0 && !isRoot && isReady && tg && tg.BackButton) {
-          safeLeft = 66;
+          safeLeft = (windowWidth * 0.11); // ~11% от ширины экрана
         }
         if (safeRight === 0) {
-          safeRight = 54;
+          safeRight = (windowWidth * 0.09); // ~9% от ширины экрана
         }
       }
 
