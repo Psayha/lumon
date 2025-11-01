@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Brain, LoaderIcon, Mic, MicIcon, Download } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTelegram } from '../hooks/useTelegram';
 
 interface AppHeaderProps {
   isTyping?: boolean;
@@ -18,13 +19,68 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   isDownloading = false
 }) => {
   const navigate = useNavigate();
+  const { tg, isReady } = useTelegram();
+  const [centerPosition, setCenterPosition] = useState<string>('50%');
+
+  // Вычисляем центр между системными кнопками
+  useEffect(() => {
+    const updateCenterPosition = () => {
+      let safeLeft = 0;
+      let safeRight = 0;
+
+      // Получаем safe-area из Telegram API или CSS переменных
+      if (isReady && tg) {
+        const inset = (tg as any).safeAreaInset || (tg as any).contentSafeAreaInset;
+        if (inset) {
+          safeLeft = inset.left || 0;
+          safeRight = inset.right || 0;
+        }
+      }
+
+      // Fallback на CSS переменные
+      if (safeLeft === 0 && safeRight === 0) {
+        const root = getComputedStyle(document.documentElement);
+        safeLeft = parseInt(root.getPropertyValue('--safe-left')) || 0;
+        safeRight = parseInt(root.getPropertyValue('--safe-right')) || 0;
+      }
+
+      // Вычисляем центр доступного пространства между кнопками
+      const availableWidth = window.innerWidth - safeLeft - safeRight;
+      const centerX = safeLeft + availableWidth / 2;
+      
+      setCenterPosition(`${centerX}px`);
+    };
+
+    updateCenterPosition();
+
+    // Обновляем при изменении размера окна
+    window.addEventListener('resize', updateCenterPosition);
+    
+    // Подписываемся на события изменения safe-area
+    if (isReady && tg) {
+      (tg as any).onEvent?.('safeAreaChanged', updateCenterPosition);
+      (tg as any).onEvent?.('contentSafeAreaChanged', updateCenterPosition);
+    }
+
+    // Периодическое обновление для надежности
+    const interval = setInterval(updateCenterPosition, 100);
+
+    return () => {
+      window.removeEventListener('resize', updateCenterPosition);
+      if (isReady && tg) {
+        (tg as any).offEvent?.('safeAreaChanged', updateCenterPosition);
+        (tg as any).offEvent?.('contentSafeAreaChanged', updateCenterPosition);
+      }
+      clearInterval(interval);
+    };
+  }, [isReady, tg]);
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 pt-safe pointer-events-none">
       <div 
         className="absolute top-0"
         style={{
-          left: 'calc(var(--safe-left, 0px) + ((100vw - var(--safe-left, 0px) - var(--safe-right, 0px)) / 2))',
+          left: centerPosition,
           transform: 'translateX(-50%)',
           paddingTop: 'calc(max(var(--safe-top, 0px), env(safe-area-inset-top, 0px)) + 0.5rem)',
         }}
