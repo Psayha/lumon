@@ -4,11 +4,19 @@ import { useTelegram } from '../hooks/useTelegram';
 export const SystemButtonsDebug: React.FC = () => {
   const { tg, isReady } = useTelegram();
   const [showDebug, setShowDebug] = useState(() => {
-    // Проверяем localStorage и URL параметр
     // По умолчанию показываем для отладки центрирования
-    return localStorage.getItem('showSystemButtonsDebug') !== 'false' ||
-           new URLSearchParams(window.location.search).get('debug') === 'buttons' ||
-           localStorage.getItem('showSystemButtonsDebug') === 'true';
+    // Можно отключить через localStorage или URL параметр
+    const urlParam = new URLSearchParams(window.location.search).get('debug');
+    const stored = localStorage.getItem('showSystemButtonsDebug');
+    
+    // Если в URL есть debug=buttons - показываем
+    if (urlParam === 'buttons') return true;
+    // Если в URL есть debug=off - скрываем
+    if (urlParam === 'off') return false;
+    // Если в localStorage явно 'false' - скрываем
+    if (stored === 'false') return false;
+    // Во всех остальных случаях - показываем
+    return true;
   });
   const [safeArea, setSafeArea] = useState({
     top: 0,
