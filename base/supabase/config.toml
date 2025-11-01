@@ -1,0 +1,38 @@
+# Supabase Local Development Configuration
+# This file is used for local Supabase development
+
+[project]
+name = "lumon-dev"
+version = "1.0.0"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 5432
+major_version = 15
+shadow_port = 54320
+
+[studio]
+enabled = true
+port = 3001
+api_url = "http://localhost:54321"
+
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["https://localhost:3000"]
+jwt_expiry = 3600
+enable_signup = true
+
+[storage]
+enabled = true
+file_size_limit = "50MiB"
+
+[functions]
+verify_jwt = false
+

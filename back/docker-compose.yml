@@ -1,0 +1,70 @@
+version: '3.8'
+
+services:
+  # Supabase PostgreSQL + Studio
+  supabase-db:
+    image: supabase/postgres:15.1.0.147
+    container_name: lumon-supabase-db
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-lumon_dev_password}
+      POSTGRES_DB: ${POSTGRES_DB:-lumon}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+    ports:
+      - "5432:5432"
+    volumes:
+      - supabase-db-data:/var/lib/postgresql/data
+      - ../base/supabase/migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  supabase-studio:
+    image: supabase/studio:20240415-54b6c5f
+    container_name: lumon-supabase-studio
+    ports:
+      - "3001:3000"
+    environment:
+      DEFAULT_ORGANIZATION_NAME: Lumon
+      DEFAULT_PROJECT_NAME: Lumon Development
+      SUPABASE_URL: http://supabase-api:8000
+      SUPABASE_PUBLIC_URL: http://localhost:8000
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-your-anon-key}
+      SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY:-your-service-key}
+    depends_on:
+      - supabase-db
+    restart: unless-stopped
+
+  # n8n Workflow Automation
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: lumon-n8n
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=${N8N_USER:-admin}
+      - N8N_BASIC_AUTH_PASSWORD=${N8N_PASSWORD:-lumon_dev}
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=supabase-db
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=${POSTGRES_DB:-lumon}
+      - DB_POSTGRESDB_USER=${POSTGRES_USER:-postgres}
+      - DB_POSTGRESDB_PASSWORD=${POSTGRES_PASSWORD:-lumon_dev_password}
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY:-lumon-encryption-key-change-in-production}
+    volumes:
+      - n8n-data:/home/node/.n8n
+      - ./n8n/workflows:/data/workflows
+    depends_on:
+      supabase-db:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  supabase-db-data:
+  n8n-data:
+
