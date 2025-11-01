@@ -241,21 +241,34 @@ export const InputArea: React.FC<InputAreaProps> = ({
                             data-command-button
                             onClick={(e) => {
                                 e.stopPropagation();
-                                if (selectedCommands.length > 0 || isListening || isRecognizing) {
+                                
+                                // Блокируем если идет распознавание или прослушивание
+                                if (isListening || isRecognizing || selectedCommands.length > 0) {
                                     return;
                                 }
+                                
+                                // Вызываем переключение палитры команд
                                 onToggleCommandPalette();
                             }}
-                            whileTap={selectedCommands.length === 0 && !isListening && !isRecognizing ? { scale: 0.94 } : {}}
-                            disabled={isListening || isRecognizing || selectedCommands.length > 0}
+                            onMouseDown={(e) => {
+                                // Блокируем mousedown если идет распознавание или прослушивание
+                                if (isListening || isRecognizing || selectedCommands.length > 0) {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                }
+                            }}
+                            whileTap={!isListening && !isRecognizing && selectedCommands.length === 0 ? { scale: 0.94 } : {}}
                             className={cn(
                                 "p-2 rounded-lg transition-colors relative group",
                                 selectedCommands.length > 0 || isListening || isRecognizing
-                                    ? "text-gray-400 dark:text-white/20 cursor-not-allowed"
+                                    ? "text-gray-400 dark:text-white/20 cursor-not-allowed pointer-events-none"
                                     : showCommandPalette 
-                                    ? "bg-gray-200/50 dark:bg-white/10 text-gray-700 dark:text-white/90"
-                                    : "text-gray-500 dark:text-white/40 hover:text-gray-700 dark:hover:text-white/90"
+                                    ? "bg-gray-200/50 dark:bg-white/10 text-gray-700 dark:text-white/90 cursor-pointer"
+                                    : "text-gray-500 dark:text-white/40 hover:text-gray-700 dark:hover:text-white/90 cursor-pointer"
                             )}
+                            style={{
+                                pointerEvents: (isListening || isRecognizing || selectedCommands.length > 0) ? 'none' : 'auto'
+                            }}
                         >
                             <Command className="w-4 h-4" />
                             <motion.span
