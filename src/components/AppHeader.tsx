@@ -72,23 +72,23 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
         // На внутренних страницах обе кнопки видимы
         
         // SettingsButton всегда видна (кроме полноэкранного режима)
-        // На основе визуального анализа: SettingsButton занимает ~48-52px
+        // На основе визуального анализа: SettingsButton занимает ~46-50px
         // Для главной страницы используем меньшее значение для правильного центрирования
-        safeRight = isRoot ? 48 : 54;
+        safeRight = isRoot ? 46 : 54;
         
         if (!isRoot && isReady && tg && tg.BackButton) {
           // BackButton с текстом "Назад" видна на скриншоте
           // На основе визуального анализа: BackButton занимает ~66-70px с текстом "Назад"
-          // Используем среднее значение для правильного центрирования
-          safeLeft = 68;
+          // Используем чуть меньшее значение для компенсации смещения вправо
+          safeLeft = 66;
         }
       } else {
         // Если получили частичные данные от Telegram, дополняем недостающие
         if (safeLeft === 0 && !isRoot && isReady && tg && tg.BackButton) {
-          safeLeft = 68;
+          safeLeft = 66;
         }
         if (safeRight === 0) {
-          safeRight = isRoot ? 48 : 54;
+          safeRight = isRoot ? 46 : 54;
         }
       }
 
