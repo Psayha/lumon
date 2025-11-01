@@ -114,9 +114,6 @@ export const InputArea: React.FC<InputAreaProps> = ({
                                                 {suggestion.icon}
                                             </div>
                                             <div className="font-medium">{suggestion.label}</div>
-                                            <div className="text-gray-400 dark:text-white/40 text-xs ml-1">
-                                                {suggestion.prefix}
-                                            </div>
                                         </motion.div>
                                     ))}
                                 </div>
