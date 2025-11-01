@@ -1,8 +1,9 @@
-import React, { Suspense, lazy, useEffect } from 'react';
+import React, { Suspense, lazy, useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { ModernSplashScreen } from './components/ModernSplashScreen';
-import { useTelegram } from './hooks/useTelegram';
+import { useTelegram, isTelegramWebApp } from './hooks/useTelegram';
+import TelegramOnlyPage from '../front/TelegramOnlyPage';
 
 // Lazy loading компонентов для лучшей производительности
 const MenuPage = lazy(() => import('../front/MenuPage'));
@@ -54,6 +55,76 @@ const LoadingFallback: React.FC = () => (
 
 const App: React.FC = () => {
   console.log('[App] Компонент App монтируется');
+  
+  // Проверяем, запущено ли приложение через Telegram
+  const [isTelegram, setIsTelegram] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    // Даём время для загрузки Telegram SDK, если он есть
+    let attempts = 0;
+    const maxAttempts = 15; // 15 попыток = 3 секунды (увеличено для надежности)
+    let positiveResults = 0; // Счетчик положительных результатов
+    const requiredPositiveChecks = 3; // Требуем минимум 3 положительных проверки подряд
+    
+    const checkTelegram = () => {
+      attempts++;
+      const result = isTelegramWebApp();
+      console.log(`[App] Проверка Telegram (попытка ${attempts}):`, result);
+      
+      if (result) {
+        positiveResults++;
+        // Требуем несколько положительных проверок подряд для надежности
+        if (positiveResults >= requiredPositiveChecks) {
+          console.log(`[App] Telegram подтвержден (${positiveResults} проверок подряд), показываем приложение`);
+          setIsTelegram(true);
+          return;
+        }
+        // Продолжаем проверку даже после положительного результата
+        setTimeout(checkTelegram, 200);
+        return;
+      } else {
+        // Если проверка вернула false, сбрасываем счетчик положительных
+        positiveResults = 0;
+      }
+      
+      // Если это последняя попытка или прошло достаточно времени
+      if (attempts >= maxAttempts) {
+        console.log('[App] Telegram не обнаружен после всех попыток, показываем страницу "Только для Telegram"');
+        console.log('[App] Итоги проверки:', {
+          attempts,
+          positiveResults,
+          requiredPositiveChecks
+        });
+        setIsTelegram(false);
+        return;
+      }
+      
+      // Продолжаем проверку
+      setTimeout(checkTelegram, 200);
+    };
+
+    // Начинаем проверку
+    checkTelegram();
+  }, []);
+
+  // Если не Telegram и проверка завершена - показываем страницу "Только для Telegram"
+  if (isTelegram === false) {
+    return <TelegramOnlyPage />;
+  }
+
+  // Если проверка ещё не завершена - показываем загрузку
+  if (isTelegram === null) {
+    return (
+      <div className="min-h-screen gradient-bg flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 mx-auto bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 dark:border-slate-700/50 flex items-center justify-center mb-4">
+            <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+          </div>
+          <p className="text-slate-600 dark:text-slate-300">Проверка платформы...</p>
+        </div>
+      </div>
+    );
+  }
   
   const TelegramUIManager: React.FC = () => {
     console.log('[App] TelegramUIManager монтируется');

@@ -34,22 +34,53 @@ interface TelegramWebApp {
 
 /**
  * Проверяет, запущено ли приложение в Telegram Mini App
+ * СТРОГАЯ ПРОВЕРКА: требует обязательное наличие initData для безопасности
  */
 export const isTelegramWebApp = (): boolean => {
   if (typeof window === 'undefined') return false;
   
   const tg = (window as any).Telegram?.WebApp;
-  if (!tg) return false;
+  if (!tg) {
+    console.log('[isTelegramWebApp] Telegram SDK не найден');
+    return false;
+  }
 
-  // Базовая проверка: наличие initData
-  const hasInitData = !!tg.initData;
-  
-  // Проверка платформы (не должна быть 'unknown' или пустой)
   const platform = tg.platform;
-  const hasValidPlatform = platform && platform !== 'unknown' && platform !== 'web';
+  const hasInitData = !!tg.initData && tg.initData.trim().length > 0;
   
-  // Если есть initData или валидная платформа - это Telegram
-  return hasInitData || hasValidPlatform;
+  // КРИТИЧЕСКИ ВАЖНО: без initData это НЕ Telegram Mini App
+  // initData - это обязательный параметр, который передаётся только в настоящем Telegram Mini App
+  if (!hasInitData) {
+    console.log('[isTelegramWebApp] initData отсутствует - это НЕ Telegram Mini App');
+    console.log('[isTelegramWebApp] Причина: initData обязателен для настоящего Telegram Mini App');
+    return false;
+  }
+
+  // Дополнительная проверка: валидная платформа (не web, не unknown)
+  const validTelegramPlatforms = ['android', 'ios', 'macos', 'windows', 'linux', 'tdesktop', 'webk', 'weba', 'unix'];
+  const hasValidPlatform = platform && validTelegramPlatforms.includes(platform.toLowerCase());
+  
+  // Если platform = 'web' или пустая/undefined - даже с initData это подозрительно
+  if (!platform || platform === 'web' || platform === 'unknown' || platform === '') {
+    console.warn('[isTelegramWebApp] Платформа не валидна для Telegram Mini App:', platform, 'но initData присутствует');
+    // ВАЖНО: даже если платформа странная, но есть initData - считаем это Telegram
+    // (может быть какой-то редкий случай)
+    return true;
+  }
+  
+  // Финальная проверка: есть initData И валидная платформа = точно Telegram
+  const result = hasInitData && hasValidPlatform;
+  
+  console.log('[isTelegramWebApp] Проверка:', {
+    hasSDK: !!tg,
+    hasInitData,
+    initDataLength: tg.initData?.length || 0,
+    platform: platform || 'неизвестно',
+    hasValidPlatform,
+    result
+  });
+  
+  return result;
 };
 
 export const useTelegram = () => {
