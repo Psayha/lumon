@@ -301,25 +301,6 @@ const MenuPage: React.FC = () => {
           width: 'var(--safe-left, 0px)'
         }}
       />
-      
-      {/* Градиентное размытие снизу с плавным переходом */}
-      <div 
-        className="fixed bottom-0 left-0 right-0 z-[100] pointer-events-none overflow-hidden"
-        style={{
-          height: `calc(var(--safe-bottom, 0px) + 40px)`,
-        }}
-      >
-        <div 
-          className="absolute bottom-0 left-0 right-0 bg-white/10 dark:bg-black/10"
-          style={{
-            height: `calc(var(--safe-bottom, 0px) + 40px)`,
-            backdropFilter: 'blur(24px)',
-            WebkitBackdropFilter: 'blur(24px)',
-            maskImage: 'linear-gradient(to top, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0.7) 40%, rgba(0, 0, 0, 0) 100%)',
-            WebkitMaskImage: 'linear-gradient(to top, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0.7) 40%, rgba(0, 0, 0, 0) 100%)',
-          }}
-        />
-      </div>
 
       {/* Modals */}
       <AgreementModal

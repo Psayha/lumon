@@ -137,14 +137,25 @@ const App: React.FC = () => {
     useEffect(() => {
       if (!isReady || !tg) return;
       const isRoot = location.pathname === '/';
+      
       if (isRoot) {
+        // На главной странице скрываем BackButton - системная кнопка закрыть будет закрывать приложение
         tg.BackButton.hide();
         return;
       }
 
+      // На внутренних страницах показываем BackButton - системная кнопка закрыть будет работать как "назад"
       tg.BackButton.show();
+      
+      // Настраиваем обработчик: при нажатии на системную кнопку закрыть возвращаемся назад в истории
       tg.BackButton.onClick(() => {
-        navigate(-1);
+        const historyLength = window.history.length;
+        if (historyLength > 1) {
+          navigate(-1);
+        } else {
+          // Если нет истории, переходим на главную
+          navigate('/');
+        }
       });
     }, [isReady, tg, location.pathname, navigate]);
 
