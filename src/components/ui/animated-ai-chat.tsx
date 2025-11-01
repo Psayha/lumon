@@ -83,6 +83,8 @@ interface AnimatedAIChatProps {
     onListeningChange?: (isListening: boolean) => void;
     isRecognizing?: boolean;
     onRecognizingChange?: (isRecognizing: boolean) => void;
+    chatId?: string | null;
+    onMessageSave?: (message: string, role: 'user' | 'assistant') => Promise<void>;
 }
 
 export function AnimatedAIChat({ 
@@ -90,7 +92,9 @@ export function AnimatedAIChat({
     isListening: externalIsListening, 
     onListeningChange, 
     isRecognizing: externalIsRecognizing, 
-    onRecognizingChange 
+    onRecognizingChange,
+    chatId,
+    onMessageSave
 }: AnimatedAIChatProps) {
     const [value, setValue] = useState("");
     const [messages, setMessages] = useState<Message[]>([]);
@@ -249,6 +253,13 @@ export function AnimatedAIChat({
                 };
 
                 setMessages(prev => [...prev, aiMessage]);
+                
+                // Сохраняем ответ AI в БД
+                if (onMessageSave && chatId) {
+                    onMessageSave(aiMessage.text, 'assistant').catch(error => {
+                        console.error('[AnimatedAIChat] Error saving assistant message:', error);
+                    });
+                }
             } catch (error) {
                 console.error('Ошибка при получении ответа от AI:', error);
             } finally {
