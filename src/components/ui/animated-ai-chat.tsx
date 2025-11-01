@@ -1,5 +1,6 @@
 import { useEffect, useRef, useCallback, useTransition } from "react";
 import { useState } from "react";
+import "../types/speech";
 import {
     FileText,
     BarChart3,
