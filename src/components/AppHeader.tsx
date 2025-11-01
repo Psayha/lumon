@@ -72,9 +72,9 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
         // На внутренних страницах обе кнопки видимы
         
         // SettingsButton всегда видна (кроме полноэкранного режима)
-        // На основе визуального анализа: SettingsButton занимает ~50-54px
-        // Для правильного центрирования используем среднее значение
-        safeRight = isRoot ? 52 : 54;
+        // На основе визуального анализа: SettingsButton занимает ~48-52px
+        // Для главной страницы используем меньшее значение для правильного центрирования
+        safeRight = isRoot ? 48 : 54;
         
         if (!isRoot && isReady && tg && tg.BackButton) {
           // BackButton с текстом "Назад" видна на скриншоте
@@ -88,7 +88,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           safeLeft = 68;
         }
         if (safeRight === 0) {
-          safeRight = isRoot ? 52 : 54;
+          safeRight = isRoot ? 48 : 54;
         }
       }
 
