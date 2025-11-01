@@ -88,7 +88,7 @@ export const SystemButtonsDebug: React.FC = () => {
       const isRoot = location.pathname === '/';
       
       if (safeLeft === 0 && safeRight === 0) {
-        safeRight = isRoot ? 46 : 54;
+        safeRight = 54;
         if (!isRoot && isReady && tg && tg.BackButton) {
           safeLeft = 66;
         }
