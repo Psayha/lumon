@@ -90,7 +90,7 @@ export const SystemButtonsDebug: React.FC = () => {
       const windowWidth = window.innerWidth;
       
       if (safeLeft === 0 && safeRight === 0) {
-        safeRight = isRoot ? (windowWidth * 0.06) : (windowWidth * 0.09); // 6% на главной, 9% на детальных
+        safeRight = isRoot ? (windowWidth * 0.075) : (windowWidth * 0.09); // 7.5% на главной, 9% на детальных
         if (!isRoot && isReady && tg && tg.BackButton) {
           safeLeft = (windowWidth * 0.11); // ~11% от ширины экрана
         }
