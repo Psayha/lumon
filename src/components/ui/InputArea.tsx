@@ -62,11 +62,12 @@ export const InputArea: React.FC<InputAreaProps> = ({
     adjustHeight
 }) => {
     return (
-        <div className="flex-shrink-0 w-full overflow-hidden">
-            <div className="w-full max-w-md mx-auto px-1 overflow-hidden">
+        <div className="flex-shrink-0 w-full overflow-visible relative">
+            <div className="w-full max-w-md mx-auto px-1 overflow-visible relative">
                 <motion.div 
                     className={cn(
-                        "relative backdrop-blur-xl bg-white/60 dark:bg-white/[0.03] rounded-2xl shadow-2xl z-20 w-full overflow-hidden",
+                        "relative backdrop-blur-xl bg-white/60 dark:bg-white/[0.03] rounded-2xl shadow-2xl z-20 w-full",
+                        showCommandPalette ? "overflow-visible" : "overflow-hidden",
                         isRecognizing
                             ? "border-2 border-orange-500 dark:border-orange-400"
                             : isListening
@@ -82,7 +83,7 @@ export const InputArea: React.FC<InputAreaProps> = ({
                         {showCommandPalette && (
                             <motion.div 
                                 ref={commandPaletteRef}
-                                className="absolute left-4 right-4 bottom-full mb-2 backdrop-blur-xl bg-white/95 dark:bg-black/90 rounded-lg z-50 shadow-lg border border-gray-200/50 dark:border-white/10 overflow-hidden"
+                                className="absolute left-0 right-0 bottom-full mb-2 backdrop-blur-xl bg-white/95 dark:bg-black/90 rounded-lg z-[60] shadow-lg border border-gray-200/50 dark:border-white/10 overflow-hidden"
                                 initial={{ opacity: 0, y: 5 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: 5 }}
@@ -122,7 +123,6 @@ export const InputArea: React.FC<InputAreaProps> = ({
                             </motion.div>
                         )}
                     </AnimatePresence>
-
                     <div className="p-4">
                         {/* Выбранные команды */}
                         {selectedCommands.length > 0 && (
