@@ -5,8 +5,10 @@ export const SystemButtonsDebug: React.FC = () => {
   const { tg, isReady } = useTelegram();
   const [showDebug, setShowDebug] = useState(() => {
     // Проверяем localStorage и URL параметр
-    return localStorage.getItem('showSystemButtonsDebug') === 'true' ||
-           new URLSearchParams(window.location.search).get('debug') === 'buttons';
+    // По умолчанию показываем для отладки центрирования
+    return localStorage.getItem('showSystemButtonsDebug') !== 'false' ||
+           new URLSearchParams(window.location.search).get('debug') === 'buttons' ||
+           localStorage.getItem('showSystemButtonsDebug') === 'true';
   });
   const [safeArea, setSafeArea] = useState({
     top: 0,
