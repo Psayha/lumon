@@ -349,7 +349,7 @@ const MenuPage: React.FC = () => {
         isOpen={showConsultation}
         onClose={() => setShowConsultation(false)}
       />
-    </div>
+    </>
   );
 };
 
