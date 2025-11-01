@@ -110,6 +110,28 @@ export function AnimatedAIChat({
 
     const { textareaRef, adjustHeight } = useAutoResizeTextarea({ value });
 
+    // Закрытие палитры команд при клике вне её области
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (
+                showCommandPalette &&
+                commandPaletteRef.current &&
+                !commandPaletteRef.current.contains(event.target as Node) &&
+                !(event.target as Element).closest('[data-command-button]')
+            ) {
+                setShowCommandPalette(false);
+            }
+        };
+
+        if (showCommandPalette) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [showCommandPalette]);
+
     const isListening = externalIsListening ?? false;
     const isRecognizing = externalIsRecognizing ?? false;
 
@@ -272,7 +294,7 @@ export function AnimatedAIChat({
     };
     
     const selectCommandSuggestion = (index: number) => {
-        if (isListening || selectedCommands.length > 0) {
+        if (isListening || isRecognizing || selectedCommands.length > 0) {
             return;
         }
         

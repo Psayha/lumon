@@ -240,21 +240,14 @@ export const InputArea: React.FC<InputAreaProps> = ({
                             />
                         </motion.button>
                         
-                        <motion.button
+                        <button
                             type="button"
                             data-command-button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                
-                                // Блокируем если идет распознавание или прослушивание
-                                if (isListening || isRecognizing) {
-                                    return;
+                            onClick={() => {
+                                if (!isListening && !isRecognizing) {
+                                    onToggleCommandPalette();
                                 }
-                                
-                                // Вызываем переключение палитры команд
-                                onToggleCommandPalette();
                             }}
-                            whileTap={!isListening && !isRecognizing ? { scale: 0.94 } : {}}
                             disabled={isListening || isRecognizing}
                             className={cn(
                                 "p-2 rounded-lg transition-colors relative group",
