@@ -282,16 +282,29 @@ export const InputArea: React.FC<InputAreaProps> = ({
                             <motion.button
                                 type="button"
                                 onClick={onVoiceInput}
-                                whileTap={{ scale: 0.94 }}
+                                disabled={isRecognizing}
+                                whileTap={!isRecognizing ? { scale: 0.94 } : {}}
                                 className={cn(
                                     "p-2 rounded-lg transition-colors relative group w-full max-w-none flex items-center justify-center",
-                                    isListening 
-                                        ? "text-red-600 dark:text-red-400 bg-red-100/80 dark:bg-red-900/20" 
-                                        : "text-gray-500 dark:text-white/40 hover:text-gray-700 dark:hover:text-white/90"
+                                    isRecognizing
+                                        ? "text-orange-500 dark:text-orange-400 bg-orange-100/80 dark:bg-orange-900/20 cursor-wait opacity-75"
+                                        : isListening 
+                                        ? "text-red-600 dark:text-red-400 bg-red-100/80 dark:bg-red-900/20 cursor-pointer" 
+                                        : "text-gray-500 dark:text-white/40 hover:text-gray-700 dark:hover:text-white/90 cursor-pointer"
                                 )}
                             >
                                 <AnimatePresence mode="wait">
-                                    {isListening ? (
+                                    {isRecognizing ? (
+                                        <motion.div
+                                            key="recognizing"
+                                            initial={{ scale: 0.8, opacity: 0 }}
+                                            animate={{ scale: 1, opacity: 1 }}
+                                            exit={{ scale: 0.8, opacity: 0 }}
+                                            transition={{ duration: 0.2 }}
+                                        >
+                                            <Mic className="w-4 h-4 animate-pulse" />
+                                        </motion.div>
+                                    ) : isListening ? (
                                         <motion.div
                                             key="listening"
                                             initial={{ scale: 0.8, opacity: 0 }}
@@ -314,9 +327,14 @@ export const InputArea: React.FC<InputAreaProps> = ({
                                     )}
                                 </AnimatePresence>
                                 
-                                {isListening && (
+                                {(isListening || isRecognizing) && (
                                     <motion.div
-                                        className="absolute inset-0 bg-red-200/50 dark:bg-red-900/20 rounded-lg"
+                                        className={cn(
+                                            "absolute inset-0 rounded-lg",
+                                            isRecognizing 
+                                                ? "bg-orange-200/50 dark:bg-orange-900/20"
+                                                : "bg-red-200/50 dark:bg-red-900/20"
+                                        )}
                                         animate={{
                                             scale: [1, 1.1, 1],
                                             opacity: [0.5, 0.8, 0.5]

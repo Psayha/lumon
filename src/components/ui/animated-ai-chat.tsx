@@ -274,6 +274,11 @@ export function AnimatedAIChat({
     const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
 
     const handleVoiceInput = () => {
+        // Блокируем взаимодействие во время распознавания
+        if (isRecognizing) {
+            return;
+        }
+
         // Проверяем поддержку Web Speech API
         const SpeechRecognitionConstructor = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
         
@@ -283,7 +288,7 @@ export function AnimatedAIChat({
         }
 
         if (isListening) {
-            // Останавливаем распознавание
+            // Останавливаем распознавание только если мы еще слушаем (не распознаем)
             if (recognitionRef.current) {
                 recognitionRef.current.stop();
                 recognitionRef.current = null;
