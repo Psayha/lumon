@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Brain, LoaderIcon, Mic, MicIcon, Download } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTelegram } from '../hooks/useTelegram';
@@ -19,6 +19,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   isDownloading = false
 }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { tg, isReady } = useTelegram();
   const [centerPosition, setCenterPosition] = useState<string>('50%');
 
@@ -30,23 +31,67 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
 
       // Получаем safe-area из Telegram API или CSS переменных
       if (isReady && tg) {
+        // Попробуем разные способы получения safe-area
         const inset = (tg as any).safeAreaInset || (tg as any).contentSafeAreaInset;
-        if (inset) {
+        
+        // Обработчик события safeAreaChanged может передавать данные по-другому
+        if (inset && typeof inset === 'object') {
           safeLeft = inset.left || 0;
           safeRight = inset.right || 0;
         }
+        
+        // Если нет inset, попробуем напрямую из tg
+        if (safeLeft === 0 && safeRight === 0) {
+          const directInset = (tg as any).safeAreaInset;
+          if (directInset) {
+            safeLeft = directInset.left || 0;
+            safeRight = directInset.right || 0;
+          }
+        }
       }
 
-      // Fallback на CSS переменные
+      // Fallback на CSS переменные (они устанавливаются в App.tsx)
       if (safeLeft === 0 && safeRight === 0) {
         const root = getComputedStyle(document.documentElement);
-        safeLeft = parseInt(root.getPropertyValue('--safe-left')) || 0;
-        safeRight = parseInt(root.getPropertyValue('--safe-right')) || 0;
+        const cssLeft = root.getPropertyValue('--safe-left').trim();
+        const cssRight = root.getPropertyValue('--safe-right').trim();
+        safeLeft = cssLeft ? parseInt(cssLeft) : 0;
+        safeRight = cssRight ? parseInt(cssRight) : 0;
+      }
+
+      // Если все еще 0, используем типичные размеры системных кнопок Telegram
+      // BackButton обычно ~56-64px (с текстом "Назад" ~68-72px), SettingsButton ~44-48px
+      if (safeLeft === 0 && safeRight === 0) {
+        const isRoot = location.pathname === '/';
+        
+        // Проверяем, видна ли BackButton на текущей странице
+        if (!isRoot && isReady && tg && tg.BackButton) {
+          // BackButton видна на внутренних страницах - размер зависит от текста
+          // Если текст "Назад" - кнопка шире, если иконка - уже
+          safeLeft = 68; // Типичный размер BackButton с текстом "Назад"
+        } else {
+          // BackButton скрыта на главной странице или отсутствует
+          safeLeft = 0;
+        }
+        
+        // SettingsButton обычно всегда видна
+        safeRight = 44; // Стандартный размер SettingsButton
       }
 
       // Вычисляем центр доступного пространства между кнопками
       const availableWidth = window.innerWidth - safeLeft - safeRight;
       const centerX = safeLeft + availableWidth / 2;
+      
+      // Логирование для отладки
+      console.log('[AppHeader] Center calculation:', {
+        pathname: location.pathname,
+        safeLeft,
+        safeRight,
+        windowWidth: window.innerWidth,
+        availableWidth,
+        centerX,
+        centerPercent: ((centerX / window.innerWidth) * 100).toFixed(1) + '%'
+      });
       
       setCenterPosition(`${centerX}px`);
     };
@@ -56,10 +101,22 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
     // Обновляем при изменении размера окна
     window.addEventListener('resize', updateCenterPosition);
     
-    // Подписываемся на события изменения safe-area
+    // Обработчики событий safe-area
+    let handleSafeAreaChanged: ((payload?: any) => void) | null = null;
+    
     if (isReady && tg) {
-      (tg as any).onEvent?.('safeAreaChanged', updateCenterPosition);
-      (tg as any).onEvent?.('contentSafeAreaChanged', updateCenterPosition);
+      handleSafeAreaChanged = (payload?: any) => {
+        // Если payload содержит inset, обновляем CSS переменные
+        if (payload?.inset) {
+          const root = document.documentElement;
+          if (payload.inset.left != null) root.style.setProperty('--safe-left', `${payload.inset.left}px`);
+          if (payload.inset.right != null) root.style.setProperty('--safe-right', `${payload.inset.right}px`);
+        }
+        updateCenterPosition();
+      };
+      
+      (tg as any).onEvent?.('safeAreaChanged', handleSafeAreaChanged);
+      (tg as any).onEvent?.('contentSafeAreaChanged', handleSafeAreaChanged);
     }
 
     // Периодическое обновление для надежности
@@ -67,13 +124,13 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
 
     return () => {
       window.removeEventListener('resize', updateCenterPosition);
-      if (isReady && tg) {
-        (tg as any).offEvent?.('safeAreaChanged', updateCenterPosition);
-        (tg as any).offEvent?.('contentSafeAreaChanged', updateCenterPosition);
-      }
       clearInterval(interval);
+      if (isReady && tg && handleSafeAreaChanged) {
+        (tg as any).offEvent?.('safeAreaChanged', handleSafeAreaChanged);
+        (tg as any).offEvent?.('contentSafeAreaChanged', handleSafeAreaChanged);
+      }
     };
-  }, [isReady, tg]);
+  }, [isReady, tg, location.pathname]);
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 pt-safe pointer-events-none">
