@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Building2, Clock, ArrowRight } from 'lucide-react';
 import { isTelegramWebApp } from '../../hooks/useTelegram';
 
@@ -14,6 +15,8 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
   onConnectCompany,
   onLater
 }) => {
+  const location = useLocation();
+  const navigate = useNavigate();
   // Блокируем скролл body когда модальное окно открыто
   useEffect(() => {
     if (isOpen) {
@@ -33,10 +36,26 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
     } else {
       document.body.style.overflow = 'unset';
       
-      // Скрываем кнопку "Назад" при закрытии модального окна
+      // Восстанавливаем правильное поведение BackButton при закрытии модального окна
       if (isTelegramWebApp()) {
         const tg = (window as any).Telegram.WebApp;
-        tg.BackButton.hide();
+        const isRoot = location.pathname === '/';
+        
+        if (isRoot) {
+          // На главной странице скрываем BackButton - закрывает приложение
+          tg.BackButton.hide();
+        } else {
+          // На внутренних страницах показываем BackButton - возвращает на предыдущую страницу
+          tg.BackButton.show();
+          tg.BackButton.onClick(() => {
+            const historyLength = window.history.length;
+            if (historyLength > 1) {
+              navigate(-1);
+            } else {
+              navigate('/');
+            }
+          });
+        }
       }
     }
 
@@ -44,13 +63,27 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
     return () => {
       document.body.style.overflow = 'unset';
       
-      // Очистка при размонтировании компонента
+      // Восстанавливаем правильное поведение BackButton при размонтировании
       if (isTelegramWebApp()) {
         const tg = (window as any).Telegram.WebApp;
-        tg.BackButton.hide();
+        const isRoot = location.pathname === '/';
+        
+        if (isRoot) {
+          tg.BackButton.hide();
+        } else {
+          tg.BackButton.show();
+          tg.BackButton.onClick(() => {
+            const historyLength = window.history.length;
+            if (historyLength > 1) {
+              navigate(-1);
+            } else {
+              navigate('/');
+            }
+          });
+        }
       }
     };
-  }, [isOpen, onLater]);
+  }, [isOpen, onLater, location.pathname, navigate]);
 
   if (!isOpen) return null;
 

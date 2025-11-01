@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Clock, User, CheckCircle } from 'lucide-react';
 import { isTelegramWebApp } from '../../hooks/useTelegram';
 
@@ -13,6 +14,8 @@ const ConsultationModal: React.FC<ConsultationModalProps> = ({ isOpen, onClose }
   const [formData, setFormData] = useState({
     message: ''
   });
+  const location = useLocation();
+  const navigate = useNavigate();
 
   // Блокируем скролл фона при открытии модального окна
   useEffect(() => {
@@ -33,23 +36,53 @@ const ConsultationModal: React.FC<ConsultationModalProps> = ({ isOpen, onClose }
     } else {
       document.body.style.overflow = 'unset';
       
-      // Скрываем кнопку "Назад" при закрытии модального окна
+      // Восстанавливаем правильное поведение BackButton при закрытии модального окна
       if (isTelegramWebApp()) {
         const tg = (window as any).Telegram.WebApp;
-        tg.BackButton.hide();
+        const isRoot = location.pathname === '/';
+        
+        if (isRoot) {
+          // На главной странице скрываем BackButton - закрывает приложение
+          tg.BackButton.hide();
+        } else {
+          // На внутренних страницах показываем BackButton - возвращает на предыдущую страницу
+          tg.BackButton.show();
+          tg.BackButton.onClick(() => {
+            const historyLength = window.history.length;
+            if (historyLength > 1) {
+              navigate(-1);
+            } else {
+              navigate('/');
+            }
+          });
+        }
       }
     }
 
     return () => {
       document.body.style.overflow = 'unset';
       
-      // Очистка при размонтировании компонента
+      // Восстанавливаем правильное поведение BackButton при размонтировании
       if (isTelegramWebApp()) {
         const tg = (window as any).Telegram.WebApp;
-        tg.BackButton.hide();
+        const isRoot = location.pathname === '/';
+        
+        if (isRoot) {
+          tg.BackButton.hide();
+        } else {
+          tg.BackButton.show();
+          tg.BackButton.onClick(() => {
+            const historyLength = window.history.length;
+            if (historyLength > 1) {
+              navigate(-1);
+            } else {
+              navigate('/');
+            }
+          });
+        }
       }
     };
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, location.pathname, navigate]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

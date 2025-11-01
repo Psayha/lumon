@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Brain, ArrowRight, ArrowLeft, CheckCircle } from 'lucide-react';
 import { isTelegramWebApp } from '../../hooks/useTelegram';
 
@@ -22,6 +23,8 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
   const [currentStep, setCurrentStep] = useState(0);
   const [answers, setAnswers] = useState<string[]>([]);
   const [selectedAnswer, setSelectedAnswer] = useState<string>('');
+  const location = useLocation();
+  const navigate = useNavigate();
 
   // Генерируем 3 случайных вопроса
   const allQuestions: Question[] = [
@@ -126,10 +129,26 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
     } else {
       document.body.style.overflow = 'unset';
       
-      // Скрываем кнопку "Назад" при закрытии модального окна
+      // Восстанавливаем правильное поведение BackButton при закрытии модального окна
       if (isTelegramWebApp()) {
         const tg = (window as any).Telegram.WebApp;
-        tg.BackButton.hide();
+        const isRoot = location.pathname === '/';
+        
+        if (isRoot) {
+          // На главной странице скрываем BackButton - закрывает приложение
+          tg.BackButton.hide();
+        } else {
+          // На внутренних страницах показываем BackButton - возвращает на предыдущую страницу
+          tg.BackButton.show();
+          tg.BackButton.onClick(() => {
+            const historyLength = window.history.length;
+            if (historyLength > 1) {
+              navigate(-1);
+            } else {
+              navigate('/');
+            }
+          });
+        }
       }
     }
 
@@ -137,13 +156,27 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
     return () => {
       document.body.style.overflow = 'unset';
       
-      // Очистка при размонтировании компонента
+      // Восстанавливаем правильное поведение BackButton при размонтировании
       if (isTelegramWebApp()) {
         const tg = (window as any).Telegram.WebApp;
-        tg.BackButton.hide();
+        const isRoot = location.pathname === '/';
+        
+        if (isRoot) {
+          tg.BackButton.hide();
+        } else {
+          tg.BackButton.show();
+          tg.BackButton.onClick(() => {
+            const historyLength = window.history.length;
+            if (historyLength > 1) {
+              navigate(-1);
+            } else {
+              navigate('/');
+            }
+          });
+        }
       }
     };
-  }, [isOpen, answers, onComplete]);
+  }, [isOpen, answers, onComplete, location.pathname, navigate]);
 
   const handleNext = () => {
     if (selectedAnswer) {
