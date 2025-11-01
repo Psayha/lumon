@@ -47,13 +47,6 @@ export const MessageList: React.FC<MessageListProps> = ({ messages, isTyping }) 
                             overflowWrap: 'anywhere',
                             wordBreak: 'break-word',
                         }}>{message.text}</p>
-                        <p className={`text-xs mt-1 ${
-                            message.isUser 
-                                ? 'text-blue-100' 
-                                : 'text-gray-500 dark:text-gray-400'
-                        }`}>
-                            {message.timestamp.toLocaleTimeString()}
-                        </p>
                     </div>
                 </motion.div>
             ))}

@@ -31,7 +31,7 @@ const VoiceAssistantPage: React.FC = () => {
         <AppHeader isTyping={isTyping} showHomeButton={false} isListening={isListening} isRecognizing={isRecognizing} />
         
         {/* AI Chat с поддержкой ответов - скроллируемый контент */}
-        <div className="flex-1 overflow-hidden min-h-0">
+        <div className="flex-1 overflow-hidden min-h-0 pt-[calc(var(--safe-top,0px)+52px)]">
           <AnimatedAIChat 
             onTypingChange={setIsTyping} 
             isListening={isListening}
