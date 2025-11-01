@@ -97,7 +97,7 @@ export const SystemButtonsDebug: React.FC = () => {
           safeLeft = 66;
         }
         if (safeRight === 0) {
-          safeRight = isRoot ? 42 : 54;
+          safeRight = 54;
         }
       }
 
