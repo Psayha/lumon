@@ -6,7 +6,7 @@
 
 ### ✅ Реализовано
 - **React 18.2.0** - современные паттерны (Suspense, ErrorBoundary, lazy loading, StrictMode)
-- **Design System** - 14 основных компонентов + 8 UI компонентов чата + 7 модальных окон
+- **Design System** - 15 основных компонентов + 8 UI компонентов чата + 7 модальных окон
 - **Tailwind CSS 3.3.3** - utility-first подход с кастомными CSS переменными
 - **TypeScript 5.0.2** - строгая типизация (strict mode) с типами Telegram и Web Speech API
 - **Темная тема** - полная поддержка dark mode с синхронизацией Telegram
@@ -28,7 +28,7 @@
 - **Main bundle**: ~138.26 kB (gzip: ~44.50 kB)
 - **HTML**: ~1.16 kB (gzip: ~0.66 kB)
 - **Общий размер**: ~450 kB (gzip: ~120 kB)
-- **Компоненты**: 14 основных + 8 UI компонентов + 7 модальных окон
+- **Компоненты**: 15 основных + 8 UI компонентов + 7 модальных окон
 - **Страницы**: 7 страниц (6 основных страниц с lazy loading + TelegramOnlyPage для пользователей вне Telegram)
 - **Хуки**: 5 custom хуков (включая Telegram интеграцию)
 - **Типы**: 2 TypeScript declaration файла (telegram.d.ts, speech.d.ts)
@@ -198,11 +198,16 @@ lumon2/
   - Автоматическое обнаружение Telegram SDK
   - Поддержка тем (light/dark) с синхронизацией
   - Safe-area-inset для мобильных устройств (top, right, bottom, left)
+  - Процентное центрирование кнопки PROJECT LUMON между системными кнопками
+    - На главной странице: учет кнопки "Закрыть" (16%) и SettingsButton (10%)
+    - На детальных страницах: учет BackButton (11%) и SettingsButton (9%)
+    - Адаптивное позиционирование на основе ширины экрана
   - BackButton управление (на внутренних страницах работает как "назад")
   - MainButton, HapticFeedback поддержка
   - Сохранение initData в localStorage (для восстановления после Refresh)
   - Детальное логирование для отладки
   - Поддержка версий API 6.0+ с graceful degradation
+  - SystemButtonsDebug компонент для визуальной отладки позиционирования
 
 - **Web Speech API** - распознавание речи
   - Поддержка русского языка (ru-RU)
