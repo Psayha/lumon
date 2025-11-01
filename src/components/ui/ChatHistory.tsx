@@ -58,6 +58,55 @@ export const ChatHistory: React.FC<ChatHistoryProps> = ({
       lastMessage: 'Процедуры проверки качества...',
       timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2), // 2 дня назад
       messageCount: 6
+    },
+    {
+      id: '5',
+      title: 'Оптимизация процессов',
+      lastMessage: 'Как автоматизировать рутинные задачи...',
+      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3), // 3 дня назад
+      messageCount: 20
+    },
+    {
+      id: '6',
+      title: 'Работа с клиентами',
+      lastMessage: 'Стратегии повышения лояльности...',
+      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 4), // 4 дня назад
+      messageCount: 14
+    },
+    {
+      id: '7',
+      title: 'Бюджетирование',
+      lastMessage: 'Планирование бюджета на квартал...',
+      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 5), // 5 дней назад
+      messageCount: 9
+    },
+    {
+      id: '8',
+      title: 'Маркетинговая стратегия',
+      lastMessage: 'Разработка кампании для нового продукта...',
+      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 6), // 6 дней назад
+      messageCount: 18
+    },
+    {
+      id: '9',
+      title: 'Управление командой',
+      lastMessage: 'Мотивация сотрудников и оценка...',
+      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 7), // 7 дней назад
+      messageCount: 11
+    },
+    {
+      id: '10',
+      title: 'Анализ конкурентов',
+      lastMessage: 'Изучение рынка и позиционирование...',
+      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 8), // 8 дней назад
+      messageCount: 7
+    },
+    {
+      id: '11',
+      title: 'Финансовое планирование',
+      lastMessage: 'Прогнозирование доходов и расходов...',
+      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 9), // 9 дней назад
+      messageCount: 13
     }
   ];
 
@@ -149,14 +198,15 @@ export const ChatHistory: React.FC<ChatHistoryProps> = ({
               opacity: { duration: 0.2 }
             }}
           >
-            {/* Header - Заголовок между системными кнопками */}
+            {/* Header - Заголовок между системными кнопками по центру экрана */}
             <h2 
               className="text-lg font-semibold text-center fixed left-0 right-0 z-[62] pointer-events-none"
               style={{
                 color: themeParams.text_color || '#000000',
                 top: 'calc(max(var(--safe-top, 0px), env(safe-area-inset-top, 0px)) + 2.5rem)',
-                paddingLeft: 'max(var(--safe-left, 0px), env(safe-area-inset-left, 0px))',
-                paddingRight: '1rem'
+                width: '100vw',
+                left: 0,
+                right: 0
               }}
             >
               История чатов
@@ -270,7 +320,7 @@ export const ChatHistory: React.FC<ChatHistoryProps> = ({
             <div 
               className="flex-shrink-0"
               style={{
-                paddingTop: '1.5rem',
+                paddingTop: '2.5rem',
                 paddingBottom: `calc(1rem + max(var(--safe-bottom, 0px), env(safe-area-inset-bottom, 0px)))`,
                 paddingLeft: '1rem',
                 paddingRight: '1rem'
