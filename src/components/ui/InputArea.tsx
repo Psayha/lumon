@@ -79,7 +79,7 @@ export const InputArea: React.FC<InputAreaProps> = ({
                 >
                     {/* Command Palette */}
                     <AnimatePresence>
-                        {showCommandPalette && selectedCommands.length === 0 && (
+                        {showCommandPalette && (
                             <motion.div 
                                 ref={commandPaletteRef}
                                 className="absolute left-4 right-4 bottom-full mb-2 backdrop-blur-xl bg-white/95 dark:bg-black/90 rounded-lg z-50 shadow-lg border border-gray-200/50 dark:border-white/10 overflow-hidden"
@@ -94,13 +94,17 @@ export const InputArea: React.FC<InputAreaProps> = ({
                                             key={suggestion.prefix}
                                             className={cn(
                                                 "flex items-center gap-2 px-3 py-2 text-xs transition-colors",
-                                                isListening || selectedCommands.length > 0
+                                                isListening || isRecognizing || selectedCommands.length > 0
                                                     ? "cursor-not-allowed text-gray-400 dark:text-white/30"
                                                     : activeSuggestion === index 
                                                     ? "bg-blue-100 dark:bg-white/10 text-blue-900 dark:text-white cursor-pointer" 
                                                     : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 cursor-pointer"
                                             )}
-                                            onClick={() => onSelectCommand(index)}
+                                            onClick={() => {
+                                                if (!isListening && !isRecognizing && selectedCommands.length === 0) {
+                                                    onSelectCommand(index);
+                                                }
+                                            }}
                                             initial={{ opacity: 0 }}
                                             animate={{ opacity: 1 }}
                                             transition={{ delay: index * 0.03 }}
@@ -243,24 +247,23 @@ export const InputArea: React.FC<InputAreaProps> = ({
                                 e.stopPropagation();
                                 
                                 // Блокируем если идет распознавание или прослушивание
-                                if (isListening || isRecognizing || selectedCommands.length > 0) {
-                                    e.preventDefault();
+                                if (isListening || isRecognizing) {
                                     return;
                                 }
                                 
                                 // Вызываем переключение палитры команд
                                 onToggleCommandPalette();
                             }}
-                            whileTap={!isListening && !isRecognizing && selectedCommands.length === 0 ? { scale: 0.94 } : {}}
+                            whileTap={!isListening && !isRecognizing ? { scale: 0.94 } : {}}
+                            disabled={isListening || isRecognizing}
                             className={cn(
                                 "p-2 rounded-lg transition-colors relative group",
-                                selectedCommands.length > 0 || isListening || isRecognizing
+                                isListening || isRecognizing
                                     ? "text-gray-400 dark:text-white/20 cursor-not-allowed opacity-50"
                                     : showCommandPalette 
                                     ? "bg-gray-200/50 dark:bg-white/10 text-gray-700 dark:text-white/90 cursor-pointer"
                                     : "text-gray-500 dark:text-white/40 hover:text-gray-700 dark:hover:text-white/90 cursor-pointer"
                             )}
-                            tabIndex={(isListening || isRecognizing || selectedCommands.length > 0) ? -1 : 0}
                         >
                             <Command className="w-4 h-4" />
                             <motion.span
