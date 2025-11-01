@@ -326,7 +326,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                       scale: { duration: 0.3 }
                     }}
                   >
-                    {isDownloading ? "Скачивание" : isRecognizing ? "Распознаю" : isListening ? "Слушаю" : isTyping ? "Обработка.docx" : "PROJECT LUMON"}
+                    {isDownloading ? "Скачивание" : isRecognizing ? "Распознаю" : isListening ? "Слушаю" : isTyping ? "Обработка" : "PROJECT LUMON"}
                   </motion.span>
                 </AnimatePresence>
               </div>
