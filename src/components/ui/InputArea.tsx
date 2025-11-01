@@ -220,13 +220,13 @@ export const InputArea: React.FC<InputAreaProps> = ({
                         <motion.button
                             type="button"
                             onClick={onAttachFile}
-                            whileTap={!isListening ? { scale: 0.94 } : {}}
-                            disabled={isListening}
+                            whileTap={!isListening && !isRecognizing ? { scale: 0.94 } : {}}
+                            disabled={isListening || isRecognizing}
                             className={cn(
                                 "p-2 rounded-lg transition-colors relative group",
-                                isListening
-                                    ? "text-gray-400 dark:text-white/20 cursor-not-allowed"
-                                    : "text-gray-500 dark:text-white/40 hover:text-gray-700 dark:hover:text-white/90"
+                                isListening || isRecognizing
+                                    ? "text-gray-400 dark:text-white/20 cursor-not-allowed opacity-50"
+                                    : "text-gray-500 dark:text-white/40 hover:text-gray-700 dark:hover:text-white/90 cursor-pointer"
                             )}
                         >
                             <Paperclip className="w-4 h-4" />

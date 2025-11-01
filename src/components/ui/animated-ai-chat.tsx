@@ -106,6 +106,7 @@ export function AnimatedAIChat({
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const commandPaletteRef = useRef<HTMLDivElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const { textareaRef, adjustHeight } = useAutoResizeTextarea({ value });
 
@@ -245,12 +246,25 @@ export function AnimatedAIChat({
     };
 
     const handleAttachFile = () => {
-        if (isListening) {
+        if (isListening || isRecognizing) {
             return;
         }
         
-        const mockFileName = `file-${Math.floor(Math.random() * 1000)}.pdf`;
-        setAttachments(prev => [...prev, mockFileName]);
+        // Открываем диалог выбора файлов
+        fileInputRef.current?.click();
+    };
+
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files.length > 0) {
+            const selectedFiles = Array.from(e.target.files);
+            
+            // Добавляем выбранные файлы в attachments
+            const fileNames = selectedFiles.map(file => file.name);
+            setAttachments(prev => [...prev, ...fileNames]);
+            
+            // Очищаем input для возможности повторного выбора тех же файлов
+            e.target.value = '';
+        }
     };
 
     const removeAttachment = (index: number) => {
@@ -431,6 +445,16 @@ export function AnimatedAIChat({
                 onSelectChat={handleSelectChat}
                 onDeleteChat={handleDeleteChat}
                 onCreateNewChat={handleCreateNewChat}
+            />
+
+            {/* Скрытый input для выбора файлов */}
+            <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                onChange={handleFileSelect}
+                className="hidden"
+                accept=".pdf,.doc,.docx,.txt,.xlsx,.xls,.pptx,.ppt,.jpg,.jpeg,.png"
             />
         </div>
     );
