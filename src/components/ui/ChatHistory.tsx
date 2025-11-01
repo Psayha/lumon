@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, MessageSquare, Calendar, Trash2 } from 'lucide-react';
+import { MessageSquare, Calendar, Trash2 } from 'lucide-react';
 import { useTelegramTheme } from '../../hooks/useTelegramTheme';
 import { useTelegram } from '../../hooks/useTelegram';
 
@@ -152,42 +152,35 @@ export const ChatHistory: React.FC<ChatHistoryProps> = ({
           >
             {/* Header */}
             <div 
-              className="p-4 border-b flex items-center justify-between"
+              className="border-b flex items-center justify-center relative"
               style={{
-                borderColor: themeParams.hint_color || 'rgba(229, 231, 235, 1)'
+                borderColor: themeParams.hint_color || 'rgba(229, 231, 235, 1)',
+                paddingTop: 'calc(max(var(--safe-top, 0px), env(safe-area-inset-top, 0px)) + 1rem)',
+                paddingBottom: '1rem',
+                paddingLeft: '3rem',
+                paddingRight: '3rem',
+                minHeight: 'calc(3rem + max(var(--safe-top, 0px), env(safe-area-inset-top, 0px)))'
               }}
             >
               <h2 
-                className="text-lg font-semibold"
+                className="text-lg font-semibold text-center absolute left-0 right-0"
                 style={{
                   color: themeParams.text_color || '#000000'
                 }}
               >
                 История чатов
               </h2>
-              <button
-                onClick={() => {
-                  triggerHaptic('light');
-                  onClose();
-                }}
-                className="p-2 rounded-lg transition-colors"
-                style={{
-                  color: themeParams.hint_color || '#6B7280'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = themeParams.secondary_bg_color || 'rgba(243, 244, 246, 1)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'transparent';
-                }}
-                aria-label="Закрыть историю"
-              >
-                <X className="w-5 h-5" />
-              </button>
             </div>
 
             {/* Chat List */}
-            <div className="flex-1 overflow-y-auto">
+            <div 
+              className="flex-1 overflow-y-auto chat-history-scroll"
+              style={{
+                scrollbarWidth: 'none',
+                msOverflowStyle: 'none',
+                WebkitOverflowScrolling: 'touch'
+              }}
+            >
               {chatHistory.length === 0 ? (
                 <div 
                   className="p-4 text-center"
@@ -284,10 +277,13 @@ export const ChatHistory: React.FC<ChatHistoryProps> = ({
 
             {/* Footer */}
             <div 
-              className="p-4 border-t"
+              className="border-t flex-shrink-0"
               style={{
                 borderColor: themeParams.hint_color || 'rgba(229, 231, 235, 1)',
-                paddingBottom: `calc(1rem + max(var(--safe-bottom, 0px), env(safe-area-inset-bottom, 0px)))`
+                paddingTop: '1.5rem',
+                paddingBottom: `calc(1rem + max(var(--safe-bottom, 0px), env(safe-area-inset-bottom, 0px)))`,
+                paddingLeft: '1rem',
+                paddingRight: '1rem'
               }}
             >
               <button
@@ -314,6 +310,14 @@ export const ChatHistory: React.FC<ChatHistoryProps> = ({
               >
                 Новый чат
               </button>
+              <p 
+                className="text-xs text-center mt-2"
+                style={{
+                  color: themeParams.hint_color || '#9CA3AF'
+                }}
+              >
+                История хранится 14 дней
+              </p>
             </div>
           </motion.div>
         </>
