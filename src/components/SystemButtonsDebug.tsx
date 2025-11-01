@@ -92,8 +92,8 @@ export const SystemButtonsDebug: React.FC = () => {
       if (safeLeft === 0 && safeRight === 0) {
         // На главной странице есть кнопка "Закрыть" слева (не BackButton, но занимает место)
         if (isRoot) {
-          safeLeft = (windowWidth * 0.11); // ~11% для кнопки "Закрыть" на главной
-          safeRight = (windowWidth * 0.09); // ~9% для SettingsButton
+          safeLeft = (windowWidth * 0.12); // ~12% для кнопки "Закрыть" на главной (увеличено)
+          safeRight = (windowWidth * 0.10); // ~10% для SettingsButton (увеличено)
         } else {
           if (isReady && tg && tg.BackButton) {
             safeLeft = (windowWidth * 0.11); // ~11% от ширины экрана
@@ -103,10 +103,10 @@ export const SystemButtonsDebug: React.FC = () => {
       } else {
         if (safeLeft === 0) {
           // На главной странице есть кнопка "Закрыть", на внутренних - BackButton
-          safeLeft = isRoot ? (windowWidth * 0.11) : (isReady && tg && tg.BackButton ? (windowWidth * 0.11) : 0);
+          safeLeft = isRoot ? (windowWidth * 0.12) : (isReady && tg && tg.BackButton ? (windowWidth * 0.11) : 0);
         }
         if (safeRight === 0) {
-          safeRight = (windowWidth * 0.09); // ~9% для SettingsButton на всех страницах
+          safeRight = isRoot ? (windowWidth * 0.10) : (windowWidth * 0.09); // 10% на главной, 9% на детальных
         }
       }
 
