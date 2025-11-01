@@ -131,11 +131,10 @@ export const ChatHistory: React.FC<ChatHistoryProps> = ({
           
           {/* History Panel */}
           <motion.div
-            className="fixed left-0 top-0 h-full backdrop-blur-xl border-r shadow-2xl z-[61] flex flex-col"
+            className="fixed left-0 top-0 h-full backdrop-blur-xl shadow-2xl z-[61] flex flex-col"
             style={{
               width: 'min(320px, 85vw)',
               backgroundColor: themeParams.secondary_bg_color || themeParams.bg_color || 'rgba(255, 255, 255, 0.95)',
-              borderColor: themeParams.hint_color || 'rgba(229, 231, 235, 1)',
               paddingTop: 'max(var(--safe-top, 0px), env(safe-area-inset-top, 0px))',
               paddingBottom: 'max(var(--safe-bottom, 0px), env(safe-area-inset-bottom, 0px))',
               paddingLeft: 'max(var(--safe-left, 0px), env(safe-area-inset-left, 0px))'
@@ -150,27 +149,18 @@ export const ChatHistory: React.FC<ChatHistoryProps> = ({
               opacity: { duration: 0.2 }
             }}
           >
-            {/* Header */}
-            <div 
-              className="border-b flex items-center justify-center relative"
+            {/* Header - Заголовок между системными кнопками */}
+            <h2 
+              className="text-lg font-semibold text-center fixed left-0 right-0 z-[62] pointer-events-none"
               style={{
-                borderColor: themeParams.hint_color || 'rgba(229, 231, 235, 1)',
-                paddingTop: 'calc(max(var(--safe-top, 0px), env(safe-area-inset-top, 0px)) + 1rem)',
-                paddingBottom: '1rem',
-                paddingLeft: '3rem',
-                paddingRight: '3rem',
-                minHeight: 'calc(3rem + max(var(--safe-top, 0px), env(safe-area-inset-top, 0px)))'
+                color: themeParams.text_color || '#000000',
+                top: 'calc(max(var(--safe-top, 0px), env(safe-area-inset-top, 0px)) + 2.5rem)',
+                paddingLeft: 'max(var(--safe-left, 0px), env(safe-area-inset-left, 0px))',
+                paddingRight: '1rem'
               }}
             >
-              <h2 
-                className="text-lg font-semibold text-center absolute left-0 right-0"
-                style={{
-                  color: themeParams.text_color || '#000000'
-                }}
-              >
-                История чатов
-              </h2>
-            </div>
+              История чатов
+            </h2>
 
             {/* Chat List */}
             <div 
@@ -178,7 +168,8 @@ export const ChatHistory: React.FC<ChatHistoryProps> = ({
               style={{
                 scrollbarWidth: 'none',
                 msOverflowStyle: 'none',
-                WebkitOverflowScrolling: 'touch'
+                WebkitOverflowScrolling: 'touch',
+                paddingTop: 'calc(max(var(--safe-top, 0px), env(safe-area-inset-top, 0px)) + 4.5rem)'
               }}
             >
               {chatHistory.length === 0 ? (
@@ -192,7 +183,7 @@ export const ChatHistory: React.FC<ChatHistoryProps> = ({
                   <p>История чатов пуста</p>
                 </div>
               ) : (
-                <div className="p-2">
+                <div className="p-2 pt-0">
                   {chatHistory.map((chat) => (
                     <motion.div
                       key={chat.id}
@@ -277,9 +268,8 @@ export const ChatHistory: React.FC<ChatHistoryProps> = ({
 
             {/* Footer */}
             <div 
-              className="border-t flex-shrink-0"
+              className="flex-shrink-0"
               style={{
-                borderColor: themeParams.hint_color || 'rgba(229, 231, 235, 1)',
                 paddingTop: '1.5rem',
                 paddingBottom: `calc(1rem + max(var(--safe-bottom, 0px), env(safe-area-inset-bottom, 0px)))`,
                 paddingLeft: '1rem',
