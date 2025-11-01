@@ -259,11 +259,7 @@ export const InputArea: React.FC<InputAreaProps> = ({
                             )}
                         >
                             <Command className="w-4 h-4" />
-                            <motion.span
-                                className="absolute inset-0 bg-gray-200/50 dark:bg-white/[0.05] rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
-                                layoutId="button-highlight"
-                            />
-                        </motion.button>
+                        </button>
                         
                         <motion.button
                             type="button"
