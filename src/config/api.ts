@@ -3,7 +3,7 @@
 
 export const API_CONFIG = {
   // Base URL for n8n webhooks
-  baseUrl: process.env.REACT_APP_API_URL || 'http://localhost:5678',
+  baseUrl: import.meta.env.VITE_API_URL || 'http://localhost:5678',
   
   // API endpoints
   endpoints: {

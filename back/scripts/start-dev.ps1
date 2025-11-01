@@ -1,30 +1,32 @@
 # Lumon Backend - Start Development Script (PowerShell)
-# Запуск локальной среды разработки
+# Start local development environment
 
-Write-Host "🚀 Запуск Lumon Backend (n8n + Supabase)" -ForegroundColor Green
+Write-Host "Starting Lumon Backend (n8n + Supabase)" -ForegroundColor Green
 
-# Проверка .env файла
+# Check .env file
 if (-not (Test-Path ".env")) {
-    Write-Host "❌ Файл .env не найден. Запустите сначала setup-local.ps1" -ForegroundColor Red
+    Write-Host ".env file not found. Run setup-local.ps1 first" -ForegroundColor Red
     exit 1
 }
 
-# Запуск Docker Compose
-Write-Host "🐳 Запуск Docker Compose..." -ForegroundColor Yellow
+# Start Docker Compose
+Write-Host "Starting Docker Compose..." -ForegroundColor Yellow
 docker-compose up -d
 
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "❌ Ошибка при запуске Docker Compose" -ForegroundColor Red
+    Write-Host "Error starting Docker Compose" -ForegroundColor Red
     exit 1
 }
 
-Write-Host "⏳ Ожидание запуска сервисов..." -ForegroundColor Yellow
+Write-Host "Waiting for services to start..." -ForegroundColor Yellow
 Start-Sleep -Seconds 5
 
-Write-Host "`n✅ Сервисы запущены!" -ForegroundColor Green
-Write-Host "`n🌐 Доступные сервисы:" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "Services started!" -ForegroundColor Green
+Write-Host ""
+Write-Host "Available services:" -ForegroundColor Cyan
 Write-Host "   - Supabase Studio: http://localhost:3001" -ForegroundColor White
 Write-Host "   - n8n: http://localhost:5678" -ForegroundColor White
-Write-Host "`nДля остановки: docker-compose down" -ForegroundColor Gray
-Write-Host "Для просмотра логов: docker-compose logs -f" -ForegroundColor Gray
-
+Write-Host ""
+Write-Host "To stop: docker-compose down" -ForegroundColor Gray
+Write-Host "To view logs: docker-compose logs -f" -ForegroundColor Gray
