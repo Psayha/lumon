@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../../lib/utils';
-import { Paperclip, SendIcon, XIcon, Command, Mic, MicOff, History } from 'lucide-react';
+import { Paperclip, SendIcon, XIcon, Command, Mic, MicOff, History, Lightbulb } from 'lucide-react';
 import Textarea from './Textarea.tsx';
 
 interface InputAreaProps {
@@ -64,9 +64,25 @@ export const InputArea: React.FC<InputAreaProps> = ({
     return (
         <div className="flex-shrink-0 w-full overflow-visible relative">
             <div className="w-full max-w-md mx-auto px-1 overflow-visible relative">
+                {/* Подсказка для голосового ввода */}
+                <AnimatePresence>
+                    {isListening && !isRecognizing && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            transition={{ duration: 0.3 }}
+                            className="absolute left-1/2 -translate-x-1/2 bottom-full mb-3 z-30 flex items-center gap-2 px-3 py-2 bg-orange-500/90 dark:bg-orange-600/90 backdrop-blur-sm rounded-lg shadow-lg text-white text-xs font-medium max-w-[calc(100vw-2rem)] sm:whitespace-nowrap"
+                        >
+                            <Lightbulb className="w-3.5 h-3.5 flex-shrink-0" />
+                            <span className="text-center">Закончили говорить? Сделайте паузу — распознавание начнётся автоматически</span>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
                 <motion.div 
                     className={cn(
-                        "relative backdrop-blur-xl bg-white/60 dark:bg-white/[0.03] rounded-2xl shadow-2xl z-20 w-full",
+                        "relative backdrop-blur-xl bg-white/60 dark:bg-white/[0.03] rounded-2xl shadow-2xl z-20 w-full transition-all duration-300",
                         showCommandPalette ? "overflow-visible" : "overflow-hidden",
                         isRecognizing
                             ? "border-2 border-orange-500 dark:border-orange-400"
@@ -74,9 +90,10 @@ export const InputArea: React.FC<InputAreaProps> = ({
                             ? "border-2 border-red-500 dark:border-red-400"
                             : "border border-gray-200/50 dark:border-white/[0.05]"
                     )}
-                    initial={{ scale: 0.98 }}
-                    animate={{ scale: 1 }}
-                    transition={{ delay: 0.1 }}
+                    animate={{
+                        y: isListening && !isRecognizing ? -12 : 0
+                    }}
+                    transition={{ duration: 0.3 }}
                 >
                     {/* Command Palette */}
                     <AnimatePresence>
