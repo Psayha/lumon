@@ -1,5 +1,7 @@
 import React, { Suspense, lazy, useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { Brain, Sparkles, Zap } from 'lucide-react';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { ModernSplashScreen } from './components/ModernSplashScreen';
 import { useTelegram, isTelegramWebApp } from './hooks/useTelegram';
@@ -16,39 +18,182 @@ const PricingPage = lazy(() => import('../front/PricingPage'));
 // Fallback компонент для Suspense
 const LoadingFallback: React.FC = () => (
   <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-indigo-900 flex items-center justify-center relative overflow-hidden">
-    {/* Анимированный фон */}
+    {/* Современный анимированный фон */}
     <div className="absolute inset-0">
-      <div className="absolute top-1/4 left-1/4 w-72 h-72 bg-blue-400/20 rounded-full blur-3xl animate-pulse" />
-      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-indigo-400/20 rounded-full blur-3xl animate-pulse delay-1000" />
+      <motion.div
+        className="absolute top-1/4 left-1/4 w-96 h-96 bg-gradient-to-br from-blue-400/30 to-transparent rounded-full blur-3xl"
+        animate={{
+          scale: [1, 1.3, 1],
+          opacity: [0.2, 0.4, 0.2],
+          x: [0, 50, 0],
+          y: [0, 30, 0],
+        }}
+        transition={{
+          duration: 6,
+          repeat: Infinity,
+          ease: "easeInOut"
+        }}
+      />
+      <motion.div
+        className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-gradient-to-tl from-indigo-400/30 to-purple-400/20 rounded-full blur-3xl"
+        animate={{
+          scale: [1.2, 1, 1.2],
+          opacity: [0.3, 0.5, 0.3],
+          x: [0, -40, 0],
+          y: [0, -20, 0],
+        }}
+        transition={{
+          duration: 7,
+          repeat: Infinity,
+          ease: "easeInOut",
+          delay: 1.5
+        }}
+      />
     </div>
 
-    <div className="relative z-10 text-center">
-      {/* Логотип */}
-      <div className="w-20 h-20 mx-auto bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 dark:border-slate-700/50 flex items-center justify-center mb-6 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-indigo-500/10 to-purple-500/10 animate-pulse" />
-        <svg className="w-10 h-10 text-blue-600 dark:text-blue-400 animate-spin" fill="currentColor" viewBox="0 0 20 20">
-          <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm0 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V8zm0 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1v-2z" clipRule="evenodd" />
-        </svg>
-      </div>
+    <div className="relative z-10 text-center max-w-md mx-auto px-6">
+      {/* Современный логотип */}
+      <motion.div
+        className="relative mb-8"
+        initial={{ scale: 0.9, opacity: 0, y: 20 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        transition={{ duration: 0.8, ease: "easeOut" }}
+      >
+        <div className="w-28 h-28 mx-auto bg-white/90 dark:bg-slate-800/90 backdrop-blur-2xl rounded-3xl shadow-2xl border-2 border-white/30 dark:border-slate-700/50 flex items-center justify-center relative overflow-hidden">
+          {/* Анимированный градиентный фон */}
+          <motion.div
+            className="absolute inset-0"
+            animate={{
+              background: [
+                "linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(99, 102, 241, 0.15) 50%, rgba(147, 51, 234, 0.15) 100%)",
+                "linear-gradient(135deg, rgba(147, 51, 234, 0.15) 0%, rgba(59, 130, 246, 0.15) 50%, rgba(99, 102, 241, 0.15) 100%)",
+                "linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(147, 51, 234, 0.15) 50%, rgba(59, 130, 246, 0.15) 100%)"
+              ]
+            }}
+            transition={{
+              duration: 4,
+              repeat: Infinity,
+              ease: "linear"
+            }}
+          />
+          
+          {/* Свечение вокруг иконки */}
+          <motion.div
+            className="absolute inset-0 bg-gradient-to-br from-blue-400/20 to-indigo-400/20 rounded-3xl"
+            animate={{
+              opacity: [0.5, 0.8, 0.5],
+              scale: [1, 1.1, 1],
+            }}
+            transition={{
+              duration: 2,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+          />
+          
+          {/* Иконка с плавным вращением */}
+          <motion.div
+            className="relative z-10"
+            animate={{
+              rotate: [0, 360],
+              scale: [1, 1.05, 1]
+            }}
+            transition={{
+              rotate: {
+                duration: 10,
+                repeat: Infinity,
+                ease: "linear"
+              },
+              scale: {
+                duration: 2.5,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }
+            }}
+          >
+            <Brain className="w-14 h-14 text-blue-600 dark:text-blue-400" strokeWidth={1.5} />
+          </motion.div>
 
-      {/* Название */}
-      <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100 mb-2">
+          {/* Декоративные элементы */}
+          <motion.div
+            className="absolute -top-2 -right-2 z-20"
+            animate={{
+              scale: [1, 1.3, 1],
+              opacity: [0.6, 1, 0.6],
+              rotate: [0, 180, 360],
+            }}
+            transition={{
+              duration: 3,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+          >
+            <Sparkles className="w-5 h-5 text-yellow-500 dark:text-yellow-400" />
+          </motion.div>
+
+          <motion.div
+            className="absolute -bottom-1 -left-1 z-20"
+            animate={{
+              scale: [1, 1.2, 1],
+              opacity: [0.5, 0.9, 0.5],
+              rotate: [0, -180, -360],
+            }}
+            transition={{
+              duration: 2.5,
+              repeat: Infinity,
+              ease: "easeInOut",
+              delay: 0.5
+            }}
+          >
+            <Zap className="w-4 h-4 text-indigo-500 dark:text-indigo-400" />
+          </motion.div>
+        </div>
+      </motion.div>
+
+      {/* Название с градиентом */}
+      <motion.h2
+        className="text-4xl font-bold mb-3 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 dark:from-blue-400 dark:via-indigo-400 dark:to-purple-400 bg-clip-text text-transparent"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3, duration: 0.8, ease: "easeOut" }}
+      >
         Lumon
-      </h2>
+      </motion.h2>
       
-      <p className="text-slate-600 dark:text-slate-300 mb-6">
+      <motion.p
+        className="text-lg text-slate-600 dark:text-slate-400 mb-8 font-medium tracking-wide"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.5, duration: 0.8 }}
+      >
         Загрузка страницы...
-      </p>
+      </motion.p>
 
-      {/* Прогресс индикатор */}
-      <div className="flex justify-center space-x-2">
+      {/* Современный индикатор загрузки (пульсирующие точки) */}
+      <motion.div
+        className="flex justify-center items-center space-x-3"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.7, duration: 0.6 }}
+      >
         {[0, 1, 2].map((index) => (
-          <div
+          <motion.div
             key={index}
-            className={`w-2 h-2 bg-blue-500 rounded-full animate-bounce ${index === 0 ? 'animate-delay-0' : index === 1 ? 'animate-delay-200' : 'animate-delay-400'}`}
+            className="w-3 h-3 bg-gradient-to-br from-blue-500 to-indigo-500 dark:from-blue-400 dark:to-indigo-400 rounded-full shadow-lg"
+            animate={{
+              scale: [1, 1.4, 1],
+              opacity: [0.4, 1, 0.4],
+              y: [0, -8, 0],
+            }}
+            transition={{
+              duration: 1.2,
+              repeat: Infinity,
+              delay: index * 0.2,
+              ease: "easeInOut"
+            }}
           />
         ))}
-      </div>
+      </motion.div>
     </div>
   </div>
 );
