@@ -30,6 +30,38 @@ const VoiceAssistantPage: React.FC = () => {
         height: 'calc(100dvh - var(--safe-top, 0px) - var(--safe-bottom, 0px))'
       }}
     >
+      {/* Верхняя safe-area с размытием */}
+      <div 
+        className="fixed top-0 left-0 right-0 z-[100] backdrop-blur-md bg-white/80 dark:bg-gray-900/80"
+        style={{
+          height: 'var(--safe-top, 0px)'
+        }}
+      />
+      
+      {/* Правая safe-area с размытием */}
+      <div 
+        className="fixed top-0 right-0 bottom-0 z-[100] backdrop-blur-md bg-white/80 dark:bg-gray-900/80"
+        style={{
+          width: 'var(--safe-right, 0px)'
+        }}
+      />
+      
+      {/* Нижняя safe-area с размытием */}
+      <div 
+        className="fixed bottom-0 left-0 right-0 z-[100] backdrop-blur-md bg-white/80 dark:bg-gray-900/80"
+        style={{
+          height: 'var(--safe-bottom, 0px)'
+        }}
+      />
+      
+      {/* Левая safe-area с размытием */}
+      <div 
+        className="fixed top-0 left-0 bottom-0 z-[100] backdrop-blur-md bg-white/80 dark:bg-gray-900/80"
+        style={{
+          width: 'var(--safe-left, 0px)'
+        }}
+      />
+      
       <AppHeader isTyping={isTyping} showHomeButton={false} isListening={isListening} isRecognizing={isRecognizing} />
       
       {/* AI Chat с поддержкой ответов - скроллируемый контент */}
