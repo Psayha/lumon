@@ -78,7 +78,7 @@ const mockDocuments = [
 
 
 const KnowledgeBasePage: React.FC = () => {
-  const [isOwner, setIsOwner] = useState(true);
+  const [isOwner] = useState(true);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showDocumentViewer, setShowDocumentViewer] = useState(false);
   const [selectedDocument, setSelectedDocument] = useState<any>(null);
