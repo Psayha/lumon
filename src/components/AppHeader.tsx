@@ -73,24 +73,26 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
       // Если left/right равны 0, значит Telegram не предоставил эти данные
       // Всегда используем процентные fallback значения
       if (safeLeft === 0 && safeRight === 0) {
-        // SettingsButton всегда видна (кроме полноэкранного режима)
-        // На главной странице пробуем разные проценты для точной настройки центрирования
-        // Текущее значение: 8.5% (попробуем больше для сдвига кнопки вправо)
-        safeRight = isRoot ? (windowWidth * 0.085) : (windowWidth * 0.09); // 8.5% на главной, 9% на детальных
-        
-        if (!isRoot && isReady && tg && tg.BackButton) {
-          // BackButton с текстом "Назад" видна на скриншоте
-          // Используем процентное значение для адаптивности
-          safeLeft = (windowWidth * 0.11); // ~11% от ширины экрана (примерно 66px на экране 600px)
+        // На главной странице есть кнопка "Закрыть" слева (не BackButton, но занимает место)
+        // Нужно учитывать её размер для правильного центрирования
+        if (isRoot) {
+          safeLeft = (windowWidth * 0.11); // ~11% для кнопки "Закрыть" на главной
+          safeRight = (windowWidth * 0.09); // ~9% для SettingsButton
+        } else {
+          // На внутренних страницах BackButton с текстом "Назад"
+          if (isReady && tg && tg.BackButton) {
+            safeLeft = (windowWidth * 0.11); // ~11% от ширины экрана
+          }
+          safeRight = (windowWidth * 0.09); // ~9% для SettingsButton
         }
       } else {
         // Если получили частичные данные от Telegram, дополняем недостающие
-        if (safeLeft === 0 && !isRoot && isReady && tg && tg.BackButton) {
-          safeLeft = (windowWidth * 0.11); // ~11% от ширины экрана
+        if (safeLeft === 0) {
+          // На главной странице есть кнопка "Закрыть", на внутренних - BackButton
+          safeLeft = isRoot ? (windowWidth * 0.11) : (isReady && tg && tg.BackButton ? (windowWidth * 0.11) : 0);
         }
         if (safeRight === 0) {
-          // На главной странице пробуем разные проценты для точной настройки центрирования
-          safeRight = isRoot ? (windowWidth * 0.085) : (windowWidth * 0.09); // 8.5% на главной, 9% на детальных
+          safeRight = (windowWidth * 0.09); // ~9% для SettingsButton на всех страницах
         }
       }
 
