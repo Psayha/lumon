@@ -1,6 +1,5 @@
 import { useEffect, useRef, useCallback, useTransition } from "react";
 import { useState } from "react";
-import "../types/speech";
 import {
     FileText,
     BarChart3,
@@ -259,13 +258,26 @@ export function AnimatedAIChat({
         }
     };
 
-    const recognitionRef = useRef<SpeechRecognition | null>(null);
+    interface SpeechRecognitionInstance {
+        lang: string;
+        continuous: boolean;
+        interimResults: boolean;
+        start(): void;
+        stop(): void;
+        abort(): void;
+        onstart: ((ev: Event) => any) | null;
+        onresult: ((ev: any) => any) | null;
+        onerror: ((ev: any) => any) | null;
+        onend: ((ev: Event) => any) | null;
+    }
+
+    const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
 
     const handleVoiceInput = () => {
         // Проверяем поддержку Web Speech API
-        const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+        const SpeechRecognitionConstructor = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
         
-        if (!SpeechRecognition) {
+        if (!SpeechRecognitionConstructor) {
             alert('Ваш браузер не поддерживает распознавание речи. Попробуйте использовать Chrome или Edge.');
             return;
         }
@@ -282,7 +294,7 @@ export function AnimatedAIChat({
             }
         } else {
             // Запускаем распознавание
-            const recognition = new SpeechRecognition();
+            const recognition = new SpeechRecognitionConstructor() as SpeechRecognitionInstance;
             recognition.lang = 'ru-RU';
             recognition.continuous = false;
             recognition.interimResults = false;
@@ -293,7 +305,7 @@ export function AnimatedAIChat({
                 }
             };
 
-            recognition.onresult = (event: SpeechRecognitionEvent) => {
+            recognition.onresult = (event: any) => {
                 const transcript = event.results[0][0].transcript;
                 
                 if (onRecognizingChange) {
@@ -310,7 +322,7 @@ export function AnimatedAIChat({
                 }, 500);
             };
 
-            recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+            recognition.onerror = (event: any) => {
                 console.error('Speech recognition error:', event.error);
                 
                 if (onListeningChange) {
