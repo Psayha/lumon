@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Upload } from 'lucide-react';
 import { AppHeader } from '../src/components/AppHeader';
-import { AppFooter } from '../src/components/AppFooter';
+// import { AppFooter } from '../src/components/AppFooter';
 import UploadDocumentsModal from '../src/components/modals/UploadDocumentsModal';
 import DocumentViewerModal from '../src/components/modals/DocumentViewerModal';
 
@@ -223,11 +223,11 @@ const KnowledgeBasePage: React.FC = () => {
           </div>
         )}
 
-        <AppFooter 
+        {/* <AppFooter 
           showHomeButton={true} 
           isOwner={isOwner}
           onRoleChange={setIsOwner}
-        />
+        /> */}
       </div>
 
       {/* Градиентное размытие сверху с плавным переходом */}

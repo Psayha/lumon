@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Check, Star, Zap } from 'lucide-react';
 import { AppHeader } from '../src/components/AppHeader';
-import { AppFooter } from '../src/components/AppFooter';
+// import { AppFooter } from '../src/components/AppFooter';
 
 const PricingPage: React.FC = () => {
   const plans = [
@@ -172,7 +172,7 @@ const PricingPage: React.FC = () => {
         </motion.div>
       </div>
 
-      <AppFooter />
+      {/* <AppFooter /> */}
     </div>
   );
 };

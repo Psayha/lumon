@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { MessageSquare, Zap, Users, BarChart3 } from 'lucide-react';
 import { AppHeader } from '../src/components/AppHeader';
-import { AppFooter } from '../src/components/AppFooter';
+// import { AppFooter } from '../src/components/AppFooter';
 
 const CRMPage: React.FC = () => {
   const features = [
@@ -131,7 +131,7 @@ const CRMPage: React.FC = () => {
         <div className="pb-4"></div>
       </div>
 
-      <AppFooter showHomeButton={true} />
+      {/* <AppFooter showHomeButton={true} /> */}
     </div>
   );
 };

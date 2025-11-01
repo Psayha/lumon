@@ -9,7 +9,7 @@ import {
   MessageCircle
 } from 'lucide-react';
 import { AppHeader } from '../src/components/AppHeader';
-import { AppFooter } from '../src/components/AppFooter';
+// import { AppFooter } from '../src/components/AppFooter';
 import { AgreementModal } from '../src/components/modals/AgreementModal';
 import { CompanyModal } from '../src/components/modals/CompanyModal';
 import { OnboardingModal } from '../src/components/modals/OnboardingModal';
@@ -264,7 +264,7 @@ const MenuPage: React.FC = () => {
           <MessageCircle className="w-6 h-6" />
         </motion.button>
 
-        <AppFooter showHomeButton={true} />
+        {/* <AppFooter showHomeButton={true} /> */}
       </div>
 
       {/* Градиентное размытие сверху с плавным переходом */}

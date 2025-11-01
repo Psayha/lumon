@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { BarChart3, TrendingUp, PieChart, Activity } from 'lucide-react';
 import { AppHeader } from '../src/components/AppHeader';
-import { AppFooter } from '../src/components/AppFooter';
+// import { AppFooter } from '../src/components/AppFooter';
 
 const AnalyticsPage: React.FC = () => {
   const analyticsFeatures = [
@@ -144,7 +144,7 @@ const AnalyticsPage: React.FC = () => {
         <div className="pb-4"></div>
       </div>
 
-      <AppFooter showHomeButton={true} />
+      {/* <AppFooter showHomeButton={true} /> */}
     </div>
   );
 };

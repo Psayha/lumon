@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { AppHeader } from '../src/components/AppHeader';
-import { AppFooter } from '../src/components/AppFooter';
+// import { AppFooter } from '../src/components/AppFooter';
 import { AnimatedAIChat } from '../src/components/ui/animated-ai-chat';
 
 const VoiceAssistantPage: React.FC = () => {
@@ -41,7 +41,7 @@ const VoiceAssistantPage: React.FC = () => {
           />
         </div>
 
-        <AppFooter showHomeButton={true} />
+        {/* <AppFooter showHomeButton={true} /> */}
       </div>
 
       {/* Градиентное размытие сверху с плавным переходом */}
