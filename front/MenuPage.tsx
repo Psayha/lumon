@@ -28,6 +28,17 @@ const MenuPage: React.FC = () => {
   const [showConsultation, setShowConsultation] = useState(false);
   const [onboardingAnswers, setOnboardingAnswers] = useState<string[]>([]);
 
+  // Фиксируем страницу - предотвращаем скролл body
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+    
+    return () => {
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+    };
+  }, []);
+
   const menuItems = [
     { title: 'CRM', description: 'Вся автоматизация через CRM', icon: MessageSquare, path: '/app/crm', bgColor: 'bg-orange-100 dark:bg-orange-900/20', iconColor: 'text-orange-600 dark:text-orange-400' },
     { title: 'Аналитика', description: 'Отчеты и метрики', icon: BarChart3, path: '/app/analytics', bgColor: 'bg-indigo-100 dark:bg-indigo-900/20', iconColor: 'text-indigo-600 dark:text-indigo-400' },
@@ -89,17 +100,26 @@ const MenuPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen gradient-bg relative flex flex-col">
-      <AppHeader showHomeButton={false} />
-      
-      {/* Фоновые эффекты */}
-      <div className="absolute inset-0 w-full h-full overflow-hidden">
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-violet-500/10 rounded-full mix-blend-normal filter blur-[128px] animate-pulse" />
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-indigo-500/10 rounded-full mix-blend-normal filter blur-[128px] animate-pulse delay-700" />
-        <div className="absolute top-1/4 right-1/3 w-64 h-64 bg-fuchsia-500/10 rounded-full mix-blend-normal filter blur-[96px] animate-pulse delay-1000" />
-      </div>
-      
-      <div className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full relative z-10">
+    <>
+      {/* Контент занимает весь экран, включая safe-area */}
+      <div 
+        className="fixed gradient-bg overflow-hidden flex flex-col inset-0"
+        style={{
+          height: '100dvh'
+        }}
+      >
+        <AppHeader showHomeButton={false} />
+        
+        {/* Фоновые эффекты */}
+        <div className="absolute inset-0 w-full h-full overflow-hidden">
+          <div className="absolute top-0 left-1/4 w-96 h-96 bg-violet-500/10 rounded-full mix-blend-normal filter blur-[128px] animate-pulse" />
+          <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-indigo-500/10 rounded-full mix-blend-normal filter blur-[128px] animate-pulse delay-700" />
+          <div className="absolute top-1/4 right-1/3 w-64 h-64 bg-fuchsia-500/10 rounded-full mix-blend-normal filter blur-[96px] animate-pulse delay-1000" />
+        </div>
+        
+        {/* Скроллируемый контент с отступом от header */}
+        <div className="flex-1 overflow-y-auto min-h-0 pt-[calc(var(--safe-top,0px)+52px)] pb-20">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full relative z-10">
 
         {/* Menu Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
@@ -225,25 +245,81 @@ const MenuPage: React.FC = () => {
           </AnimatePresence>
         </div>
         
-        {/* Отступ от подвала */}
-        <div className="pb-4"></div>
+            {/* Отступ от подвала */}
+            <div className="pb-4"></div>
+          </div>
+        </div>
+
+        {/* Кнопка консультации */}
+        <motion.button
+          onClick={() => setShowConsultation(true)}
+          className="fixed bottom-24 right-6 z-50 w-16 h-16 bg-gradient-to-r from-blue-400 to-indigo-500 hover:from-blue-500 hover:to-indigo-600 text-white rounded-full shadow-2xl hover:shadow-3xl transition-all duration-300 backdrop-blur-xl border border-white/20 flex items-center justify-center"
+          initial={{ opacity: 0, scale: 0.8, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: "easeOut", delay: 0.8 }}
+          whileHover={{ scale: 1.1, y: -2 }}
+          whileTap={{ scale: 0.9 }}
+          aria-label="Получить консультацию"
+        >
+          <MessageCircle className="w-6 h-6" />
+        </motion.button>
+
+        <AppFooter showHomeButton={true} />
       </div>
 
-      {/* Кнопка консультации */}
-      <motion.button
-        onClick={() => setShowConsultation(true)}
-        className="fixed bottom-6 right-6 z-50 w-16 h-16 bg-gradient-to-r from-blue-400 to-indigo-500 hover:from-blue-500 hover:to-indigo-600 text-white rounded-full shadow-2xl hover:shadow-3xl transition-all duration-300 backdrop-blur-xl border border-white/20 flex items-center justify-center"
-        initial={{ opacity: 0, scale: 0.8, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: "easeOut", delay: 0.8 }}
-        whileHover={{ scale: 1.1, y: -2 }}
-        whileTap={{ scale: 0.9 }}
-        aria-label="Получить консультацию"
+      {/* Градиентное размытие сверху с плавным переходом */}
+      <div 
+        className="fixed top-0 left-0 right-0 z-[100] pointer-events-none overflow-hidden"
+        style={{
+          height: `calc(var(--safe-top, 0px) + 40px)`,
+        }}
       >
-        <MessageCircle className="w-6 h-6" />
-      </motion.button>
-
-      <AppFooter showHomeButton={true} />
+        <div 
+          className="absolute top-0 left-0 right-0 bg-white/10 dark:bg-black/10"
+          style={{
+            height: `calc(var(--safe-top, 0px) + 40px)`,
+            backdropFilter: 'blur(24px)',
+            WebkitBackdropFilter: 'blur(24px)',
+            maskImage: 'linear-gradient(to bottom, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0.7) 40%, rgba(0, 0, 0, 0) 100%)',
+            WebkitMaskImage: 'linear-gradient(to bottom, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0.7) 40%, rgba(0, 0, 0, 0) 100%)',
+          }}
+        />
+      </div>
+      
+      {/* Правая safe-area с glass эффектом */}
+      <div 
+        className="fixed top-0 right-0 bottom-0 z-[100] backdrop-blur-xl pointer-events-none bg-white/10 dark:bg-black/10"
+        style={{
+          width: 'var(--safe-right, 0px)'
+        }}
+      />
+      
+      {/* Левая safe-area с glass эффектом */}
+      <div 
+        className="fixed top-0 left-0 bottom-0 z-[100] backdrop-blur-xl pointer-events-none bg-white/10 dark:bg-black/10"
+        style={{
+          width: 'var(--safe-left, 0px)'
+        }}
+      />
+      
+      {/* Градиентное размытие снизу с плавным переходом */}
+      <div 
+        className="fixed bottom-0 left-0 right-0 z-[100] pointer-events-none overflow-hidden"
+        style={{
+          height: `calc(var(--safe-bottom, 0px) + 40px)`,
+        }}
+      >
+        <div 
+          className="absolute bottom-0 left-0 right-0 bg-white/10 dark:bg-black/10"
+          style={{
+            height: `calc(var(--safe-bottom, 0px) + 40px)`,
+            backdropFilter: 'blur(24px)',
+            WebkitBackdropFilter: 'blur(24px)',
+            maskImage: 'linear-gradient(to top, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0.7) 40%, rgba(0, 0, 0, 0) 100%)',
+            WebkitMaskImage: 'linear-gradient(to top, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0.7) 40%, rgba(0, 0, 0, 0) 100%)',
+          }}
+        />
+      </div>
 
       {/* Modals */}
       <AgreementModal
