@@ -39,7 +39,7 @@ export const ModernSplashScreen: React.FC<ModernSplashScreenProps> = ({ children
 
   // Управление прогрессом загрузки
   useEffect(() => {
-    let progressInterval: NodeJS.Timeout;
+    let progressInterval: ReturnType<typeof setInterval>;
 
     if (!isTelegramReady) {
       // Ждём Telegram SDK - прогресс до 75%
