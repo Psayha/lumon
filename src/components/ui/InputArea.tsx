@@ -240,15 +240,12 @@ export const InputArea: React.FC<InputAreaProps> = ({
                             />
                         </motion.button>
                         
-                        <button
+                        <motion.button
                             type="button"
                             data-command-button
-                            onClick={() => {
-                                if (!isListening && !isRecognizing) {
-                                    onToggleCommandPalette();
-                                }
-                            }}
+                            onClick={onToggleCommandPalette}
                             disabled={isListening || isRecognizing}
+                            whileTap={!isListening && !isRecognizing ? { scale: 0.94 } : {}}
                             className={cn(
                                 "p-2 rounded-lg transition-colors relative group",
                                 isListening || isRecognizing
@@ -259,7 +256,11 @@ export const InputArea: React.FC<InputAreaProps> = ({
                             )}
                         >
                             <Command className="w-4 h-4" />
-                        </button>
+                            <motion.span
+                                className="absolute inset-0 bg-gray-200/50 dark:bg-white/[0.05] rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                                layoutId="button-highlight"
+                            />
+                        </motion.button>
                         
                         <motion.button
                             type="button"
