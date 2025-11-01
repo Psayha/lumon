@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useTelegram } from '../hooks/useTelegram';
 
 export const SystemButtonsDebug: React.FC = () => {
   const { tg, isReady } = useTelegram();
+  const location = useLocation();
   const [showDebug, setShowDebug] = useState(() => {
     // По умолчанию показываем для отладки центрирования
     // Можно отключить через localStorage или URL параметр
@@ -24,6 +26,10 @@ export const SystemButtonsDebug: React.FC = () => {
     bottom: 0,
     left: 0
   });
+  const [calculatedSafeArea, setCalculatedSafeArea] = useState({
+    right: 0,
+    left: 0
+  });
 
   useEffect(() => {
     // Обновляем localStorage при изменении состояния
@@ -36,24 +42,66 @@ export const SystemButtonsDebug: React.FC = () => {
 
   useEffect(() => {
     const updateSafeArea = () => {
+      let rawSafeArea = {
+        top: 0,
+        right: 0,
+        bottom: 0,
+        left: 0
+      };
+
       if (isReady && tg) {
         const inset = (tg as any).safeAreaInset || (tg as any).contentSafeAreaInset || {};
-        setSafeArea({
+        rawSafeArea = {
           top: inset.top || parseInt(getComputedStyle(document.documentElement).getPropertyValue('--safe-top')) || 0,
           right: inset.right || parseInt(getComputedStyle(document.documentElement).getPropertyValue('--safe-right')) || 0,
           bottom: inset.bottom || parseInt(getComputedStyle(document.documentElement).getPropertyValue('--safe-bottom')) || 0,
           left: inset.left || parseInt(getComputedStyle(document.documentElement).getPropertyValue('--safe-left')) || 0,
-        });
+        };
       } else {
         // Fallback для веб-версии: используем CSS переменные
         const root = getComputedStyle(document.documentElement);
-        setSafeArea({
+        rawSafeArea = {
           top: parseInt(root.getPropertyValue('--safe-top')) || 0,
           right: parseInt(root.getPropertyValue('--safe-right')) || 0,
           bottom: parseInt(root.getPropertyValue('--safe-bottom')) || 0,
           left: parseInt(root.getPropertyValue('--safe-left')) || 0,
-        });
+        };
       }
+
+      setSafeArea(rawSafeArea);
+
+      // Вычисляем фактические значения с учетом fallback (как в AppHeader)
+      let safeLeft = rawSafeArea.left;
+      let safeRight = rawSafeArea.right;
+
+      // CSS переменные имеют приоритет
+      const root = getComputedStyle(document.documentElement);
+      const cssLeft = root.getPropertyValue('--safe-left').trim();
+      const cssRight = root.getPropertyValue('--safe-right').trim();
+      const cssLeftValue = cssLeft ? parseInt(cssLeft) : null;
+      const cssRightValue = cssRight ? parseInt(cssRight) : null;
+      
+      if (cssLeftValue !== null && cssLeftValue > 0) safeLeft = cssLeftValue;
+      if (cssRightValue !== null && cssRightValue > 0) safeRight = cssRightValue;
+
+      // Применяем fallback значения (те же, что в AppHeader)
+      const isRoot = location.pathname === '/';
+      
+      if (safeLeft === 0 && safeRight === 0) {
+        safeRight = isRoot ? 52 : 54;
+        if (!isRoot && isReady && tg && tg.BackButton) {
+          safeLeft = 68;
+        }
+      } else {
+        if (safeLeft === 0 && !isRoot && isReady && tg && tg.BackButton) {
+          safeLeft = 68;
+        }
+        if (safeRight === 0) {
+          safeRight = isRoot ? 52 : 54;
+        }
+      }
+
+      setCalculatedSafeArea({ left: safeLeft, right: safeRight });
     };
 
     updateSafeArea();
@@ -73,7 +121,7 @@ export const SystemButtonsDebug: React.FC = () => {
       }
       clearInterval(interval);
     };
-  }, [isReady, tg]);
+  }, [isReady, tg, location.pathname]);
 
   if (!showDebug) return null;
 
@@ -83,7 +131,7 @@ export const SystemButtonsDebug: React.FC = () => {
       <div
         className="fixed top-0 left-0 z-[9999] pointer-events-none"
         style={{
-          width: `${Math.max(safeArea.left, 44)}px`,
+          width: `${calculatedSafeArea.left}px`,
           height: `${safeArea.top + 44}px`,
           border: '3px dashed rgba(255, 0, 0, 0.7)',
           backgroundColor: 'rgba(255, 0, 0, 0.15)',
@@ -94,7 +142,10 @@ export const SystemButtonsDebug: React.FC = () => {
           ← Back Button
         </div>
         <div className="absolute top-0 left-0 text-[10px] text-red-700 dark:text-red-300 font-bold p-1.5 bg-red-200/90 dark:bg-red-800/60 rounded-br">
-          L: {safeArea.left}px
+          L: {calculatedSafeArea.left}px
+          {calculatedSafeArea.left !== safeArea.left && (
+            <span className="text-[8px] opacity-70"> (API: {safeArea.left})</span>
+          )}
         </div>
       </div>
 
@@ -102,7 +153,7 @@ export const SystemButtonsDebug: React.FC = () => {
       <div
         className="fixed top-0 right-0 z-[9999] pointer-events-none"
         style={{
-          width: `${Math.max(safeArea.right, 44)}px`,
+          width: `${calculatedSafeArea.right}px`,
           height: `${safeArea.top + 44}px`,
           border: '3px dashed rgba(0, 128, 255, 0.7)',
           backgroundColor: 'rgba(0, 128, 255, 0.15)',
@@ -113,7 +164,10 @@ export const SystemButtonsDebug: React.FC = () => {
           Menu Button →
         </div>
         <div className="absolute top-0 right-0 text-[10px] text-blue-700 dark:text-blue-300 font-bold p-1.5 bg-blue-200/90 dark:bg-blue-800/60 rounded-bl">
-          R: {safeArea.right}px
+          R: {calculatedSafeArea.right}px
+          {calculatedSafeArea.right !== safeArea.right && (
+            <span className="text-[8px] opacity-70"> (API: {safeArea.right})</span>
+          )}
         </div>
       </div>
 
@@ -145,11 +199,21 @@ export const SystemButtonsDebug: React.FC = () => {
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 bg-red-500 rounded"></div>
-              <span className="text-red-400 dark:text-red-600">Left (Back): {safeArea.left}px</span>
+              <span className="text-red-400 dark:text-red-600">
+                Left (Back): {calculatedSafeArea.left}px
+                {calculatedSafeArea.left !== safeArea.left && (
+                  <span className="text-[10px] opacity-70 ml-1">(API: {safeArea.left})</span>
+                )}
+              </span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 bg-blue-500 rounded"></div>
-              <span className="text-blue-400 dark:text-blue-600">Right (Menu): {safeArea.right}px</span>
+              <span className="text-blue-400 dark:text-blue-600">
+                Right (Menu): {calculatedSafeArea.right}px
+                {calculatedSafeArea.right !== safeArea.right && (
+                  <span className="text-[10px] opacity-70 ml-1">(API: {safeArea.right})</span>
+                )}
+              </span>
             </div>
           </div>
           <div className="space-y-1">
