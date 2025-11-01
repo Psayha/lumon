@@ -22,8 +22,10 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   return (
     <header className="fixed top-0 left-0 right-0 z-50 pt-safe pointer-events-none">
       <div 
-        className="absolute left-1/2 top-0 transform -translate-x-1/2"
+        className="absolute top-0"
         style={{
+          left: 'calc(var(--safe-left, 0px) + ((100vw - var(--safe-left, 0px) - var(--safe-right, 0px)) / 2))',
+          transform: 'translateX(-50%)',
           paddingTop: 'calc(max(var(--safe-top, 0px), env(safe-area-inset-top, 0px)) + 0.5rem)',
         }}
       >
