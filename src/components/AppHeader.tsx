@@ -61,28 +61,34 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
       if (cssLeftValue !== null && cssLeftValue > 0) safeLeft = cssLeftValue;
       if (cssRightValue !== null && cssRightValue > 0) safeRight = cssRightValue;
 
-      // Проверяем, получили ли мы реальные данные из Telegram API
-      const hasRealTelegramData = (safeLeft > 0 || safeRight > 0) && 
-        (cssLeftValue !== null && cssLeftValue > 0 || cssRightValue !== null && cssRightValue > 0 || 
-         (isReady && tg && ((tg as any).safeAreaInset || (tg as any).contentSafeAreaInset)));
-
-      // Если нет реальных данных, используем fallback на основе видимости кнопок
-      if (!hasRealTelegramData) {
-        const isRoot = location.pathname === '/';
-        
+      // Telegram API часто не предоставляет left/right значения (возвращает 0)
+      // В этом случае всегда используем fallback на основе видимости кнопок
+      const isRoot = location.pathname === '/';
+      
+      // Если left/right равны 0, значит Telegram не предоставил эти данные
+      // Всегда используем fallback значения для правильного центрирования
+      if (safeLeft === 0 && safeRight === 0) {
         // На главной странице BackButton скрыта, справа SettingsButton
         // На внутренних страницах обе кнопки видимы
         
         // SettingsButton всегда видна (кроме полноэкранного режима)
-        // Реальный размер SettingsButton обычно 44-48px (иконка + отступы)
-        // На главной странице используем меньшее значение, чтобы кнопка не смещалась влево
-        safeRight = safeRight || (isRoot ? 44 : 46);
+        // На основе визуального анализа: SettingsButton занимает ~50-54px
+        // Для правильного центрирования используем среднее значение
+        safeRight = isRoot ? 52 : 54;
         
         if (!isRoot && isReady && tg && tg.BackButton) {
-          // BackButton с текстом "Назад" обычно 60-68px в зависимости от языка
-          // Для русского "Назад" обычно 62-66px
-          // Используем среднее значение, которое работает на детальных страницах
-          safeLeft = safeLeft || 64;
+          // BackButton с текстом "Назад" видна на скриншоте
+          // На основе визуального анализа: BackButton занимает ~66-70px с текстом "Назад"
+          // Используем среднее значение для правильного центрирования
+          safeLeft = 68;
+        }
+      } else {
+        // Если получили частичные данные от Telegram, дополняем недостающие
+        if (safeLeft === 0 && !isRoot && isReady && tg && tg.BackButton) {
+          safeLeft = 68;
+        }
+        if (safeRight === 0) {
+          safeRight = isRoot ? 52 : 54;
         }
       }
 
