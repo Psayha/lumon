@@ -258,26 +258,87 @@ export function AnimatedAIChat({
         }
     };
 
+    const recognitionRef = useRef<SpeechRecognition | null>(null);
+
     const handleVoiceInput = () => {
+        // Проверяем поддержку Web Speech API
+        const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+        
+        if (!SpeechRecognition) {
+            alert('Ваш браузер не поддерживает распознавание речи. Попробуйте использовать Chrome или Edge.');
+            return;
+        }
+
         if (isListening) {
+            // Останавливаем распознавание
+            if (recognitionRef.current) {
+                recognitionRef.current.stop();
+                recognitionRef.current = null;
+            }
+            
             if (onListeningChange) {
                 onListeningChange(false);
             }
-            
-            if (onRecognizingChange) {
-                onRecognizingChange(true);
-            }
-            
-            setTimeout(() => {
-                setValue(prev => prev + " Голосовое сообщение");
+        } else {
+            // Запускаем распознавание
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'ru-RU';
+            recognition.continuous = false;
+            recognition.interimResults = false;
+
+            recognition.onstart = () => {
+                if (onListeningChange) {
+                    onListeningChange(true);
+                }
+            };
+
+            recognition.onresult = (event: SpeechRecognitionEvent) => {
+                const transcript = event.results[0][0].transcript;
                 
                 if (onRecognizingChange) {
-                    onRecognizingChange(false);
+                    onRecognizingChange(true);
                 }
-            }, 3000);
-        } else {
-            if (onListeningChange) {
-                onListeningChange(true);
+                
+                // Добавляем распознанный текст в поле ввода
+                setValue(prev => prev ? `${prev} ${transcript}` : transcript);
+                
+                setTimeout(() => {
+                    if (onRecognizingChange) {
+                        onRecognizingChange(false);
+                    }
+                }, 500);
+            };
+
+            recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+                console.error('Speech recognition error:', event.error);
+                
+                if (onListeningChange) {
+                    onListeningChange(false);
+                }
+                
+                if (event.error === 'not-allowed') {
+                    alert('Доступ к микрофону запрещен. Разрешите доступ к микрофону в настройках браузера.');
+                } else if (event.error === 'no-speech') {
+                    alert('Речь не распознана. Попробуйте еще раз.');
+                }
+            };
+
+            recognition.onend = () => {
+                if (onListeningChange) {
+                    onListeningChange(false);
+                }
+                recognitionRef.current = null;
+            };
+
+            recognitionRef.current = recognition;
+            
+            try {
+                recognition.start();
+            } catch (error) {
+                console.error('Failed to start recognition:', error);
+                if (onListeningChange) {
+                    onListeningChange(false);
+                }
             }
         }
     };
