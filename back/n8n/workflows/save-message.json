@@ -1,0 +1,113 @@
+{
+  "name": "Save Message",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "save-message",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [250, 300],
+      "webhookId": "save-message"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Валидация и форматирование данных сообщения\nconst body = $input.item.json;\n\n// Проверка обязательных полей\nif (!body.chat_id || !body.role || !body.content) {\n  throw new Error('Missing required fields: chat_id, role, content');\n}\n\n// Проверка роли\nconst validRoles = ['user', 'assistant', 'system'];\nif (!validRoles.includes(body.role)) {\n  throw new Error(`Invalid role: ${body.role}. Must be one of: ${validRoles.join(', ')}`);\n}\n\n// Возвращаем отформатированные данные\nreturn {\n  json: {\n    chat_id: body.chat_id,\n    role: body.role,\n    content: body.content.trim(),\n    timestamp: new Date().toISOString()\n  }\n};"
+      },
+      "id": "validate-data",
+      "name": "Validate Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "messages",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "chat_id": "={{ $json.chat_id }}",
+            "role": "={{ $json.role }}",
+            "content": "={{ $json.content }}",
+            "created_at": "={{ $json.timestamp }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "insert-message",
+      "name": "Insert Message",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [650, 300],
+      "credentials": {
+        "postgres": {
+          "id": "1",
+          "name": "Lumon PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"success\": true, \"data\": $json } }}",
+        "options": {}
+      },
+      "id": "respond-webhook",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [850, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Data": {
+      "main": [
+        [
+          {
+            "node": "Insert Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Message": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2024-01-01T00:00:00.000Z",
+  "versionId": "1"
+}
+

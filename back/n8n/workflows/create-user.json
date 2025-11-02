@@ -1,0 +1,287 @@
+{
+  "name": "Create User",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "create-user",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [250, 300],
+      "webhookId": "create-user"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Валидация данных пользователя\nconst body = $input.item.json;\n\nif (!body.telegram_id) {\n  throw new Error('telegram_id is required');\n}\n\nreturn {\n  json: body\n};"
+      },
+      "id": "validate-user",
+      "name": "Validate User",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id FROM users WHERE telegram_id = $1::bigint",
+        "additionalFields": {
+          "queryParameters": "={{ [$json.telegram_id] }}"
+        },
+        "options": {}
+      },
+      "id": "check-user",
+      "name": "Check User Exists",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [650, 300],
+      "credentials": {
+        "postgres": {
+          "id": "1",
+          "name": "Lumon PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "exists-condition",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "object",
+                "operation": "exists"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-exists",
+      "name": "User Exists?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "table": "users",
+        "updateKey": "={{ $json.id }}",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "username": "={{ $('Validate User').item.json.username }}",
+            "first_name": "={{ $('Validate User').item.json.first_name }}",
+            "last_name": "={{ $('Validate User').item.json.last_name }}",
+            "language_code": "={{ $('Validate User').item.json.language_code || 'ru' }}",
+            "is_premium": "={{ $('Validate User').item.json.is_premium || false }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "update-user",
+      "name": "Update User",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1050, 200],
+      "credentials": {
+        "postgres": {
+          "id": "1",
+          "name": "Lumon PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "users",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "telegram_id": "={{ $('Validate User').item.json.telegram_id }}",
+            "username": "={{ $('Validate User').item.json.username }}",
+            "first_name": "={{ $('Validate User').item.json.first_name }}",
+            "last_name": "={{ $('Validate User').item.json.last_name }}",
+            "language_code": "={{ $('Validate User').item.json.language_code || 'ru' }}",
+            "is_premium": "={{ $('Validate User').item.json.is_premium || false }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "insert-user",
+      "name": "Insert User",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1050, 400],
+      "credentials": {
+        "postgres": {
+          "id": "1",
+          "name": "Lumon PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, telegram_id, username, first_name, last_name, language_code, is_premium, created_at, updated_at FROM users WHERE id = $1::uuid",
+        "additionalFields": {
+          "queryParameters": "={{ [$json.id || $('Insert User').item.json.id] }}"
+        },
+        "options": {}
+      },
+      "id": "get-user",
+      "name": "Get User Data",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1250, 300],
+      "credentials": {
+        "postgres": {
+          "id": "1",
+          "name": "Lumon PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Форматирование ответа\nconst user = $input.item.json;\n\nreturn {\n  json: {\n    success: true,\n    data: {\n      id: user.id,\n      telegram_id: user.telegram_id,\n      username: user.username,\n      first_name: user.first_name,\n      last_name: user.last_name,\n      language_code: user.language_code,\n      is_premium: user.is_premium,\n      created_at: user.created_at,\n      updated_at: user.updated_at\n    }\n  }\n};"
+      },
+      "id": "format-response",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1450, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "respond-webhook",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1650, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate User",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate User": {
+      "main": [
+        [
+          {
+            "node": "Check User Exists",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check User Exists": {
+      "main": [
+        [
+          {
+            "node": "User Exists?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "User Exists?": {
+      "main": [
+        [
+          {
+            "node": "Update User",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Insert User",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update User": {
+      "main": [
+        [
+          {
+            "node": "Get User Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert User": {
+      "main": [
+        [
+          {
+            "node": "Get User Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get User Data": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Response": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2024-01-01T00:00:00.000Z",
+  "versionId": "1"
+}
+

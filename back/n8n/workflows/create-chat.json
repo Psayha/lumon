@@ -1,0 +1,165 @@
+{
+  "name": "Create Chat",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "create-chat",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [250, 300],
+      "webhookId": "create-chat"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Валидация данных чата\nconst body = $input.item.json;\n\nif (!body.user_id) {\n  throw new Error('user_id is required');\n}\n\nreturn {\n  json: {\n    user_id: body.user_id,\n    title: body.title || 'Voice Assistant Chat',\n    expires_at: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString() // +14 days\n  }\n};"
+      },
+      "id": "validate-chat",
+      "name": "Validate Chat",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "chats",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "user_id": "={{ $json.user_id }}",
+            "title": "={{ $json.title }}",
+            "expires_at": "={{ $json.expires_at }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "insert-chat",
+      "name": "Insert Chat",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [650, 300],
+      "credentials": {
+        "postgres": {
+          "id": "1",
+          "name": "Lumon PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, user_id, title, created_at, expires_at FROM chats WHERE id = $1::uuid",
+        "additionalFields": {
+          "queryParameters": "={{ [$json.id] }}"
+        },
+        "options": {}
+      },
+      "id": "get-chat",
+      "name": "Get Chat Data",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [850, 300],
+      "credentials": {
+        "postgres": {
+          "id": "1",
+          "name": "Lumon PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Форматирование ответа\nconst chat = $input.item.json;\n\nreturn {\n  json: {\n    success: true,\n    data: {\n      id: chat.id,\n      user_id: chat.user_id,\n      title: chat.title,\n      created_at: chat.created_at,\n      expires_at: chat.expires_at\n    }\n  }\n};"
+      },
+      "id": "format-response",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "respond-webhook",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1250, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate Chat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Chat": {
+      "main": [
+        [
+          {
+            "node": "Insert Chat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Chat": {
+      "main": [
+        [
+          {
+            "node": "Get Chat Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Chat Data": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Response": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2024-01-01T00:00:00.000Z",
+  "versionId": "1"
+}
+
