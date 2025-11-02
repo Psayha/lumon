@@ -44,7 +44,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Объединить данные проверки с исходными данными\nconst checkResult = $input.item?.json || {};\nconst validateData = $('Validate User').item.json;\n\nreturn {\n  json: {\n    existing_id: checkResult.id || null,\n    telegram_id: validateData.telegram_id,\n    username: validateData.username,\n    first_name: validateData.first_name,\n    last_name: validateData.last_name,\n    language_code: validateData.language_code,\n    is_premium: validateData.is_premium\n  }\n};"
+        "jsCode": "// Объединить данные проверки с исходными данными\nconst checkResult = $input.item?.json || {};\nconst validateData = $('Validate User').item.json;\n\nreturn {\n  json: {\n    existing_id: checkResult.id || null,\n    user_exists: !!checkResult.id,\n    telegram_id: validateData.telegram_id,\n    username: validateData.username,\n    first_name: validateData.first_name,\n    last_name: validateData.last_name,\n    language_code: validateData.language_code,\n    is_premium: validateData.is_premium\n  }\n};"
       },
       "id": "prepare-data",
       "name": "Prepare Data",
@@ -62,11 +62,11 @@
           },
           "conditions": [
             {
-              "leftValue": "={{ $json.existing_id }}",
-              "rightValue": "",
+              "leftValue": "={{ $json.user_exists }}",
+              "rightValue": true,
               "operator": {
-                "type": "string",
-                "operation": "isNotEmpty"
+                "type": "boolean",
+                "operation": "true"
               }
             }
           ],
