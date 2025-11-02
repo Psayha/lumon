@@ -1,5 +1,7 @@
 // API Configuration for Lumon Backend
-// Backend runs on n8n webhooks at http://localhost:5678
+// Backend runs on n8n webhooks
+// Production: https://n8n.psayha.ru
+// Development: http://localhost:5678
 
 export const API_CONFIG = {
   // Base URL for n8n webhooks
