@@ -29,18 +29,22 @@
       "parameters": {
         "operation": "executeQuery",
         "query": "SELECT id, telegram_id FROM users WHERE telegram_id = {{ $json.telegram_id }}",
-        "options": {}
+        "options": {
+          "queryBatching": "independently"
+        }
       },
       "id": "check-user",
       "name": "Check User",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.4,
       "position": [650, 300],
-      "credentials": {}
+      "credentials": {},
+      "alwaysOutputData": true,
+      "continueOnFail": true
     },
     {
       "parameters": {
-        "jsCode": "// Объединить данные проверки с исходными данными\nconst checkResult = $input.item.json;\nconst validateData = $('Validate User').item.json;\n\nreturn {\n  json: {\n    existing_id: checkResult.id || null,\n    telegram_id: validateData.telegram_id,\n    username: validateData.username,\n    first_name: validateData.first_name,\n    last_name: validateData.last_name,\n    language_code: validateData.language_code,\n    is_premium: validateData.is_premium\n  }\n};"
+        "jsCode": "// Объединить данные проверки с исходными данными\nconst checkResult = $input.item?.json || {};\nconst validateData = $('Validate User').item.json;\n\nreturn {\n  json: {\n    existing_id: checkResult.id || null,\n    telegram_id: validateData.telegram_id,\n    username: validateData.username,\n    first_name: validateData.first_name,\n    last_name: validateData.last_name,\n    language_code: validateData.language_code,\n    is_premium: validateData.is_premium\n  }\n};"
       },
       "id": "prepare-data",
       "name": "Prepare Data",
@@ -54,15 +58,15 @@
           "options": {
             "caseSensitive": true,
             "leftValue": "",
-            "typeValidation": "strict"
+            "typeValidation": "loose"
           },
           "conditions": [
             {
               "leftValue": "={{ $json.existing_id }}",
               "rightValue": "",
               "operator": {
-                "type": "object",
-                "operation": "exists"
+                "type": "string",
+                "operation": "isNotEmpty"
               }
             }
           ],
@@ -140,7 +144,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT id, telegram_id, username, first_name, last_name, language_code, is_premium, created_at, updated_at FROM users WHERE id = {{ $json.user_id }}",
+        "query": "SELECT id, telegram_id, username, first_name, last_name, language_code, is_premium, created_at, updated_at FROM users WHERE id = CAST('{{ $json.user_id }}' AS UUID)",
         "options": {}
       },
       "id": "get-user",
@@ -302,4 +306,3 @@
   "updatedAt": "2024-01-01T00:00:00.000Z",
   "versionId": "1"
 }
-
