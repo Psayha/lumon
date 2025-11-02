@@ -164,8 +164,13 @@ jobs:
               add_header X-XSS-Protection \"1; mode=block\" always;
 
               # API прокси к n8n - ОБЯЗАТЕЛЬНО ПЕРЕД location /
-              location ^~ /webhook/ {
-                  proxy_pass http://91.229.10.47:5678/webhook/;
+              # Используем точное совпадение для максимального приоритета
+              location = /webhook {
+                  return 301 /webhook/;
+              }
+              
+              location /webhook/ {
+                  proxy_pass http://91.229.10.47:5678;
                   proxy_http_version 1.1;
                   proxy_set_header Upgrade \$http_upgrade;
                   proxy_set_header Connection 'upgrade';
@@ -198,7 +203,9 @@ jobs:
           }
           EOF
           sudo ln -sf /etc/nginx/sites-available/lumon-frontend /etc/nginx/sites-enabled/lumon-frontend || true
-          sudo nginx -t && sudo systemctl reload nginx || echo 'Nginx reload skipped'"
+          sudo nginx -t && sudo systemctl reload nginx || echo 'Nginx reload skipped'
+          echo 'Проверка конфига после обновления:'
+          sudo grep -A 10 'location.*webhook' /etc/nginx/sites-available/lumon-frontend || echo 'Конфиг не найден'"
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_PORT: ${{ secrets.SSH_PORT }}
