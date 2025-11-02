@@ -17,7 +17,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Валидация аналитического события\nconst body = $input.item.json;\n\nif (!body.event_type) {\n  throw new Error('event_type is required');\n}\n\nreturn {\n  json: {\n    user_id: body.user_id || null,\n    event_type: body.event_type,\n    event_data: body.event_data || {},\n    timestamp: new Date().toISOString()\n  }\n};"
+        "jsCode": "// Валидация аналитического события\nconst webhookData = $input.item.json;\nconst body = webhookData.body || webhookData;\n\nif (!body.event_type) {\n  throw new Error('event_type is required');\n}\n\nreturn {\n  json: {\n    user_id: body.user_id || null,\n    event_type: body.event_type,\n    event_data: body.event_data || {},\n    timestamp: new Date().toISOString()\n  }\n};"
       },
       "id": "validate-event",
       "name": "Validate Event",

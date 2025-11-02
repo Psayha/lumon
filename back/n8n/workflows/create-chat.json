@@ -17,7 +17,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Валидация данных чата\nconst body = $input.item.json;\n\nif (!body.user_id) {\n  throw new Error('user_id is required');\n}\n\nreturn {\n  json: {\n    user_id: body.user_id,\n    title: body.title || 'Voice Assistant Chat',\n    expires_at: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString() // +14 days\n  }\n};"
+        "jsCode": "// Валидация данных чата\nconst webhookData = $input.item.json;\nconst body = webhookData.body || webhookData;\n\nif (!body.user_id) {\n  throw new Error('user_id is required');\n}\n\nreturn {\n  json: {\n    user_id: body.user_id,\n    title: body.title || 'Voice Assistant Chat',\n    expires_at: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString() // +14 days\n  }\n};"
       },
       "id": "validate-chat",
       "name": "Validate Chat",

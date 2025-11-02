@@ -17,7 +17,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Валидация и форматирование данных сообщения\nconst body = $input.item.json;\n\n// Проверка обязательных полей\nif (!body.chat_id || !body.role || !body.content) {\n  throw new Error('Missing required fields: chat_id, role, content');\n}\n\n// Проверка роли\nconst validRoles = ['user', 'assistant', 'system'];\nif (!validRoles.includes(body.role)) {\n  throw new Error(`Invalid role: ${body.role}. Must be one of: ${validRoles.join(', ')}`);\n}\n\n// Возвращаем отформатированные данные\nreturn {\n  json: {\n    chat_id: body.chat_id,\n    role: body.role,\n    content: body.content.trim(),\n    timestamp: new Date().toISOString()\n  }\n};"
+        "jsCode": "// Валидация и форматирование данных сообщения\nconst webhookData = $input.item.json;\nconst body = webhookData.body || webhookData;\n\n// Проверка обязательных полей\nif (!body.chat_id || !body.role || !body.content) {\n  throw new Error('Missing required fields: chat_id, role, content');\n}\n\n// Проверка роли\nconst validRoles = ['user', 'assistant', 'system'];\nif (!validRoles.includes(body.role)) {\n  throw new Error(`Invalid role: ${body.role}. Must be one of: ${validRoles.join(', ')}`);\n}\n\n// Возвращаем отформатированные данные\nreturn {\n  json: {\n    chat_id: body.chat_id,\n    role: body.role,\n    content: body.content.trim(),\n    timestamp: new Date().toISOString()\n  }\n};"
       },
       "id": "validate-data",
       "name": "Validate Data",
