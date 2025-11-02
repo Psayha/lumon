@@ -47,7 +47,20 @@ jobs:
           SSH_USER: ${{ secrets.SSH_USER }}
           DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
 
-      - name: Deploy via rsync
+      - name: Calculate backend path
+        id: backend_path
+        run: |
+          DEPLOY_PATH="${{ secrets.DEPLOY_PATH }}"
+          BACKEND_PATH=$(dirname "$DEPLOY_PATH")/back
+          echo "path=$BACKEND_PATH" >> $GITHUB_OUTPUT
+          echo "Backend path will be: $BACKEND_PATH"
+
+      - name: Prepare backend migrations
+        run: |
+          mkdir -p back/supabase/migrations
+          cp -r base/supabase/migrations/* back/supabase/migrations/ || true
+
+      - name: Deploy frontend via rsync
         run: |
           rsync -avz --delete -e "ssh -i ~/.ssh/deploy_key -p $SSH_PORT" dist/ "$SSH_USER@$SSH_HOST:$DEPLOY_PATH"
         env:
@@ -55,4 +68,36 @@ jobs:
           SSH_PORT: ${{ secrets.SSH_PORT }}
           SSH_USER: ${{ secrets.SSH_USER }}
           DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+
+      - name: Ensure remote backend directory exists
+        run: |
+          ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "mkdir -p ${{ steps.backend_path.outputs.path }}"
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+
+      - name: Deploy backend via rsync
+        run: |
+          rsync -avz --delete -e "ssh -i ~/.ssh/deploy_key -p $SSH_PORT" back/ "$SSH_USER@$SSH_HOST:${{ steps.backend_path.outputs.path }}"
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+
+      - name: Setup .env file on server
+        run: |
+          ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "cd ${{ steps.backend_path.outputs.path }} && if [ -f .env.production ]; then cp .env.production .env; elif [ ! -f .env ]; then cp env.example .env; fi"
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+
+      - name: Deploy backend services with Docker Compose
+        run: |
+          ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "cd ${{ steps.backend_path.outputs.path }} && docker compose up -d --build"
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_USER: ${{ secrets.SSH_USER }}
 

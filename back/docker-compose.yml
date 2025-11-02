@@ -11,7 +11,7 @@ services:
       - "5432:5432"
     volumes:
       - supabase-db-data:/var/lib/postgresql/data
-      - ../base/supabase/migrations:/docker-entrypoint-initdb.d
+      - ./supabase/migrations:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
