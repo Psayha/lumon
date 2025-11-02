@@ -27,17 +27,8 @@
     },
     {
       "parameters": {
-        "operation": "insert",
-        "table": "messages",
-        "columns": {
-          "mappingMode": "defineBelow",
-          "value": {
-            "chat_id": "={{ $json.chat_id }}",
-            "role": "={{ $json.role }}",
-            "content": "={{ $json.content }}",
-            "created_at": "={{ $json.timestamp }}"
-          }
-        },
+        "operation": "executeQuery",
+        "query": "INSERT INTO messages (chat_id, role, content, created_at) VALUES (CAST('{{ $json.chat_id }}' AS UUID), '{{ $json.role }}', '{{ $json.content }}', '{{ $json.timestamp }}') RETURNING *",
         "options": {}
       },
       "id": "insert-message",

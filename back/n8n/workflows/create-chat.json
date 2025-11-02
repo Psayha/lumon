@@ -27,16 +27,8 @@
     },
     {
       "parameters": {
-        "operation": "insert",
-        "table": "chats",
-        "columns": {
-          "mappingMode": "defineBelow",
-          "value": {
-            "user_id": "={{ $json.user_id }}",
-            "title": "={{ $json.title }}",
-            "expires_at": "={{ $json.expires_at }}"
-          }
-        },
+        "operation": "executeQuery",
+        "query": "INSERT INTO chats (user_id, title, expires_at) VALUES (CAST('{{ $json.user_id }}' AS UUID), '{{ $json.title }}', '{{ $json.expires_at }}') RETURNING *",
         "options": {}
       },
       "id": "insert-chat",

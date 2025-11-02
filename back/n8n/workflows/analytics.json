@@ -27,17 +27,8 @@
     },
     {
       "parameters": {
-        "operation": "insert",
-        "table": "analytics_events",
-        "columns": {
-          "mappingMode": "defineBelow",
-          "value": {
-            "user_id": "={{ $json.user_id }}",
-            "event_type": "={{ $json.event_type }}",
-            "event_data": "={{ JSON.stringify($json.event_data) }}",
-            "created_at": "={{ $json.timestamp }}"
-          }
-        },
+        "operation": "executeQuery",
+        "query": "INSERT INTO analytics_events (user_id, event_type, event_data, created_at) VALUES ({{ $json.user_id ? \"CAST('\" + $json.user_id + \"' AS UUID)\" : \"NULL\" }}, '{{ $json.event_type }}', '{{ JSON.stringify($json.event_data) }}'::jsonb, '{{ $json.timestamp }}') RETURNING *",
         "options": {}
       },
       "id": "insert-event",
