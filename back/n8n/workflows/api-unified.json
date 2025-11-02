@@ -1,0 +1,845 @@
+{
+  "name": "API Unified",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "ANY",
+        "path": "=**",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-main",
+      "name": "Main Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [250, 500],
+      "webhookId": "api-unified"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Определение endpoint по пути запроса\nconst webhookData = $input.item.json;\nconst path = (webhookData.path || '').replace(/^\\/webhook\\//, '').replace(/^\\//, '');\nconst method = webhookData.method || 'GET';\nconst body = webhookData.body || {};\nconst query = webhookData.query || {};\n\n// Определяем endpoint\nlet endpoint = 'unknown';\nif (path.includes('create-user')) endpoint = 'create-user';\nelse if (path.includes('create-chat')) endpoint = 'create-chat';\nelse if (path.includes('save-message')) endpoint = 'save-message';\nelse if (path.includes('get-chat-history')) endpoint = 'get-chat-history';\nelse if (path.includes('analytics')) endpoint = 'analytics';\n\nreturn {\n  json: {\n    endpoint: endpoint,\n    method: method,\n    body: body,\n    query: query\n  }\n};"
+      },
+      "id": "detect-endpoint",
+      "name": "Detect Endpoint",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [450, 500]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.endpoint }}",
+              "rightValue": "create-user",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-create-user",
+      "name": "Is Create User?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [650, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.endpoint }}",
+              "rightValue": "create-chat",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-create-chat",
+      "name": "Is Create Chat?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [650, 500]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.endpoint }}",
+              "rightValue": "save-message",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-save-message",
+      "name": "Is Save Message?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [650, 600]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.endpoint }}",
+              "rightValue": "get-chat-history",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-get-history",
+      "name": "Is Get History?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [650, 700]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.endpoint }}",
+              "rightValue": "analytics",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-analytics",
+      "name": "Is Analytics?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [650, 800]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Create User: Валидация\nconst body = $('Detect Endpoint').item.json.body;\nif (!body.telegram_id) throw new Error('telegram_id is required');\nreturn { json: { telegram_id: body.telegram_id, username: body.username || null, first_name: body.first_name || null, last_name: body.last_name || null, language_code: body.language_code || 'ru', is_premium: body.is_premium || false } };"
+      },
+      "id": "validate-user",
+      "name": "Validate User",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [850, 350]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, telegram_id FROM users WHERE telegram_id = $1::bigint",
+        "additionalFields": {
+          "queryParameters": "={{ [$json.telegram_id] }}"
+        },
+        "options": {}
+      },
+      "id": "check-user",
+      "name": "Check User",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1050, 350],
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "jsCode": "const checkResult = $input.item.json;\nconst validateData = $('Validate User').item.json;\nreturn { json: { existing_id: checkResult.id || null, telegram_id: validateData.telegram_id, username: validateData.username, first_name: validateData.first_name, last_name: validateData.last_name, language_code: validateData.language_code, is_premium: validateData.is_premium } };"
+      },
+      "id": "prepare-user",
+      "name": "Prepare User",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1250, 350]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.existing_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "object",
+                "operation": "exists"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "user-exists",
+      "name": "User Exists?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1450, 350]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "table": "users",
+        "updateKey": {
+          "column": "id",
+          "value": "={{ $json.existing_id }}"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "username": "={{ $json.username }}",
+            "first_name": "={{ $json.first_name }}",
+            "last_name": "={{ $json.last_name }}",
+            "language_code": "={{ $json.language_code }}",
+            "is_premium": "={{ $json.is_premium }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "update-user",
+      "name": "Update User",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1650, 300],
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "users",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "telegram_id": "={{ $json.telegram_id }}",
+            "username": "={{ $json.username }}",
+            "first_name": "={{ $json.first_name }}",
+            "last_name": "={{ $json.last_name }}",
+            "language_code": "={{ $json.language_code }}",
+            "is_premium": "={{ $json.is_premium }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "insert-user",
+      "name": "Insert User",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1650, 400],
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.item.json;\nreturn { json: { user_id: data.existing_id || data.id } };"
+      },
+      "id": "get-user-id",
+      "name": "Get User ID",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1850, 350]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, telegram_id, username, first_name, last_name, language_code, is_premium, created_at, updated_at FROM users WHERE id = $1::uuid",
+        "additionalFields": {
+          "queryParameters": "={{ [$json.user_id] }}"
+        },
+        "options": {}
+      },
+      "id": "get-user-final",
+      "name": "Get User Final",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [2050, 350],
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "jsCode": "const user = $input.item.json;\nreturn { json: { success: true, data: user } };"
+      },
+      "id": "format-user",
+      "name": "Format User",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2250, 350]
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $('Detect Endpoint').item.json.body;\nif (!body.user_id) throw new Error('user_id is required');\nreturn { json: { user_id: body.user_id, title: body.title || 'Voice Assistant Chat', expires_at: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString() } };"
+      },
+      "id": "validate-chat",
+      "name": "Validate Chat",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [850, 450]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "chats",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "user_id": "={{ $json.user_id }}",
+            "title": "={{ $json.title }}",
+            "expires_at": "={{ $json.expires_at }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "insert-chat",
+      "name": "Insert Chat",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1050, 450],
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, user_id, title, created_at, expires_at FROM chats WHERE id = $1::uuid",
+        "additionalFields": {
+          "queryParameters": "={{ [$json.id] }}"
+        },
+        "options": {}
+      },
+      "id": "get-chat-data",
+      "name": "Get Chat Data",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1250, 450],
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "jsCode": "const chat = $input.item.json;\nreturn { json: { success: true, data: { id: chat.id, user_id: chat.user_id, title: chat.title, created_at: chat.created_at, expires_at: chat.expires_at } } };"
+      },
+      "id": "format-chat",
+      "name": "Format Chat",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1450, 450]
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $('Detect Endpoint').item.json.body;\nif (!body.chat_id || !body.role || !body.content) throw new Error('Missing required fields');\nconst validRoles = ['user', 'assistant', 'system'];\nif (!validRoles.includes(body.role)) throw new Error('Invalid role');\nreturn { json: { chat_id: body.chat_id, role: body.role, content: body.content.trim(), timestamp: new Date().toISOString() } };"
+      },
+      "id": "validate-message",
+      "name": "Validate Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [850, 550]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "messages",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "chat_id": "={{ $json.chat_id }}",
+            "role": "={{ $json.role }}",
+            "content": "={{ $json.content }}",
+            "created_at": "={{ $json.timestamp }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "insert-message",
+      "name": "Insert Message",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1050, 550],
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "jsCode": "return { json: { success: true, data: $('Validate Message').item.json } };"
+      },
+      "id": "format-message",
+      "name": "Format Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1250, 550]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, chat_id, role, content, created_at FROM messages WHERE chat_id = $1::uuid ORDER BY created_at ASC LIMIT 100",
+        "additionalFields": {
+          "queryParameters": "={{ [$('Detect Endpoint').item.json.query.chat_id] }}"
+        },
+        "options": {}
+      },
+      "id": "select-messages",
+      "name": "Select Messages",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [850, 650],
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "jsCode": "const messages = $input.all();\nif (messages.length === 0) return { json: { success: true, data: [] } };\nreturn { json: { success: true, data: messages.map(item => item.json).map(msg => ({ id: msg.id, chat_id: msg.chat_id, role: msg.role, content: msg.content, timestamp: msg.created_at })) } };"
+      },
+      "id": "format-history",
+      "name": "Format History",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1050, 650]
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $('Detect Endpoint').item.json.body;\nif (!body.event_type) throw new Error('event_type is required');\nreturn { json: { user_id: body.user_id || null, event_type: body.event_type, event_data: body.event_data || {}, timestamp: new Date().toISOString() } };"
+      },
+      "id": "validate-analytics",
+      "name": "Validate Analytics",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [850, 750]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "analytics_events",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "user_id": "={{ $json.user_id }}",
+            "event_type": "={{ $json.event_type }}",
+            "event_data": "={{ JSON.stringify($json.event_data) }}",
+            "created_at": "={{ $json.timestamp }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "insert-analytics",
+      "name": "Insert Analytics",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1050, 750],
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "jsCode": "return { json: { success: true } };"
+      },
+      "id": "format-analytics",
+      "name": "Format Analytics",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1250, 750]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "respond",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [2450, 500]
+    }
+  ],
+  "connections": {
+    "Main Webhook": {
+      "main": [
+        [
+          {
+            "node": "Detect Endpoint",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detect Endpoint": {
+      "main": [
+        [
+          {
+            "node": "Is Create User?",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Is Create Chat?",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Is Save Message?",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Is Get History?",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Is Analytics?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Create User?": {
+      "main": [
+        [
+          {
+            "node": "Validate User",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate User": {
+      "main": [
+        [
+          {
+            "node": "Check User",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check User": {
+      "main": [
+        [
+          {
+            "node": "Prepare User",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare User": {
+      "main": [
+        [
+          {
+            "node": "User Exists?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "User Exists?": {
+      "main": [
+        [
+          {
+            "node": "Update User",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Insert User",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update User": {
+      "main": [
+        [
+          {
+            "node": "Get User ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert User": {
+      "main": [
+        [
+          {
+            "node": "Get User ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get User ID": {
+      "main": [
+        [
+          {
+            "node": "Get User Final",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get User Final": {
+      "main": [
+        [
+          {
+            "node": "Format User",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format User": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Create Chat?": {
+      "main": [
+        [
+          {
+            "node": "Validate Chat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Chat": {
+      "main": [
+        [
+          {
+            "node": "Insert Chat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Chat": {
+      "main": [
+        [
+          {
+            "node": "Get Chat Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Chat Data": {
+      "main": [
+        [
+          {
+            "node": "Format Chat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Chat": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Save Message?": {
+      "main": [
+        [
+          {
+            "node": "Validate Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Message": {
+      "main": [
+        [
+          {
+            "node": "Insert Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Message": {
+      "main": [
+        [
+          {
+            "node": "Format Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Message": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Get History?": {
+      "main": [
+        [
+          {
+            "node": "Select Messages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select Messages": {
+      "main": [
+        [
+          {
+            "node": "Format History",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format History": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Analytics?": {
+      "main": [
+        [
+          {
+            "node": "Validate Analytics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Analytics": {
+      "main": [
+        [
+          {
+            "node": "Insert Analytics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Analytics": {
+      "main": [
+        [
+          {
+            "node": "Format Analytics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Analytics": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2024-01-01T00:00:00.000Z",
+  "versionId": "1"
+}
