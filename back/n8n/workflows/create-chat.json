@@ -49,9 +49,9 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT id, user_id, title, created_at, expires_at FROM chats WHERE id = $1::uuid",
+        "query": "SELECT id, user_id, title, created_at, expires_at FROM chats WHERE id = $1",
         "additionalFields": {
-          "queryParameters": "={{ JSON.stringify([$json.id]) }}"
+          "queryParameters": "={{ $json.id }}"
         },
         "options": {}
       },
