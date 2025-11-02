@@ -45,6 +45,12 @@
 
 ### 3. Проверить URL endpoints
 
+**ВАЖНО:** В n8n есть два типа URL:
+- `/webhook-test/...` - Test URL (работает когда workflow НЕ активен)
+- `/webhook/...` - Production URL (работает когда workflow АКТИВИРОВАН)
+
+**Для продакшна используй `/webhook/` и активируй workflows!**
+
 После активации workflows, их URL будут доступны по адресам:
 
 **Production (после настройки SSL):**
