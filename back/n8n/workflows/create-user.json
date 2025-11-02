@@ -86,11 +86,11 @@
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
-            "username": "={{ $json.username }}",
-            "first_name": "={{ $json.first_name }}",
-            "last_name": "={{ $json.last_name }}",
-            "language_code": "={{ $json.language_code || 'ru' }}",
-            "is_premium": "={{ $json.is_premium || false }}"
+            "username": "={{ $('Validate User').item.json.username }}",
+            "first_name": "={{ $('Validate User').item.json.first_name }}",
+            "last_name": "={{ $('Validate User').item.json.last_name }}",
+            "language_code": "={{ $('Validate User').item.json.language_code || 'ru' }}",
+            "is_premium": "={{ $('Validate User').item.json.is_premium || false }}"
           }
         },
         "options": {}
@@ -115,11 +115,11 @@
           "mappingMode": "defineBelow",
           "value": {
             "telegram_id": "={{ $('Validate User').item.json.telegram_id }}",
-            "username": "={{ $json.username }}",
-            "first_name": "={{ $json.first_name }}",
-            "last_name": "={{ $json.last_name }}",
-            "language_code": "={{ $json.language_code || 'ru' }}",
-            "is_premium": "={{ $json.is_premium || false }}"
+            "username": "={{ $('Validate User').item.json.username }}",
+            "first_name": "={{ $('Validate User').item.json.first_name }}",
+            "last_name": "={{ $('Validate User').item.json.last_name }}",
+            "language_code": "={{ $('Validate User').item.json.language_code || 'ru' }}",
+            "is_premium": "={{ $('Validate User').item.json.is_premium || false }}"
           }
         },
         "options": {}
@@ -141,7 +141,7 @@
         "operation": "executeQuery",
         "query": "SELECT id, telegram_id, username, first_name, last_name, language_code, is_premium, created_at, updated_at FROM users WHERE id = $1::uuid",
         "additionalFields": {
-          "queryParameters": "={{ $json.id ? [$json.id] : [$('Insert User').first().json.id] }}"
+          "queryParameters": "={{ [$json.id] }}"
         },
         "options": {}
       },
