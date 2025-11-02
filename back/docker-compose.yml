@@ -58,6 +58,7 @@ services:
       - DB_POSTGRESDB_USER=${POSTGRES_USER:-postgres}
       - DB_POSTGRESDB_PASSWORD=${POSTGRES_PASSWORD:-lumon_dev_password}
       - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY:-lumon-encryption-key-change-in-production}
+      - N8N_CORS_ORIGIN=${N8N_CORS_ORIGIN:-*}
     volumes:
       - n8n-data:/home/node/.n8n
       - ./n8n/workflows:/data/workflows
