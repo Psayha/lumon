@@ -54,16 +54,30 @@ cd back
 cp env.example .env  # Настройки уже для локальной разработки
 docker compose up -d
 
-# 3. Запуск фронтенда (в корне проекта)
+# 3. Настройка API URL для локальной разработки
+# Если n8n работает на удаленном сервере (91.229.10.47:5678), создай .env.local:
+echo "VITE_API_URL=http://91.229.10.47:5678" > .env.local
+
+# Или в PowerShell:
+# echo "VITE_API_URL=http://91.229.10.47:5678" | Out-File -FilePath .env.local -Encoding utf8
+
+# Или установи переменную окружения:
+# Windows (PowerShell): $env:VITE_API_URL="http://91.229.10.47:5678"
+# Linux/Mac: export VITE_API_URL=http://91.229.10.47:5678
+
+# 4. Запуск фронтенда (в корне проекта)
 npm run dev
 ```
 
 **Доступ:**
 - **Frontend**: http://localhost:5173
-- **n8n**: http://localhost:5678 (admin/lumon_dev)
+- **n8n** (локально): http://localhost:5678 (admin/lumon_dev)
+- **n8n** (на сервере): http://91.229.10.47:5678
 - **Supabase Studio**: http://localhost:3001
 
-**Важно:** Frontend автоматически использует `http://localhost:5678` для API в режиме разработки.
+**Важно:** 
+- Если n8n запущен локально → Frontend автоматически использует `http://localhost:5678`
+- Если n8n на сервере → Создай `.env.local` с `VITE_API_URL=http://91.229.10.47:5678`
 
 ### Продакшн сборка
 
