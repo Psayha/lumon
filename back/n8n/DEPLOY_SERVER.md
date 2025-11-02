@@ -8,7 +8,66 @@
 2. **Docker Compose** установлен (проверьте: `docker-compose --version`)
 3. **Git** установлен (проверьте: `git --version`)
 
-Если чего-то нет - установите сначала.
+### Если Docker НЕ установлен - установите сейчас:
+
+**Выполните эти команды на сервере по порядку:**
+
+```bash
+# 1. Обновить пакеты
+apt-get update
+
+# 2. Установить необходимые пакеты
+apt-get install -y ca-certificates curl gnupg lsb-release
+
+# 3. Добавить официальный GPG ключ Docker
+install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+chmod a+r /etc/apt/keyrings/docker.gpg
+
+# 4. Добавить репозиторий Docker
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+  $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+# 5. Обновить список пакетов
+apt-get update
+
+# 6. Установить Docker
+apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+# 7. Проверить установку
+docker --version
+docker compose version
+```
+
+**Если вы используете Debian вместо Ubuntu, используйте эту команду для шага 4:**
+
+```bash
+# Для Debian (заменить шаг 4)
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian \
+  $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+```
+
+**Если у вас другая система (CentOS/RHEL):**
+
+```bash
+# Для CentOS/RHEL
+yum install -y yum-utils
+yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+yum install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+systemctl start docker
+systemctl enable docker
+```
+
+**После установки проверьте:**
+
+```bash
+docker --version
+docker compose version
+```
+
+Должны увидеть версии Docker и Docker Compose.
 
 ---
 
