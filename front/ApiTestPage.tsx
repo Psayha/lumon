@@ -217,6 +217,12 @@ const ApiTestPage: React.FC = () => {
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
               <strong>API URL:</strong> {API_CONFIG.baseUrl}
             </p>
+            <p className="text-xs text-gray-500 dark:text-gray-500 mb-2">
+              <strong>VITE_API_URL:</strong> {import.meta.env.VITE_API_URL || 'не установлен (используется localhost)'}
+            </p>
+            <p className="text-xs text-orange-600 dark:text-orange-400 mb-1">
+              ⚠️ Если видишь localhost в продакшене — нужно пересобрать фронтенд с VITE_API_URL
+            </p>
             <p className="text-xs text-gray-500 dark:text-gray-500">
               Открой консоль (F12) для детального логирования запросов
             </p>

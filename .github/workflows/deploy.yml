@@ -27,7 +27,7 @@ jobs:
       - name: Build
         run: npm run build
         env:
-          VITE_API_URL: https://n8n.psayha.ru
+          VITE_API_URL: http://n8n.psayha.ru
 
       - name: Setup SSH
         run: |
