@@ -27,7 +27,7 @@ jobs:
       - name: Build
         run: npm run build
         env:
-          VITE_API_URL: http://91.229.10.47:5678
+          VITE_API_URL: ''
 
       - name: Setup SSH
         run: |
@@ -167,6 +167,20 @@ jobs:
                   expires 1y;
                   add_header Cache-Control \"public, immutable\";
                   access_log off;
+              }
+
+              # API прокси к n8n (чтобы избежать mixed content)
+              location /webhook/ {
+                  proxy_pass http://localhost:5678/webhook/;
+                  proxy_http_version 1.1;
+                  proxy_set_header Upgrade \$http_upgrade;
+                  proxy_set_header Connection 'upgrade';
+                  proxy_set_header Host \$host;
+                  proxy_set_header X-Real-IP \$remote_addr;
+                  proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+                  proxy_set_header X-Forwarded-Proto \$scheme;
+                  proxy_cache_bypass \$http_upgrade;
+                  proxy_buffering off;
               }
 
               location / {
