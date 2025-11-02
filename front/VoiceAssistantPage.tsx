@@ -10,7 +10,6 @@ import {
   getChatHistory, 
   trackEvent,
   type User as ApiUser,
-  type Chat,
   type Message as ApiMessage 
 } from '../src/utils/api';
 
