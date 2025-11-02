@@ -170,7 +170,7 @@ jobs:
               }
 
               # API прокси к n8n (чтобы избежать mixed content)
-              location ~ ^/webhook/ {
+              location /webhook {
                   proxy_pass http://localhost:5678;
                   proxy_http_version 1.1;
                   proxy_set_header Upgrade \$http_upgrade;
