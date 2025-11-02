@@ -170,9 +170,12 @@ jobs:
               }
 
               # API прокси к n8n (чтобы избежать mixed content)
-              location /webhook {
-                  proxy_pass http://localhost:5678;
+              # Важно: location /webhook/ ДО location / чтобы перехватывать запросы
+              location /webhook/ {
+                  proxy_pass http://localhost:5678/webhook/;
                   proxy_http_version 1.1;
+                  proxy_method POST;
+                  proxy_method GET;
                   proxy_set_header Upgrade \$http_upgrade;
                   proxy_set_header Connection 'upgrade';
                   proxy_set_header Host \$host;
@@ -180,6 +183,7 @@ jobs:
                   proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
                   proxy_set_header X-Forwarded-Proto \$scheme;
                   proxy_set_header X-Forwarded-Host \$host;
+                  proxy_set_header Content-Type application/json;
                   proxy_cache_bypass \$http_upgrade;
                   proxy_buffering off;
               }
