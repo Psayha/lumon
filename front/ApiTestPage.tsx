@@ -85,8 +85,17 @@ const ApiTestPage: React.FC = () => {
         body: method === 'POST' ? requestBody : undefined
       });
 
-      const response = await fetch(fullUrl, requestOptions);
-      const responseText = await response.text();
+      let response: Response;
+      let responseText: string;
+      
+      try {
+        response = await fetch(fullUrl, requestOptions);
+        responseText = await response.text();
+      } catch (fetchError) {
+        // Детальная информация об ошибке подключения
+        console.error('[API Test] Fetch failed:', fetchError);
+        throw new Error(`Failed to connect to ${fullUrl}. Error: ${fetchError instanceof Error ? fetchError.message : String(fetchError)}. Проверь: 1) Доступен ли ${fullUrl}? 2) CORS настроен? 3) nginx проксирует запросы?`);
+      }
       
       console.log('[API Test] Response:', {
         status: response.status,
@@ -160,12 +169,30 @@ const ApiTestPage: React.FC = () => {
 
     } catch (error) {
       console.error('[API Test] Fetch Error:', error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      
+      // Дополнительная диагностика
+      const diagnostics = {
+        requestedUrl: fullUrl || 'не определен',
+        method: method || 'не определен',
+        currentDomain: window.location.origin,
+        userAgent: navigator.userAgent.substring(0, 100),
+        timestamp: new Date().toISOString()
+      };
+      
       setResponse(JSON.stringify({
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: errorMessage,
         errorType: error instanceof Error ? error.constructor.name : typeof error,
-        stack: error instanceof Error ? error.stack : undefined,
-        message: error instanceof Error ? error.message : String(error)
+        diagnostics,
+        troubleshooting: {
+          step1: `Проверь доступность: curl ${fullUrl || 'URL'}`,
+          step2: 'Проверь CORS настройки в nginx для n8n.psayha.ru',
+          step3: 'Проверь что n8n контейнер запущен: docker ps | grep n8n',
+          step4: 'Проверь nginx конфиг: sudo nginx -t',
+          step5: 'Проверь логи n8n: docker compose logs n8n'
+        },
+        stack: error instanceof Error ? error.stack : undefined
       }, null, 2));
     } finally {
       setLoading(false);
