@@ -17,7 +17,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Валидация данных пользователя\nconst body = $input.item.json;\n\nif (!body.telegram_id) {\n  throw new Error('telegram_id is required');\n}\n\nreturn {\n  json: body\n};"
+        "jsCode": "// Валидация данных пользователя\nconst body = $input.item.json;\n\nif (!body.telegram_id) {\n  throw new Error('telegram_id is required');\n}\n\nreturn {\n  json: {\n    telegram_id: body.telegram_id,\n    username: body.username || null,\n    first_name: body.first_name || null,\n    last_name: body.last_name || null,\n    language_code: body.language_code || 'ru',\n    is_premium: body.is_premium || false\n  }\n};"
       },
       "id": "validate-user",
       "name": "Validate User",
@@ -48,6 +48,32 @@
     },
     {
       "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "merge-user-data",
+              "name": "user_data",
+              "value": "={{ $('Validate User').item.json }}",
+              "type": "object"
+            },
+            {
+              "id": "merge-check-id",
+              "name": "existing_id",
+              "value": "={{ $json.id }}",
+              "type": "any"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "merge-data",
+      "name": "Merge Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
         "conditions": {
           "options": {
             "caseSensitive": true,
@@ -57,7 +83,7 @@
           "conditions": [
             {
               "id": "exists-condition",
-              "leftValue": "={{ $json.id }}",
+              "leftValue": "={{ $json.existing_id }}",
               "rightValue": "",
               "operator": {
                 "type": "object",
@@ -73,7 +99,7 @@
       "name": "User Exists?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [850, 300]
+      "position": [1050, 300]
     },
     {
       "parameters": {
@@ -81,16 +107,16 @@
         "table": "users",
         "updateKey": {
           "column": "id",
-          "value": "={{ $json.id }}"
+          "value": "={{ $json.existing_id }}"
         },
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
-            "username": "={{ $('Validate User').item.json.username }}",
-            "first_name": "={{ $('Validate User').item.json.first_name }}",
-            "last_name": "={{ $('Validate User').item.json.last_name }}",
-            "language_code": "={{ $('Validate User').item.json.language_code || 'ru' }}",
-            "is_premium": "={{ $('Validate User').item.json.is_premium || false }}"
+            "username": "={{ $json.user_data.username }}",
+            "first_name": "={{ $json.user_data.first_name }}",
+            "last_name": "={{ $json.user_data.last_name }}",
+            "language_code": "={{ $json.user_data.language_code }}",
+            "is_premium": "={{ $json.user_data.is_premium }}"
           }
         },
         "options": {}
@@ -99,7 +125,7 @@
       "name": "Update User",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.4,
-      "position": [1050, 200],
+      "position": [1250, 200],
       "credentials": {
         "postgres": {
           "id": "1",
@@ -114,12 +140,12 @@
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
-            "telegram_id": "={{ $('Validate User').item.json.telegram_id }}",
-            "username": "={{ $('Validate User').item.json.username }}",
-            "first_name": "={{ $('Validate User').item.json.first_name }}",
-            "last_name": "={{ $('Validate User').item.json.last_name }}",
-            "language_code": "={{ $('Validate User').item.json.language_code || 'ru' }}",
-            "is_premium": "={{ $('Validate User').item.json.is_premium || false }}"
+            "telegram_id": "={{ $json.user_data.telegram_id }}",
+            "username": "={{ $json.user_data.username }}",
+            "first_name": "={{ $json.user_data.first_name }}",
+            "last_name": "={{ $json.user_data.last_name }}",
+            "language_code": "={{ $json.user_data.language_code }}",
+            "is_premium": "={{ $json.user_data.is_premium }}"
           }
         },
         "options": {}
@@ -128,7 +154,7 @@
       "name": "Insert User",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.4,
-      "position": [1050, 400],
+      "position": [1250, 400],
       "credentials": {
         "postgres": {
           "id": "1",
@@ -138,10 +164,30 @@
     },
     {
       "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "get-update-id",
+              "name": "user_id",
+              "value": "={{ $json.existing_id || $json.id }}",
+              "type": "any"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "get-user-id",
+      "name": "Get User ID",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [1450, 300]
+    },
+    {
+      "parameters": {
         "operation": "executeQuery",
         "query": "SELECT id, telegram_id, username, first_name, last_name, language_code, is_premium, created_at, updated_at FROM users WHERE id = $1::uuid",
         "additionalFields": {
-          "queryParameters": "={{ [$json.id] }}"
+          "queryParameters": "={{ [$json.user_id] }}"
         },
         "options": {}
       },
@@ -149,7 +195,7 @@
       "name": "Get User Data",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.4,
-      "position": [1250, 300],
+      "position": [1650, 300],
       "credentials": {
         "postgres": {
           "id": "1",
@@ -165,7 +211,7 @@
       "name": "Format Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1450, 300]
+      "position": [1850, 300]
     },
     {
       "parameters": {
@@ -177,7 +223,7 @@
       "name": "Respond to Webhook",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [1650, 300]
+      "position": [2050, 300]
     }
   ],
   "connections": {
@@ -204,6 +250,17 @@
       ]
     },
     "Check User Exists": {
+      "main": [
+        [
+          {
+            "node": "Merge Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Data": {
       "main": [
         [
           {
@@ -236,7 +293,7 @@
       "main": [
         [
           {
-            "node": "Get User Data",
+            "node": "Get User ID",
             "type": "main",
             "index": 0
           }
@@ -244,6 +301,17 @@
       ]
     },
     "Insert User": {
+      "main": [
+        [
+          {
+            "node": "Get User ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get User ID": {
       "main": [
         [
           {
@@ -287,4 +355,3 @@
   "updatedAt": "2024-01-01T00:00:00.000Z",
   "versionId": "1"
 }
-
