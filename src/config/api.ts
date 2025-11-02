@@ -8,7 +8,7 @@ export const API_CONFIG = {
   // В продакшене используем относительный путь /api (прокси через nginx)
   // Локально: создай .env.local с VITE_API_URL=http://91.229.10.47:5678
   // Или установи через: export VITE_API_URL=http://91.229.10.47:5678 (Linux/Mac) или set VITE_API_URL=http://91.229.10.47:5678 (Windows)
-  baseUrl: import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '/api' : 'http://localhost:5678'),
+  baseUrl: import.meta.env.VITE_API_URL || 'http://localhost:5678',
   
   // API endpoints
   endpoints: {

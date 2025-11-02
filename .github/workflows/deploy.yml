@@ -27,7 +27,7 @@ jobs:
       - name: Build
         run: npm run build
         env:
-          VITE_API_URL: /api
+          VITE_API_URL: http://91.229.10.47:5678
 
       - name: Setup SSH
         run: |
@@ -167,25 +167,6 @@ jobs:
                   expires 1y;
                   add_header Cache-Control \"public, immutable\";
                   access_log off;
-              }
-
-              # API прокси к n8n
-              location /api/ {
-                  proxy_pass http://localhost:5678/;
-                  proxy_http_version 1.1;
-                  proxy_set_header Upgrade \$http_upgrade;
-                  proxy_set_header Connection 'upgrade';
-                  proxy_set_header Host \$host;
-                  proxy_set_header X-Real-IP \$remote_addr;
-                  proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-                  proxy_set_header X-Forwarded-Proto \$scheme;
-                  proxy_cache_bypass \$http_upgrade;
-                  proxy_buffering off;
-                  
-                  # CORS headers (не нужны, т.к. тот же домен)
-                  add_header 'Access-Control-Allow-Origin' '*' always;
-                  add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS' always;
-                  add_header 'Access-Control-Allow-Headers' 'Content-Type, Authorization, Accept' always;
               }
 
               location / {
