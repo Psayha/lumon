@@ -114,11 +114,11 @@ jobs:
           SSH_USER: ${{ secrets.SSH_USER }}
 
       - name: Import n8n workflows (optional)
+        continue-on-error: true
         run: |
           ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "cd ${{ steps.backend_path.outputs.path }} && chmod +x import-workflows.sh && ./import-workflows.sh http://localhost:5678 || echo '⚠️ Импорт workflows пропущен (можно сделать вручную)'"
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_PORT: ${{ secrets.SSH_PORT }}
           SSH_USER: ${{ secrets.SSH_USER }}
-          continue-on-error: true
 
