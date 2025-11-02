@@ -170,7 +170,7 @@ jobs:
               }
               
               location /webhook/ {
-                  # Передаем весь путь как есть
+                  # Передаем весь путь как есть (nginx автоматически добавит /webhook/ к proxy_pass)
                   proxy_pass http://91.229.10.47:5678;
                   proxy_http_version 1.1;
                   proxy_set_header Upgrade \$http_upgrade;
@@ -184,11 +184,6 @@ jobs:
                   proxy_cache_bypass \$http_upgrade;
                   proxy_buffering off;
                   proxy_redirect off;
-                  
-                  # Разрешаем все методы явно
-                  limit_except GET POST PUT DELETE OPTIONS PATCH {
-                      deny all;
-                  }
               }
 
               location ~* \.(jpg|jpeg|png|gif|ico|css|js|svg|woff|woff2|ttf|eot)\$ {
