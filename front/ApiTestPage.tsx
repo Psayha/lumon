@@ -54,60 +54,118 @@ const ApiTestPage: React.FC = () => {
 
   const handleTestEndpoint = async () => {
     setLoading(true);
-    setResponse('');
+    setResponse('Загрузка...');
 
     try {
-      let result: any;
+      // Прямой запрос для детального логирования
+      const endpoint = info.url;
+      const method = info.method;
+      
+      let requestOptions: RequestInit = {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      };
 
-      switch (selectedEndpoint) {
-        case 'create-user': {
-          const userData = JSON.parse(requestBody) as User;
-          result = await createUser(userData);
-          break;
+      if (method === 'POST') {
+        requestOptions.body = requestBody;
+      }
+
+      // Делаем прямой fetch для детального логирования
+      const fullUrl = selectedEndpoint === 'get-chat-history' 
+        ? `${endpoint}?chat_id=${chatIdForHistory}`
+        : endpoint;
+
+      console.log('[API Test] Request:', {
+        url: fullUrl,
+        method,
+        headers: requestOptions.headers,
+        body: method === 'POST' ? requestBody : undefined
+      });
+
+      const response = await fetch(fullUrl, requestOptions);
+      const responseText = await response.text();
+      
+      console.log('[API Test] Response:', {
+        status: response.status,
+        statusText: response.statusText,
+        headers: Object.fromEntries(response.headers.entries()),
+        body: responseText
+      });
+
+      let responseData: any;
+      try {
+        responseData = JSON.parse(responseText);
+      } catch {
+        responseData = { raw: responseText };
+      }
+
+      const result = {
+        success: response.ok,
+        status: response.status,
+        statusText: response.statusText,
+        data: response.ok ? responseData : undefined,
+        error: !response.ok ? (responseData.message || responseData.error || responseText || `HTTP ${response.status}`) : undefined,
+        fullResponse: responseData,
+        request: {
+          url: fullUrl,
+          method,
+          body: method === 'POST' ? JSON.parse(requestBody) : undefined
         }
-        case 'create-chat': {
-          const chatData = JSON.parse(requestBody) as { user_id: string; title?: string };
-          result = await createChat(chatData.user_id, chatData.title);
-          break;
-        }
-        case 'save-message': {
-          const messageData = JSON.parse(requestBody) as Message;
-          result = await saveMessage(messageData);
-          break;
-        }
-        case 'get-chat-history': {
-          if (!chatIdForHistory) {
-            setResponse('❌ Ошибка: Введите chat_id для получения истории');
-            setLoading(false);
-            return;
+      };
+
+      setResponse(JSON.stringify(result, null, 2));
+
+      // Также пробуем через обычные функции API для сравнения
+      let apiResult: any;
+      try {
+        switch (selectedEndpoint) {
+          case 'create-user': {
+            const userData = JSON.parse(requestBody) as User;
+            apiResult = await createUser(userData);
+            break;
           }
-          result = await getChatHistory(chatIdForHistory);
-          break;
+          case 'create-chat': {
+            const chatData = JSON.parse(requestBody) as { user_id: string; title?: string };
+            apiResult = await createChat(chatData.user_id, chatData.title);
+            break;
+          }
+          case 'save-message': {
+            const messageData = JSON.parse(requestBody) as Message;
+            apiResult = await saveMessage(messageData);
+            break;
+          }
+          case 'get-chat-history': {
+            if (!chatIdForHistory) {
+              break;
+            }
+            apiResult = await getChatHistory(chatIdForHistory);
+            break;
+          }
+          case 'analytics': {
+            const analyticsData = JSON.parse(requestBody);
+            apiResult = await trackEvent(analyticsData);
+            break;
+          }
         }
-        case 'analytics': {
-          const analyticsData = JSON.parse(requestBody);
-          result = await trackEvent(analyticsData);
-          break;
+        
+        if (apiResult) {
+          console.log('[API Test] API Function Result:', apiResult);
         }
-        default:
-          result = { success: false, error: 'Неизвестный endpoint' };
+      } catch (apiError) {
+        console.error('[API Test] API Function Error:', apiError);
       }
 
-      // Если есть ошибка, показываем её детально
-      if (!result.success && result.error) {
-        setResponse(JSON.stringify({
-          success: result.success,
-          error: result.error,
-          details: result
-        }, null, 2));
-      } else {
-        setResponse(JSON.stringify(result, null, 2));
-      }
     } catch (error) {
+      console.error('[API Test] Fetch Error:', error);
       setResponse(JSON.stringify({
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : undefined
+        errorType: error instanceof Error ? error.constructor.name : typeof error,
+        stack: error instanceof Error ? error.stack : undefined,
+        message: error instanceof Error ? error.message : String(error)
       }, null, 2));
     } finally {
       setLoading(false);
@@ -156,8 +214,11 @@ const ApiTestPage: React.FC = () => {
 
           {/* Информация о текущем API */}
           <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-            <p className="text-sm text-gray-600 dark:text-gray-400">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
               <strong>API URL:</strong> {API_CONFIG.baseUrl}
+            </p>
+            <p className="text-xs text-gray-500 dark:text-gray-500">
+              Открой консоль (F12) для детального логирования запросов
             </p>
           </div>
 
