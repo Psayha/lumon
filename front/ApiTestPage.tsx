@@ -93,7 +93,16 @@ const ApiTestPage: React.FC = () => {
           result = { success: false, error: 'Неизвестный endpoint' };
       }
 
-      setResponse(JSON.stringify(result, null, 2));
+      // Если есть ошибка, показываем её детально
+      if (!result.success && result.error) {
+        setResponse(JSON.stringify({
+          success: result.success,
+          error: result.error,
+          details: result
+        }, null, 2));
+      } else {
+        setResponse(JSON.stringify(result, null, 2));
+      }
     } catch (error) {
       setResponse(JSON.stringify({
         success: false,

@@ -87,7 +87,15 @@ export const saveMessage = async (message: Message): Promise<ApiResponse<Message
     );
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const errorText = await response.text();
+      let errorMessage = `HTTP error! status: ${response.status}`;
+      try {
+        const errorJson = JSON.parse(errorText);
+        errorMessage = errorJson.message || errorJson.error || errorMessage;
+      } catch {
+        errorMessage = errorText || errorMessage;
+      }
+      throw new Error(errorMessage);
     }
 
     const data = await response.json();
@@ -113,7 +121,15 @@ export const getChatHistory = async (chatId: string): Promise<ApiResponse<Messag
     );
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const errorText = await response.text();
+      let errorMessage = `HTTP error! status: ${response.status}`;
+      try {
+        const errorJson = JSON.parse(errorText);
+        errorMessage = errorJson.message || errorJson.error || errorMessage;
+      } catch {
+        errorMessage = errorText || errorMessage;
+      }
+      throw new Error(errorMessage);
     }
 
     const data = await response.json();
@@ -141,7 +157,15 @@ export const createUser = async (user: User): Promise<ApiResponse<User>> => {
     );
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const errorText = await response.text();
+      let errorMessage = `HTTP error! status: ${response.status}`;
+      try {
+        const errorJson = JSON.parse(errorText);
+        errorMessage = errorJson.message || errorJson.error || errorMessage;
+      } catch {
+        errorMessage = errorText || errorMessage;
+      }
+      throw new Error(errorMessage);
     }
 
     const data = await response.json();
@@ -168,7 +192,15 @@ export const createChat = async (userId: string, title?: string): Promise<ApiRes
     );
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const errorText = await response.text();
+      let errorMessage = `HTTP error! status: ${response.status}`;
+      try {
+        const errorJson = JSON.parse(errorText);
+        errorMessage = errorJson.message || errorJson.error || errorMessage;
+      } catch {
+        errorMessage = errorText || errorMessage;
+      }
+      throw new Error(errorMessage);
     }
 
     const data = await response.json();
@@ -195,14 +227,24 @@ export const trackEvent = async (event: AnalyticsEvent): Promise<ApiResponse<voi
     );
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const errorText = await response.text();
+      let errorMessage = `HTTP error! status: ${response.status}`;
+      try {
+        const errorJson = JSON.parse(errorText);
+        errorMessage = errorJson.message || errorJson.error || errorMessage;
+      } catch {
+        errorMessage = errorText || errorMessage;
+      }
+      throw new Error(errorMessage);
     }
 
     return { success: true };
   } catch (error) {
     console.error('Error tracking event:', error);
-    // Не показываем ошибки аналитики пользователю
-    return { success: false };
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to track event',
+    };
   }
 };
 
