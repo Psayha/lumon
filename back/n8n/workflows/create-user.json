@@ -48,28 +48,12 @@
     },
     {
       "parameters": {
-        "assignments": {
-          "assignments": [
-            {
-              "id": "merge-user-data",
-              "name": "user_data",
-              "value": "={{ $('Validate User').item.json }}",
-              "type": "object"
-            },
-            {
-              "id": "merge-check-id",
-              "name": "existing_id",
-              "value": "={{ $json.id }}",
-              "type": "any"
-            }
-          ]
-        },
-        "options": {}
+        "jsCode": "// Объединение данных\nconst checkResult = $input.item.json;\nconst userData = $('Validate User').item.json;\n\nreturn {\n  json: {\n    user_id: checkResult.id || null,\n    telegram_id: userData.telegram_id,\n    username: userData.username,\n    first_name: userData.first_name,\n    last_name: userData.last_name,\n    language_code: userData.language_code,\n    is_premium: userData.is_premium\n  }\n};"
       },
       "id": "merge-data",
       "name": "Merge Data",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.3,
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
       "position": [850, 300]
     },
     {
@@ -83,7 +67,7 @@
           "conditions": [
             {
               "id": "exists-condition",
-              "leftValue": "={{ $json.existing_id }}",
+              "leftValue": "={{ $json.user_id }}",
               "rightValue": "",
               "operator": {
                 "type": "object",
@@ -107,16 +91,16 @@
         "table": "users",
         "updateKey": {
           "column": "id",
-          "value": "={{ $json.existing_id }}"
+          "value": "={{ $json.user_id }}"
         },
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
-            "username": "={{ $json.user_data.username }}",
-            "first_name": "={{ $json.user_data.first_name }}",
-            "last_name": "={{ $json.user_data.last_name }}",
-            "language_code": "={{ $json.user_data.language_code }}",
-            "is_premium": "={{ $json.user_data.is_premium }}"
+            "username": "={{ $json.username }}",
+            "first_name": "={{ $json.first_name }}",
+            "last_name": "={{ $json.last_name }}",
+            "language_code": "={{ $json.language_code }}",
+            "is_premium": "={{ $json.is_premium }}"
           }
         },
         "options": {}
@@ -140,12 +124,12 @@
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
-            "telegram_id": "={{ $json.user_data.telegram_id }}",
-            "username": "={{ $json.user_data.username }}",
-            "first_name": "={{ $json.user_data.first_name }}",
-            "last_name": "={{ $json.user_data.last_name }}",
-            "language_code": "={{ $json.user_data.language_code }}",
-            "is_premium": "={{ $json.user_data.is_premium }}"
+            "telegram_id": "={{ $json.telegram_id }}",
+            "username": "={{ $json.username }}",
+            "first_name": "={{ $json.first_name }}",
+            "last_name": "={{ $json.last_name }}",
+            "language_code": "={{ $json.language_code }}",
+            "is_premium": "={{ $json.is_premium }}"
           }
         },
         "options": {}
@@ -164,22 +148,12 @@
     },
     {
       "parameters": {
-        "assignments": {
-          "assignments": [
-            {
-              "id": "get-update-id",
-              "name": "user_id",
-              "value": "={{ $json.existing_id || $json.id }}",
-              "type": "any"
-            }
-          ]
-        },
-        "options": {}
+        "jsCode": "// Получить ID пользователя\nconst currentData = $input.item.json;\n\n// Если user_id уже есть (Update), используем его\n// Если нет (Insert), берем id из результата вставки\nreturn {\n  json: {\n    user_id: currentData.user_id || currentData.id\n  }\n};"
       },
       "id": "get-user-id",
       "name": "Get User ID",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.3,
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
       "position": [1450, 300]
     },
     {
