@@ -56,10 +56,14 @@ const ApiTestPage: React.FC = () => {
     setLoading(true);
     setResponse('Загрузка...');
 
+    // Объявляем переменные в начале функции
+    let fullUrl: string = '';
+    let method: string = '';
+
     try {
       // Прямой запрос для детального логирования
       const endpoint = info.url;
-      const method = info.method;
+      method = info.method;
       
       let requestOptions: RequestInit = {
         method,
@@ -74,7 +78,7 @@ const ApiTestPage: React.FC = () => {
       }
 
       // Делаем прямой fetch для детального логирования
-      const fullUrl = selectedEndpoint === 'get-chat-history' 
+      fullUrl = selectedEndpoint === 'get-chat-history' 
         ? `${endpoint}?chat_id=${chatIdForHistory}`
         : endpoint;
 
