@@ -82,22 +82,8 @@
     },
     {
       "parameters": {
-        "operation": "update",
-        "table": "users",
-        "updateKey": {
-          "column": "id",
-          "value": "={{ $json.existing_id }}"
-        },
-        "columns": {
-          "mappingMode": "defineBelow",
-          "value": {
-            "username": "={{ $json.username }}",
-            "first_name": "={{ $json.first_name }}",
-            "last_name": "={{ $json.last_name }}",
-            "language_code": "={{ $json.language_code }}",
-            "is_premium": "={{ $json.is_premium }}"
-          }
-        },
+        "operation": "executeQuery",
+        "query": "UPDATE users SET username = '{{ $json.username }}', first_name = '{{ $json.first_name }}', last_name = '{{ $json.last_name }}', language_code = '{{ $json.language_code }}', is_premium = {{ $json.is_premium }}, updated_at = NOW() WHERE id = CAST('{{ $json.existing_id }}' AS UUID) RETURNING *",
         "options": {}
       },
       "id": "update-user",
