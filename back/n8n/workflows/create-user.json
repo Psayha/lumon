@@ -39,12 +39,7 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.4,
       "position": [650, 300],
-      "credentials": {
-        "postgres": {
-          "id": "1",
-          "name": "Lumon PostgreSQL"
-        }
-      }
+      "credentials": {}
     },
     {
       "parameters": {
@@ -59,6 +54,11 @@
     {
       "parameters": {
         "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
           "conditions": [
             {
               "leftValue": "={{ $json.existing_id }}",
@@ -68,14 +68,15 @@
                 "operation": "exists"
               }
             }
-          ]
+          ],
+          "combinator": "and"
         },
         "options": {}
       },
       "id": "if-exists",
       "name": "User Exists?",
       "type": "n8n-nodes-base.if",
-      "typeVersion": 1,
+      "typeVersion": 2,
       "position": [1050, 300]
     },
     {
@@ -103,12 +104,7 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.4,
       "position": [1250, 200],
-      "credentials": {
-        "postgres": {
-          "id": "1",
-          "name": "Lumon PostgreSQL"
-        }
-      }
+      "credentials": {}
     },
     {
       "parameters": {
@@ -132,12 +128,7 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.4,
       "position": [1250, 400],
-      "credentials": {
-        "postgres": {
-          "id": "1",
-          "name": "Lumon PostgreSQL"
-        }
-      }
+      "credentials": {}
     },
     {
       "parameters": {
@@ -163,12 +154,7 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.4,
       "position": [1650, 300],
-      "credentials": {
-        "postgres": {
-          "id": "1",
-          "name": "Lumon PostgreSQL"
-        }
-      }
+      "credentials": {}
     },
     {
       "parameters": {
