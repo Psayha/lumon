@@ -6,7 +6,8 @@ import {
   MessageSquare, 
   FileText, 
   CreditCard,
-  MessageCircle
+  MessageCircle,
+  TestTube
 } from 'lucide-react';
 import { AppHeader } from '../src/components/AppHeader';
 // import { AppFooter } from '../src/components/AppFooter';
@@ -43,7 +44,8 @@ const MenuPage: React.FC = () => {
     { title: 'CRM', description: 'Вся автоматизация через CRM', icon: MessageSquare, path: '/app/crm', bgColor: 'bg-orange-100 dark:bg-orange-900/20', iconColor: 'text-orange-600 dark:text-orange-400' },
     { title: 'Аналитика', description: 'Отчеты и метрики', icon: BarChart3, path: '/app/analytics', bgColor: 'bg-indigo-100 dark:bg-indigo-900/20', iconColor: 'text-indigo-600 dark:text-indigo-400' },
     { title: 'База знаний', description: 'Документы и материалы', icon: FileText, path: '/app/knowledge', bgColor: 'bg-pink-100 dark:bg-pink-900/20', iconColor: 'text-pink-600 dark:text-pink-400' },
-    { title: 'Тарифы', description: 'Управление подпиской', icon: CreditCard, path: '/app/payment', bgColor: 'bg-emerald-100 dark:bg-emerald-900/20', iconColor: 'text-emerald-600 dark:text-emerald-400' }
+    { title: 'Тарифы', description: 'Управление подпиской', icon: CreditCard, path: '/app/payment', bgColor: 'bg-emerald-100 dark:bg-emerald-900/20', iconColor: 'text-emerald-600 dark:text-emerald-400' },
+    { title: 'Тест API', description: 'Тестирование endpoints', icon: TestTube, path: '/api-test', bgColor: 'bg-blue-100 dark:bg-blue-900/20', iconColor: 'text-blue-600 dark:text-blue-400' }
   ];
 
   // Check if user has completed onboarding flow

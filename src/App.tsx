@@ -14,6 +14,7 @@ const CRMPage = lazy(() => import('../front/CRMPage'));
 const AnalyticsPage = lazy(() => import('../front/AnalyticsPage'));
 const KnowledgeBasePage = lazy(() => import('../front/KnowledgeBasePage'));
 const PricingPage = lazy(() => import('../front/PricingPage'));
+const ApiTestPage = lazy(() => import('../front/ApiTestPage'));
 
 // Fallback компонент для Suspense
 const LoadingFallback: React.FC = () => (
@@ -447,6 +448,7 @@ const App: React.FC = () => {
                   <Route path="/app/analytics" element={<AnalyticsPage />} />
                   <Route path="/app/knowledge" element={<KnowledgeBasePage />} />
                   <Route path="/app/payment" element={<PricingPage />} />
+                  <Route path="/api-test" element={<ApiTestPage />} />
                 </Routes>
               </div>
             </Suspense>
