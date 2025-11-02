@@ -89,7 +89,7 @@ jobs:
 
       - name: Setup .env file on server
         run: |
-          ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "cd ${{ steps.backend_path.outputs.path }} && if [ -f .env.production ]; then cp .env.production .env; elif [ ! -f .env ]; then cp env.example .env; fi"
+          ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "cd ${{ steps.backend_path.outputs.path }} && if [ -f .env.production ]; then cp .env.production .env; elif [ ! -f .env ]; then cp env.example .env; fi && echo 'N8N_SECURE_COOKIE=false' >> .env && sort -u .env -o .env"
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_PORT: ${{ secrets.SSH_PORT }}
