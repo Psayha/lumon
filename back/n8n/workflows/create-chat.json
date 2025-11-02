@@ -44,12 +44,7 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.4,
       "position": [650, 300],
-      "credentials": {
-        "postgres": {
-          "id": "1",
-          "name": "Lumon PostgreSQL"
-        }
-      }
+      "credentials": {}
     },
     {
       "parameters": {
@@ -65,12 +60,7 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.4,
       "position": [850, 300],
-      "credentials": {
-        "postgres": {
-          "id": "1",
-          "name": "Lumon PostgreSQL"
-        }
-      }
+      "credentials": {}
     },
     {
       "parameters": {

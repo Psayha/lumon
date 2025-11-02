@@ -20,7 +20,7 @@
         "operation": "executeQuery",
         "query": "SELECT id, chat_id, role, content, created_at FROM messages WHERE chat_id = $1::uuid ORDER BY created_at ASC LIMIT 100",
         "additionalFields": {
-          "queryParameters": "={{ [$json.query.chat_id] }}"
+          "queryParameters": "={{ [$json.query?.chat_id || $json.chat_id] }}"
         },
         "options": {}
       },
@@ -29,16 +29,11 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.4,
       "position": [450, 300],
-      "credentials": {
-        "postgres": {
-          "id": "1",
-          "name": "Lumon PostgreSQL"
-        }
-      }
+      "credentials": {}
     },
     {
       "parameters": {
-        "jsCode": "// Форматирование ответа для frontend\nconst messages = $input.all();\n\nreturn {\n  json: {\n    success: true,\n    data: messages.map(item => item.json).map(msg => ({\n      id: msg.id,\n      chat_id: msg.chat_id,\n      role: msg.role,\n      content: msg.content,\n      timestamp: msg.created_at\n    }))\n  }\n};"
+        "jsCode": "// Форматирование ответа для frontend\nconst messages = $input.all();\n\nif (messages.length === 0) {\n  return {\n    json: {\n      success: true,\n      data: []\n    }\n  };\n}\n\nreturn {\n  json: {\n    success: true,\n    data: messages.map(item => item.json).map(msg => ({\n      id: msg.id,\n      chat_id: msg.chat_id,\n      role: msg.role,\n      content: msg.content,\n      timestamp: msg.created_at\n    }))\n  }\n};"
       },
       "id": "format-response",
       "name": "Format Response",
