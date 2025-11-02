@@ -20,7 +20,7 @@
         "operation": "executeQuery",
         "query": "SELECT id, chat_id, role, content, created_at FROM messages WHERE chat_id = $1::uuid ORDER BY created_at ASC LIMIT 100",
         "additionalFields": {
-          "queryParameters": "={{ [$json.query.chat_id] }}"
+          "queryParameters": "={{ JSON.stringify([$json.query.chat_id]) }}"
         },
         "options": {}
       },
