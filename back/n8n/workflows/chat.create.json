@@ -99,7 +99,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Parse JSON from text response\nconst input = $input.item.json;\nlet responseText = input.data || input;\n\nif (typeof responseText === 'string') {\n  try {\n    return { json: JSON.parse(responseText) };\n  } catch (e) {\n    return { json: { success: false, error: 'Failed to parse auth response' } };\n  }\n}\n\nreturn { json: responseText };"
+        "jsCode": "// Parse JSON from text response\nconst input = $input.item.json;\n\n// DEBUG: throw error with full input structure\nthrow new Error('DEBUG Parse Auth Response INPUT: ' + JSON.stringify(input, null, 2));"
       },
       "id": "parse-auth-response",
       "name": "Parse Auth Response",
