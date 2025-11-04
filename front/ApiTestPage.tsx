@@ -70,7 +70,7 @@ const ApiTestPage: React.FC = () => {
       title: 'Test Chat ' + new Date().toLocaleTimeString()
     },
     'chat-save-message': {
-      chatId: '',
+      chat_id: '',
       role: 'user',
       content: 'Test message: ' + new Date().toLocaleTimeString()
     },
