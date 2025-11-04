@@ -100,12 +100,20 @@
     },
     {
       "parameters": {
-        "jsCode": "// Временно: пропускаем auth, используем тестовые данные\nconst token = $('Extract Token').item.json.token;\n\nreturn {\n  json: {\n    success: true,\n    data: {\n      user: {\n        id: '52a8dd93-0bce-41c1-b69b-34744bf5e16b',\n        telegram_id: '123456789',\n        role: 'owner',\n        company_id: null\n      }\n    }\n  }\n};"
+        "workflowId": "auth.validate.v3",
+        "fields": {
+          "values": [
+            {
+              "name": "token",
+              "value": "={{ $('Extract Token').item.json.token }}"
+            }
+          ]
+        }
       },
-      "id": "parse-auth-response",
-      "name": "Parse Auth Response",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
+      "id": "call-auth-validate-subworkflow",
+      "name": "Validate Token",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1,
       "position": [1050, 500]
     },
     {
@@ -273,14 +281,14 @@
       "main": [
         [
           {
-            "node": "Parse Auth Response",
+            "node": "Validate Token",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Parse Auth Response": {
+    "Validate Token": {
       "main": [
         [
           {
