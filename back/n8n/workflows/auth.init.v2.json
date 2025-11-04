@@ -17,7 +17,7 @@
     },
     {
       "parameters": {
-        "functionCode": "// Parse Telegram initData from webhook body\nconst body = $input.item.json.body || $input.item.json;\nconst initData = body.initData;\nconst appVersion = body.appVersion || '1.0.0';\n\n// Verify initData format\nif (!initData || !initData.includes('user=')) {\n  return {\n    json: {\n      success: false,\n      error: {\n        code: 'INVALID_INIT_DATA',\n        message: 'Invalid Telegram initData'\n      }\n    }\n  };\n}\n\n// Parse user data from initData\nconst params = new URLSearchParams(initData);\nconst userStr = params.get('user');\n\nif (!userStr) {\n  return {\n    json: {\n      success: false,\n      error: {\n        code: 'USER_NOT_FOUND',\n        message: 'User data not found in initData'\n      }\n    }\n  };\n}\n\nconst user = JSON.parse(decodeURIComponent(userStr));\n\nreturn {\n  json: {\n    telegram_id: user.id.toString(),\n    first_name: user.first_name,\n    last_name: user.last_name || '',\n    username: user.username || '',\n    language_code: user.language_code || 'ru',\n    app_version: appVersion,\n    auth_date: params.get('auth_date')\n  }\n};"
+        "functionCode": "// Parse Telegram initData from webhook body\ntry {\n  const body = $input.item.json.body || $input.item.json;\n  const initData = body.initData || '';\n  const appVersion = body.appVersion || '1.0.0';\n\n  // Manual parse query string (URLSearchParams not available in n8n)\n  const params = {};\n  initData.split('&').forEach(pair => {\n    const [key, value] = pair.split('=');\n    params[key] = value;\n  });\n\n  // Parse user data\n  const userStr = decodeURIComponent(params.user || '');\n  const user = JSON.parse(userStr);\n\n  return {\n    json: {\n      telegram_id: user.id.toString(),\n      first_name: user.first_name,\n      last_name: user.last_name || '',\n      username: user.username || '',\n      language_code: user.language_code || 'ru',\n      app_version: appVersion,\n      auth_date: params.auth_date\n    }\n  };\n} catch (error) {\n  // If parsing fails, return error that will stop workflow\n  throw new Error('Invalid Telegram initData: ' + error.message);\n}"
       },
       "id": "parse-init-data",
       "name": "Parse Telegram initData",
@@ -97,7 +97,7 @@
     },
     {
       "parameters": {
-        "functionCode": "// Build response from session data\nconst session = $input.first().json;\nconst userData = $input.all()[2].json; // From Upsert User\nconst roleData = $input.all()[3].json; // From Get Role & Company\n\nreturn {\n  json: {\n    success: true,\n    data: {\n      session_token: session.session_token,\n      user: {\n        id: session.user_id,\n        telegram_id: userData.telegram_id,\n        role: session.role,\n        company_id: session.company_id,\n        company_name: roleData.company_name || null\n      },\n      expires_at: session.expires_at\n    }\n  }\n};"
+        "functionCode": "// Build response from session data\nconst session = $input.item.json;\n\nreturn {\n  json: {\n    success: true,\n    data: {\n      session_token: session.session_token,\n      user: {\n        id: session.user_id,\n        role: session.role,\n        company_id: session.company_id\n      },\n      expires_at: session.expires_at\n    }\n  }\n};"
       },
       "id": "build-response",
       "name": "Build Response",
@@ -166,11 +166,6 @@
         [
           {
             "node": "Upsert User",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Respond Error",
             "type": "main",
             "index": 0
           }
