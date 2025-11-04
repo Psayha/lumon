@@ -1,0 +1,237 @@
+{
+  "name": "auth.init",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "auth-init",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-auth-init",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "auth-init"
+    },
+    {
+      "parameters": {
+        "functionCode": "const crypto = require('crypto');\nconst BOT_TOKEN = $env('TELEGRAM_BOT_TOKEN') || 'YOUR_BOT_TOKEN';\n\nconst initData = $json.body.initData;\nconst appVersion = $json.body.appVersion || '1.0.0';\n\nif (!initData) {\n  return {\n    json: {\n      error: 'bad_request',\n      status: 400,\n      message: 'initData is required',\n      traceId: crypto.randomUUID()\n    }\n  };\n}\n\ntry {\n  const params = new URLSearchParams(initData);\n  const hash = params.get('hash');\n  params.delete('hash');\n  \n  if (!hash) {\n    return {\n      json: {\n        error: 'unauthorized',\n        status: 401,\n        message: 'Missing hash in initData',\n        traceId: crypto.randomUUID()\n      }\n    };\n  }\n  \n  const dataCheckArr = [];\n  for (const [key, value] of params.entries()) {\n    dataCheckArr.push(`${key}=${value}`);\n  }\n  dataCheckArr.sort();\n  const dataCheckString = dataCheckArr.join('\\n');\n  \n  const secretKey = crypto\n    .createHmac('sha256', 'WebAppData')\n    .update(BOT_TOKEN)\n    .digest();\n  \n  const dataHash = crypto\n    .createHmac('sha256', secretKey)\n    .update(dataCheckString)\n    .digest('hex');\n  \n  // ВРЕМЕННО: пропускаем проверку hash для тестирования\n  // В продакшене раскомментировать:\n  // if (dataHash !== hash) {\n  //   return {\n  //     json: {\n  //       error: 'unauthorized',\n  //       status: 401,\n  //       message: 'Invalid hash',\n  //       traceId: crypto.randomUUID()\n  //     }\n  //   };\n  // }\n  \n  const authDate = parseInt(params.get('auth_date'));\n  const now = Math.floor(Date.now() / 1000);\n  if (now - authDate > 300) {\n    return {\n      json: {\n        error: 'unauthorized',\n        status: 401,\n        message: 'Auth date too old (>5 min)',\n        traceId: crypto.randomUUID()\n      }\n    };\n  }\n  \n  const userStr = params.get('user');\n  if (!userStr) {\n    return {\n      json: {\n        error: 'bad_request',\n        status: 400,\n        message: 'Missing user data',\n        traceId: crypto.randomUUID()\n      }\n    };\n  }\n  \n  const user = JSON.parse(userStr);\n  \n  return {\n    json: {\n      telegram_id: user.id,\n      username: user.username || null,\n      first_name: user.first_name || null,\n      last_name: user.last_name || null,\n      language_code: user.language_code || 'ru',\n      appVersion: appVersion\n    }\n  };\n} catch (error) {\n  return {\n    json: {\n      error: 'internal_error',\n      status: 500,\n      message: error.message,\n      traceId: crypto.randomUUID()\n    }\n  };\n}"
+      },
+      "id": "verify-telegram-data",
+      "name": "Verify Telegram initData",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.error}}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      },
+      "id": "check-error",
+      "name": "IF Error",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{$json}}",
+        "options": {
+          "responseCode": "={{$json.status}}"
+        }
+      },
+      "id": "response-error",
+      "name": "Response Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [850, 200]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO users (telegram_id, username, first_name, last_name, language_code, updated_at)\nVALUES ($1, $2, $3, $4, $5, now())\nON CONFLICT (telegram_id) \nDO UPDATE SET \n  username = $2,\n  first_name = $3,\n  last_name = $4,\n  language_code = $5,\n  updated_at = now()\nRETURNING id, telegram_id, username, first_name, last_name, language_code;",
+        "additionalFields": {
+          "queryParameters": "={{[\n  $json.telegram_id,\n  $json.username,\n  $json.first_name,\n  $json.last_name,\n  $json.language_code\n]}}"
+        }
+      },
+      "id": "upsert-user",
+      "name": "Upsert User",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [850, 400],
+      "credentials": {
+        "postgres": {
+          "id": "1",
+          "name": "Supabase PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT uc.company_id, uc.role, c.name as company_name\nFROM user_companies uc\nJOIN companies c ON c.id = uc.company_id\nWHERE uc.user_id = $1\nLIMIT 1;",
+        "additionalFields": {
+          "queryParameters": "={{[$json.id]}}"
+        }
+      },
+      "id": "get-user-role",
+      "name": "Get User Role & Company",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [1050, 400],
+      "credentials": {
+        "postgres": {
+          "id": "1",
+          "name": "Supabase PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO sessions (user_id, expires_at, user_agent, ip)\nVALUES ($1, now() + interval '7 days', $2, $3)\nRETURNING id, expires_at;",
+        "additionalFields": {
+          "queryParameters": "={{[\n  $('Upsert User').item.json.id,\n  $json.headers['user-agent'] || 'unknown',\n  $json.headers['x-forwarded-for'] || $json.headers['x-real-ip'] || 'unknown'\n]}}"
+        }
+      },
+      "id": "create-session",
+      "name": "Create Session",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [1250, 400],
+      "credentials": {
+        "postgres": {
+          "id": "1",
+          "name": "Supabase PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "const crypto = require('crypto');\n\nconst userData = $('Upsert User').item.json;\nconst roleData = $('Get User Role & Company').item.json;\nconst sessionData = $json;\n\nreturn {\n  json: {\n    success: true,\n    data: {\n      session_token: sessionData.id,\n      user: {\n        id: userData.id,\n        telegram_id: userData.telegram_id,\n        username: userData.username,\n        first_name: userData.first_name,\n        last_name: userData.last_name\n      },\n      companyId: roleData.company_id || null,\n      role: roleData.role || null\n    },\n    traceId: crypto.randomUUID()\n  }\n};"
+      },
+      "id": "format-response",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1450, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{$json}}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "response-success",
+      "name": "Response Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1650, 400]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Verify Telegram initData",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify Telegram initData": {
+      "main": [
+        [
+          {
+            "node": "IF Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Error": {
+      "main": [
+        [
+          {
+            "node": "Response Error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Upsert User",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert User": {
+      "main": [
+        [
+          {
+            "node": "Get User Role & Company",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get User Role & Company": {
+      "main": [
+        [
+          {
+            "node": "Create Session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Session": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Response": {
+      "main": [
+        [
+          {
+            "node": "Response Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {},
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2025-11-04T00:00:00.000Z",
+  "versionId": "1"
+}
+

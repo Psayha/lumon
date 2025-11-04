@@ -1,0 +1,246 @@
+{
+  "name": "chat.create",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "chat.create",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-chat-create",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "chat-create"
+    },
+    {
+      "parameters": {
+        "functionCode": "const authHeader = $json.headers.authorization || $json.headers.Authorization;\n\nif (!authHeader || !authHeader.startsWith('Bearer ')) {\n  return {\n    json: {\n      error: 'unauthorized',\n      status: 401,\n      message: 'Missing or invalid Authorization header',\n      traceId: require('crypto').randomUUID()\n    }\n  };\n}\n\nconst token = authHeader.replace('Bearer ', '');\nconst title = $json.body.title || 'New Chat';\n\nreturn {\n  json: {\n    token: token,\n    title: title\n  }\n};"
+      },
+      "id": "extract-token",
+      "name": "Extract Token & Body",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.error}}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      },
+      "id": "check-extract-error",
+      "name": "IF Extract Error",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{$json}}",
+        "options": {
+          "responseCode": "={{$json.status}}"
+        }
+      },
+      "id": "response-error",
+      "name": "Response Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [850, 200]
+    },
+    {
+      "parameters": {
+        "workflowId": "={{/* ID auth.validate workflow */}}",
+        "options": {}
+      },
+      "id": "execute-auth-validate",
+      "name": "Execute: auth.validate",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1,
+      "position": [850, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.error}}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      },
+      "id": "check-auth-error",
+      "name": "IF Auth Error",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1050, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{$json}}",
+        "options": {
+          "responseCode": "={{$json.status}}"
+        }
+      },
+      "id": "response-auth-error",
+      "name": "Response Auth Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1250, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO chats (user_id, company_id, title, created_at, updated_at)\nVALUES ($1, $2, $3, now(), now())\nRETURNING id, user_id, company_id, title, created_at;",
+        "additionalFields": {
+          "queryParameters": "={{[\n  $json.context.userId,\n  $json.context.companyId,\n  $('Extract Token & Body').item.json.title\n]}}"
+        }
+      },
+      "id": "create-chat",
+      "name": "Create Chat",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [1250, 500],
+      "credentials": {
+        "postgres": {
+          "id": "1",
+          "name": "Supabase PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "const chatData = $json;\nconst crypto = require('crypto');\n\nreturn {\n  json: {\n    success: true,\n    data: {\n      id: chatData.id,\n      user_id: chatData.user_id,\n      company_id: chatData.company_id,\n      title: chatData.title,\n      created_at: chatData.created_at\n    },\n    traceId: crypto.randomUUID()\n  }\n};"
+      },
+      "id": "format-response",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1450, 500]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{$json}}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "response-success",
+      "name": "Response Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1650, 500]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Extract Token & Body",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Token & Body": {
+      "main": [
+        [
+          {
+            "node": "IF Extract Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Extract Error": {
+      "main": [
+        [
+          {
+            "node": "Response Error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Execute: auth.validate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute: auth.validate": {
+      "main": [
+        [
+          {
+            "node": "IF Auth Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Auth Error": {
+      "main": [
+        [
+          {
+            "node": "Response Auth Error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create Chat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Chat": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Response": {
+      "main": [
+        [
+          {
+            "node": "Response Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {},
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2025-11-04T00:00:00.000Z",
+  "versionId": "1"
+}
+
