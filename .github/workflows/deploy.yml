@@ -31,9 +31,9 @@ jobs:
 
       - name: Build admin panel
         run: |
-          cd adminpage
-          npm ci
-          npm run build
+          # Админ-панель использует общие зависимости из корня
+          # Нужно собрать через vite напрямую
+          npx vite build --config adminpage/vite.config.ts
         env:
           VITE_API_URL: ''
 
