@@ -83,7 +83,13 @@
             }
           ]
         },
-        "options": {}
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
       },
       "id": "call-auth-validate",
       "name": "Call auth.validate",
@@ -93,7 +99,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Get auth response directly from HTTP Request node\n// HTTP Request returns JSON response automatically when responseFormat is not 'text'\nconst authResponse = $('Call auth.validate').item.json;\n\n// Return the response as-is (it should already be parsed JSON)\nreturn { json: authResponse };"
+        "jsCode": "const httpResponse = $('Call auth.validate').item.json;\nconst responseText = httpResponse.data || httpResponse;\n\nif (typeof responseText === 'string') {\n  return { json: JSON.parse(responseText) };\n}\n\nreturn { json: responseText };"
       },
       "id": "parse-auth-response",
       "name": "Parse Auth Response",
