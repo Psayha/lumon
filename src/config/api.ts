@@ -52,9 +52,24 @@ export const getApiUrl = (endpoint: string): string => {
 
 // Default headers for API requests
 export const getDefaultHeaders = (): HeadersInit => {
-  return {
+  const headers: HeadersInit = {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
   };
+
+  // Добавляем Authorization токен если есть
+  const token = localStorage.getItem('session_token');
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  return headers;
+};
+
+// Headers для идемпотентных запросов (mutating operations)
+export const getIdempotentHeaders = (): HeadersInit => {
+  const headers = getDefaultHeaders();
+  headers['Idempotency-Key'] = crypto.randomUUID();
+  return headers;
 };
 

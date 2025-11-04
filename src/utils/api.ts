@@ -1,5 +1,8 @@
 // API Utilities for Lumon Backend
-import { API_CONFIG, getApiUrl, getDefaultHeaders } from '../config/api';
+import { API_CONFIG, getApiUrl, getDefaultHeaders, getIdempotentHeaders } from '../config/api';
+
+// Re-export для удобства
+export { getIdempotentHeaders };
 
 // Types
 export interface ApiResponse<T> {
@@ -39,12 +42,64 @@ export interface AnalyticsEvent {
   event_data?: Record<string, any>;
 }
 
-// Helper function for retry logic
+// Re-auth function - повторная инициализация сессии
+const reAuth = async (): Promise<boolean> => {
+  try {
+    // Проверяем наличие Telegram initData
+    if (!window.Telegram?.WebApp?.initData) {
+      console.error('Re-auth failed: no Telegram initData');
+      return false;
+    }
+
+    const response = await fetch(getApiUrl(API_CONFIG.endpoints.authInit), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify({
+        initData: window.Telegram.WebApp.initData,
+        appVersion: '1.0.0',
+      }),
+    });
+
+    if (!response.ok) {
+      console.error('Re-auth failed:', response.status);
+      return false;
+    }
+
+    const data = await response.json();
+    
+    if (data.success && data.data?.session_token) {
+      // Сохраняем новый токен и context
+      localStorage.setItem('session_token', data.data.session_token);
+      
+      if (data.data.user) {
+        localStorage.setItem('user_context', JSON.stringify({
+          userId: data.data.user.id,
+          role: data.data.role,
+          companyId: data.data.companyId,
+        }));
+      }
+      
+      console.log('Re-auth successful');
+      return true;
+    }
+
+    return false;
+  } catch (error) {
+    console.error('Re-auth error:', error);
+    return false;
+  }
+};
+
+// Helper function for retry logic with auth handling
 const fetchWithRetry = async (
   url: string,
   options: RequestInit,
   retries: number = API_CONFIG.retry.attempts,
-  delay: number = API_CONFIG.retry.delay
+  delay: number = API_CONFIG.retry.delay,
+  isRetryAfterAuth: boolean = false
 ): Promise<Response> => {
   try {
     const controller = new AbortController();
@@ -57,16 +112,48 @@ const fetchWithRetry = async (
 
     clearTimeout(timeoutId);
 
-    if (!response.ok && retries > 0) {
+    // Обработка 401/403 - попытка повторной авторизации
+    if ((response.status === 401 || response.status === 403) && !isRetryAfterAuth) {
+      console.warn(`Auth error ${response.status}, attempting re-auth...`);
+      
+      // Очищаем старый токен
+      localStorage.removeItem('session_token');
+      localStorage.removeItem('user_context');
+      
+      // Пытаемся повторно авторизоваться
+      const authSuccess = await reAuth();
+      
+      if (authSuccess) {
+        // Обновляем заголовки с новым токеном
+        const newHeaders = getDefaultHeaders();
+        const updatedOptions = {
+          ...options,
+          headers: {
+            ...options.headers,
+            ...newHeaders,
+          },
+        };
+        
+        // Повторяем запрос с новым токеном (только один раз)
+        return fetchWithRetry(url, updatedOptions, 0, delay, true);
+      }
+      
+      // Если re-auth не удался, возвращаем ошибку
+      throw new Error('Unauthorized: session expired');
+    }
+
+    // Обычная retry логика для других ошибок
+    if (!response.ok && retries > 0 && response.status >= 500) {
       await new Promise(resolve => setTimeout(resolve, delay));
-      return fetchWithRetry(url, options, retries - 1, delay);
+      return fetchWithRetry(url, options, retries - 1, delay, isRetryAfterAuth);
     }
 
     return response;
   } catch (error) {
-    if (retries > 0) {
+    // Retry только для network errors, не для auth errors
+    if (retries > 0 && !(error instanceof Error && error.message.includes('Unauthorized'))) {
       await new Promise(resolve => setTimeout(resolve, delay));
-      return fetchWithRetry(url, options, retries - 1, delay);
+      return fetchWithRetry(url, options, retries - 1, delay, isRetryAfterAuth);
     }
     throw error;
   }
