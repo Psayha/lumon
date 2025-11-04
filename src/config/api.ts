@@ -12,21 +12,27 @@ export const API_CONFIG = {
   
   // API endpoints
   endpoints: {
+    // Auth endpoints
+    authInit: '/webhook/auth-init',
+    authValidate: '/webhook/auth-validate',
+    authRefresh: '/webhook/auth-refresh',
+    authLogout: '/webhook/auth-logout',
+    
     // Chat endpoints
+    chatCreate: '/webhook/chat.create',
+    chatGetHistory: '/webhook/chat.get-history',
+    chatSaveMessage: '/webhook/chat.save-message',
+    
+    // Analytics
+    analyticsLogEvent: '/webhook/analytics.log-event',
+    
+    // Legacy endpoints (для обратной совместимости)
     saveMessage: '/webhook/save-message',
     getChatHistory: '/webhook/get-chat-history',
     createChat: '/webhook/create-chat',
-    
-    // User endpoints
     createUser: '/webhook/create-user',
     getUser: '/webhook/get-user',
-    
-    // Analytics
     trackEvent: '/webhook/analytics',
-    
-    // Documents (future)
-    uploadDocument: '/webhook/upload-document',
-    getDocuments: '/webhook/get-documents',
   },
   
   // Request timeout in milliseconds
