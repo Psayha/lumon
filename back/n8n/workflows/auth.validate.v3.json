@@ -1,0 +1,200 @@
+{
+  "name": "auth.validate",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "auth-validate-v2",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [250, 300],
+      "webhookId": "auth-validate-v2"
+    },
+    {
+      "parameters": {
+        "functionCode": "// Extract token from webhook body\nconst body = $input.item.json.body || $input.item.json;\nconst token = body.token;\n\nif (!token) {\n  throw new Error('Session token is required');\n}\n\nreturn {\n  json: {\n    token: token\n  }\n};"
+      },
+      "id": "extract-token",
+      "name": "Extract Token",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  s.id,\n  s.session_token,\n  s.user_id,\n  s.company_id,\n  s.role,\n  s.expires_at,\n  s.last_activity_at,\n  u.telegram_id,\n  u.first_name,\n  u.last_name,\n  u.username,\n  c.name as company_name\nFROM sessions s\nJOIN users u ON u.id = s.user_id\nLEFT JOIN companies c ON c.id = s.company_id\nWHERE s.session_token = '{{ $json.token }}' AND s.is_active = true",
+        "options": {}
+      },
+      "id": "get-session",
+      "name": "Get Session",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [650, 300],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-postgres",
+          "name": "Supabase PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "// Check session validity\nconst session = $input.item.json;\n\nif (!session.id) {\n  throw new Error('SESSION_NOT_FOUND: Invalid or expired session');\n}\n\nconst now = new Date();\nconst expiresAt = new Date(session.expires_at);\nconst lastActivity = new Date(session.last_activity_at);\n\n// Check if session is expired\nif (now > expiresAt) {\n  throw new Error('SESSION_EXPIRED: Session has expired');\n}\n\n// Check grace window (24 hours of inactivity)\nconst hoursSinceActivity = (now - lastActivity) / (1000 * 60 * 60);\nif (hoursSinceActivity > 24) {\n  throw new Error('SESSION_INACTIVE: Session expired due to inactivity');\n}\n\n// Session is valid, pass through\nreturn {\n  json: session\n};"
+      },
+      "id": "check-validity",
+      "name": "Check Session Validity",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE sessions \nSET last_activity_at = NOW(),\n    expires_at = CASE \n      WHEN expires_at - NOW() < INTERVAL '2 days' \n      THEN NOW() + INTERVAL '7 days'\n      ELSE expires_at\n    END\nWHERE session_token = '{{ $json.session_token }}'\nRETURNING expires_at",
+        "options": {}
+      },
+      "id": "update-activity",
+      "name": "Update Last Activity",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1050, 300],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-postgres",
+          "name": "Supabase PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "// Build permissions based on role\nconst session = $('Check Session Validity').item.json;\nconst role = session.role;\n\nconst permissions = {\n  owner: ['read', 'write', 'delete', 'manage_users', 'manage_company'],\n  manager: ['read', 'write', 'delete'],\n  viewer: ['read']\n};\n\nreturn {\n  json: {\n    success: true,\n    data: {\n      user: {\n        id: session.user_id,\n        telegram_id: session.telegram_id,\n        first_name: session.first_name,\n        last_name: session.last_name,\n        username: session.username,\n        role: role,\n        company_id: session.company_id,\n        company_name: session.company_name,\n        permissions: permissions[role] || []\n      },\n      session: {\n        expires_at: session.expires_at,\n        last_activity_at: session.last_activity_at\n      }\n    }\n  }\n};"
+      },
+      "id": "build-response",
+      "name": "Build User Context",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1250, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "id": "respond-success",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1450, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseCode": 401,
+        "responseBody": "={{ JSON.stringify({success: false, error: {code: 'UNAUTHORIZED', message: $json.message || 'Unauthorized'}}) }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "id": "respond-error",
+      "name": "Respond Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [850, 500]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Extract Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Token": {
+      "main": [
+        [
+          {
+            "node": "Get Session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Session": {
+      "main": [
+        [
+          {
+            "node": "Check Session Validity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Session Validity": {
+      "main": [
+        [
+          {
+            "node": "Update Last Activity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Last Activity": {
+      "main": [
+        [
+          {
+            "node": "Build User Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build User Context": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
+
