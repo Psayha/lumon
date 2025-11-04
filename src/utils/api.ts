@@ -266,15 +266,15 @@ export const createUser = async (user: User): Promise<ApiResponse<User>> => {
   }
 };
 
-// Create chat
-export const createChat = async (userId: string, title?: string): Promise<ApiResponse<Chat>> => {
+// Create chat (без userId - используется session_token)
+export const createChat = async (title?: string): Promise<ApiResponse<Chat>> => {
   try {
     const response = await fetchWithRetry(
-      getApiUrl(API_CONFIG.endpoints.createChat),
+      getApiUrl(API_CONFIG.endpoints.chatCreate),
       {
         method: 'POST',
         headers: getDefaultHeaders(),
-        body: JSON.stringify({ user_id: userId, title }),
+        body: JSON.stringify({ title }),
       }
     );
 
