@@ -106,7 +106,7 @@
     },
     {
       "parameters": {
-        "respondWith": "json",
+        "respondWith": "text",
         "responseBody": "={{ JSON.stringify($json) }}",
         "options": {
           "responseHeaders": {
