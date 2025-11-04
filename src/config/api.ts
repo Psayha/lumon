@@ -18,13 +18,13 @@ export const API_CONFIG = {
     authRefresh: '/webhook/auth-refresh',
     authLogout: '/webhook/auth-logout',
     
-    // Chat endpoints
-    chatCreate: '/webhook/chat.create',
-    chatGetHistory: '/webhook/chat.get-history',
-    chatSaveMessage: '/webhook/chat.save-message',
+    // Chat endpoints (обновлено с auth.validate)
+    chatCreate: '/webhook/chat-create',
+    chatGetHistory: '/webhook/chat-get-history',
+    chatSaveMessage: '/webhook/chat-save-message',
     
-    // Analytics
-    analyticsLogEvent: '/webhook/analytics.log-event',
+    // Analytics (обновлено с auth.validate)
+    analyticsLogEvent: '/webhook/analytics-log-event',
     
     // Legacy endpoints (для обратной совместимости)
     saveMessage: '/webhook/save-message',

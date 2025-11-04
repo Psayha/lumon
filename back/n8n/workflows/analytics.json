@@ -1,84 +1,268 @@
 {
-  "name": "Analytics",
+  "name": "analytics.log-event",
   "nodes": [
     {
       "parameters": {
         "httpMethod": "POST",
-        "path": "analytics",
+        "path": "analytics-log-event",
         "responseMode": "responseNode",
         "options": {}
       },
       "id": "webhook-trigger",
-      "name": "Webhook",
+      "name": "Webhook Trigger",
       "type": "n8n-nodes-base.webhook",
-      "typeVersion": 1.1,
-      "position": [250, 300],
-      "webhookId": "analytics"
+      "typeVersion": 2,
+      "position": [250, 400],
+      "webhookId": "analytics-log-event"
     },
     {
       "parameters": {
-        "jsCode": "// Валидация аналитического события\nconst webhookData = $input.item.json;\nconst body = webhookData.body || webhookData;\n\nif (!body.event_type) {\n  throw new Error('event_type is required');\n}\n\nreturn {\n  json: {\n    user_id: body.user_id || null,\n    event_type: body.event_type,\n    event_data: body.event_data || {},\n    timestamp: new Date().toISOString()\n  }\n};"
+        "jsCode": "// Extract token and event data\nconst input = $input.item.json;\nconst body = input.body || input;\nconst headers = input.headers || {};\n\nconst authHeader = headers.authorization || headers.Authorization || '';\n\nif (!authHeader || !authHeader.startsWith('Bearer ')) {\n  return {\n    json: {\n      error: 'unauthorized',\n      status: 401,\n      message: 'Missing or invalid Authorization header'\n    }\n  };\n}\n\nconst token = authHeader.replace('Bearer ', '').trim();\n\nif (!body.action) {\n  return {\n    json: {\n      error: 'bad_request',\n      status: 400,\n      message: 'Missing required field: action'\n    }\n  };\n}\n\nreturn {\n  json: {\n    token: token,\n    action: body.action,\n    resource: body.resource || null,\n    resource_id: body.resource_id || null,\n    meta: body.meta || {},\n    ip: headers['x-forwarded-for'] || headers['x-real-ip'] || null,\n    user_agent: headers['user-agent'] || null\n  }\n};"
       },
-      "id": "validate-event",
-      "name": "Validate Event",
+      "id": "extract-and-validate",
+      "name": "Extract & Validate",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [450, 300]
+      "position": [450, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "error-check",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-validation-error",
+      "name": "IF Validation Error",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [650, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": "={{ $json.status || 400 }}"
+        }
+      },
+      "id": "response-validation-error",
+      "name": "Respond Validation Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://lumon-n8n:5678/webhook/auth-validate-v2",
+        "authentication": "none",
+        "sendBody": true,
+        "contentType": "json",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "token",
+              "value": "={{ $json.token }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "call-auth-validate",
+      "name": "Call auth.validate",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [850, 500]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "success-check",
+              "leftValue": "={{ $json.success }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-auth-success",
+      "name": "IF Auth Success",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1050, 500]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify({ error: 'unauthorized', status: 401, message: 'Invalid or expired token' }) }}",
+        "options": {
+          "responseCode": 401
+        }
+      },
+      "id": "response-auth-error",
+      "name": "Respond Auth Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1250, 400]
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "INSERT INTO analytics_events (user_id, event_type, event_data, created_at) VALUES ({{ $json.user_id ? \"CAST('\" + $json.user_id + \"' AS UUID)\" : \"NULL\" }}, '{{ $json.event_type }}', '{{ JSON.stringify($json.event_data) }}'::jsonb, '{{ $json.timestamp }}') RETURNING *",
+        "query": "=INSERT INTO audit_events (\n  user_id,\n  company_id,\n  action,\n  resource,\n  resource_id,\n  meta,\n  ip,\n  user_agent,\n  created_at\n)\nVALUES (\n  '{{ $json.data.user.id }}',\n  {{ $json.data.user.company_id ? \"'\" + $json.data.user.company_id + \"'\" : \"NULL\" }},\n  '{{ $('Extract & Validate').item.json.action }}',\n  {{ $('Extract & Validate').item.json.resource ? \"'\" + $('Extract & Validate').item.json.resource + \"'\" : \"NULL\" }},\n  {{ $('Extract & Validate').item.json.resource_id ? \"'\" + $('Extract & Validate').item.json.resource_id + \"'\" : \"NULL\" }},\n  '{{ JSON.stringify($('Extract & Validate').item.json.meta) }}'::jsonb,\n  {{ $('Extract & Validate').item.json.ip ? \"'\" + $('Extract & Validate').item.json.ip + \"'\" : \"NULL\" }},\n  {{ $('Extract & Validate').item.json.user_agent ? \"'\" + $('Extract & Validate').item.json.user_agent + \"'\" : \"NULL\" }},\n  NOW()\n)\nRETURNING id, user_id, company_id, action, created_at;",
         "options": {}
       },
-      "id": "insert-event",
-      "name": "Insert Event",
+      "id": "insert-audit-event",
+      "name": "Insert Audit Event",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.4,
-      "position": [650, 300],
-      "credentials": {}
+      "position": [1250, 600],
+      "credentials": {
+        "postgres": {
+          "id": "supabase_postgres",
+          "name": "Supabase PostgreSQL"
+        }
+      }
     },
     {
       "parameters": {
-        "respondWith": "json",
-        "responseBody": "={{ { \"success\": true } }}",
-        "options": {}
+        "jsCode": "// Manual UUID v4 generator\nfunction generateUUIDv4() {\n  const hex = '0123456789abcdef';\n  let uuid = '';\n  for (let i = 0; i < 36; i++) {\n    if (i === 8 || i === 13 || i === 18 || i === 23) {\n      uuid += '-';\n    } else if (i === 14) {\n      uuid += '4';\n    } else if (i === 19) {\n      uuid += hex[(Math.random() * 4 | 8)];\n    } else {\n      uuid += hex[Math.random() * 16 | 0];\n    }\n  }\n  return uuid;\n}\n\nconst event = $input.item.json;\n\nreturn {\n  json: {\n    success: true,\n    data: {\n      id: event.id,\n      user_id: event.user_id,\n      company_id: event.company_id,\n      action: event.action,\n      created_at: event.created_at\n    },\n    traceId: generateUUIDv4()\n  }\n};"
       },
-      "id": "respond-webhook",
-      "name": "Respond to Webhook",
+      "id": "build-response",
+      "name": "Build Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1450, 600]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": 201
+        }
+      },
+      "id": "response-success",
+      "name": "Respond Success",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [850, 300]
+      "position": [1650, 600]
     }
   ],
   "connections": {
-    "Webhook": {
+    "Webhook Trigger": {
       "main": [
         [
           {
-            "node": "Validate Event",
+            "node": "Extract & Validate",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Validate Event": {
+    "Extract & Validate": {
       "main": [
         [
           {
-            "node": "Insert Event",
+            "node": "IF Validation Error",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Insert Event": {
+    "IF Validation Error": {
       "main": [
         [
           {
-            "node": "Respond to Webhook",
+            "node": "Respond Validation Error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Call auth.validate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call auth.validate": {
+      "main": [
+        [
+          {
+            "node": "IF Auth Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Auth Success": {
+      "main": [
+        [
+          {
+            "node": "Respond Auth Error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Insert Audit Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Audit Event": {
+      "main": [
+        [
+          {
+            "node": "Build Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Response": {
+      "main": [
+        [
+          {
+            "node": "Respond Success",
             "type": "main",
             "index": 0
           }
@@ -86,14 +270,12 @@
       ]
     }
   },
-  "pinData": {},
   "settings": {
     "executionOrder": "v1"
   },
   "staticData": null,
   "tags": [],
-  "triggerCount": 1,
-  "updatedAt": "2024-01-01T00:00:00.000Z",
-  "versionId": "1"
+  "triggerCount": 0,
+  "updatedAt": "2025-11-04T13:45:00.000Z",
+  "versionId": "2"
 }
-

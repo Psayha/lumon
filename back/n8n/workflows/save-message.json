@@ -1,70 +1,333 @@
 {
-  "name": "Save Message",
+  "name": "chat.save-message",
   "nodes": [
     {
       "parameters": {
         "httpMethod": "POST",
-        "path": "save-message",
+        "path": "chat-save-message",
         "responseMode": "responseNode",
         "options": {}
       },
       "id": "webhook-trigger",
-      "name": "Webhook",
+      "name": "Webhook Trigger",
       "type": "n8n-nodes-base.webhook",
-      "typeVersion": 1.1,
-      "position": [250, 300],
-      "webhookId": "save-message"
+      "typeVersion": 2,
+      "position": [250, 400],
+      "webhookId": "chat-save-message"
     },
     {
       "parameters": {
-        "jsCode": "// Валидация и форматирование данных сообщения\nconst webhookData = $input.item.json;\nconst body = webhookData.body || webhookData;\n\n// Проверка обязательных полей\nif (!body.chat_id || !body.role || !body.content) {\n  throw new Error('Missing required fields: chat_id, role, content');\n}\n\n// Проверка роли\nconst validRoles = ['user', 'assistant', 'system'];\nif (!validRoles.includes(body.role)) {\n  throw new Error(`Invalid role: ${body.role}. Must be one of: ${validRoles.join(', ')}`);\n}\n\n// Возвращаем отформатированные данные\nreturn {\n  json: {\n    chat_id: body.chat_id,\n    role: body.role,\n    content: body.content.trim(),\n    timestamp: new Date().toISOString()\n  }\n};"
+        "jsCode": "// Extract token and body\nconst input = $input.item.json;\nconst body = input.body || input;\nconst headers = input.headers || {};\n\nconst authHeader = headers.authorization || headers.Authorization || '';\n\nif (!authHeader || !authHeader.startsWith('Bearer ')) {\n  return {\n    json: {\n      error: 'unauthorized',\n      status: 401,\n      message: 'Missing or invalid Authorization header'\n    }\n  };\n}\n\nconst token = authHeader.replace('Bearer ', '').trim();\n\n// Validate required fields\nif (!body.chat_id || !body.role || !body.content) {\n  return {\n    json: {\n      error: 'bad_request',\n      status: 400,\n      message: 'Missing required fields: chat_id, role, content'\n    }\n  };\n}\n\n// Validate role\nconst validRoles = ['user', 'assistant', 'system'];\nif (!validRoles.includes(body.role)) {\n  return {\n    json: {\n      error: 'bad_request',\n      status: 400,\n      message: `Invalid role: ${body.role}. Must be one of: ${validRoles.join(', ')}`\n    }\n  };\n}\n\nreturn {\n  json: {\n    token: token,\n    chat_id: body.chat_id,\n    role: body.role,\n    content: body.content.trim(),\n    metadata: body.metadata || {}\n  }\n};"
       },
-      "id": "validate-data",
-      "name": "Validate Data",
+      "id": "extract-and-validate",
+      "name": "Extract & Validate",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [450, 300]
+      "position": [450, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "error-check",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-validation-error",
+      "name": "IF Validation Error",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [650, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": "={{ $json.status || 400 }}"
+        }
+      },
+      "id": "response-validation-error",
+      "name": "Respond Validation Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://lumon-n8n:5678/webhook/auth-validate-v2",
+        "authentication": "none",
+        "sendBody": true,
+        "contentType": "json",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "token",
+              "value": "={{ $json.token }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "call-auth-validate",
+      "name": "Call auth.validate",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [850, 500]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "success-check",
+              "leftValue": "={{ $json.success }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-auth-success",
+      "name": "IF Auth Success",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1050, 500]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify({ error: 'unauthorized', status: 401, message: 'Invalid or expired token' }) }}",
+        "options": {
+          "responseCode": 401
+        }
+      },
+      "id": "response-auth-error",
+      "name": "Respond Auth Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1250, 400]
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "INSERT INTO messages (chat_id, role, content, created_at) VALUES (CAST('{{ $json.chat_id }}' AS UUID), '{{ $json.role }}', '{{ $json.content }}', '{{ $json.timestamp }}') RETURNING *",
+        "query": "=SELECT c.id, c.user_id, c.company_id\nFROM chats c\nWHERE c.id = '{{ $('Extract & Validate').item.json.chat_id }}'\n  AND (\n    c.user_id = '{{ $json.data.user.id }}'\n    OR {{ $json.data.user.company_id ? \"c.company_id = '\" + $json.data.user.company_id + \"'\" : \"FALSE\" }}\n  )\nLIMIT 1;",
+        "options": {}
+      },
+      "id": "check-chat-access",
+      "name": "Check Chat Access",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1250, 600],
+      "credentials": {
+        "postgres": {
+          "id": "supabase_postgres",
+          "name": "Supabase PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "chat-exists",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-chat-found",
+      "name": "IF Chat Found",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1450, 600]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify({ error: 'forbidden', status: 403, message: 'Chat not found or access denied' }) }}",
+        "options": {
+          "responseCode": 403
+        }
+      },
+      "id": "response-access-denied",
+      "name": "Respond Access Denied",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1650, 500]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=INSERT INTO messages (chat_id, role, content, metadata, created_at)\nVALUES (\n  '{{ $('Extract & Validate').item.json.chat_id }}',\n  '{{ $('Extract & Validate').item.json.role }}',\n  '{{ $('Extract & Validate').item.json.content }}',\n  '{{ JSON.stringify($('Extract & Validate').item.json.metadata) }}',\n  NOW()\n)\nRETURNING id, chat_id, role, content, metadata, created_at;",
         "options": {}
       },
       "id": "insert-message",
       "name": "Insert Message",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.4,
-      "position": [650, 300],
-      "credentials": {}
+      "position": [1650, 700],
+      "credentials": {
+        "postgres": {
+          "id": "supabase_postgres",
+          "name": "Supabase PostgreSQL"
+        }
+      }
     },
     {
       "parameters": {
-        "respondWith": "json",
-        "responseBody": "={{ { \"success\": true, \"data\": $json } }}",
-        "options": {}
+        "jsCode": "// Manual UUID v4 generator\nfunction generateUUIDv4() {\n  const hex = '0123456789abcdef';\n  let uuid = '';\n  for (let i = 0; i < 36; i++) {\n    if (i === 8 || i === 13 || i === 18 || i === 23) {\n      uuid += '-';\n    } else if (i === 14) {\n      uuid += '4';\n    } else if (i === 19) {\n      uuid += hex[(Math.random() * 4 | 8)];\n    } else {\n      uuid += hex[Math.random() * 16 | 0];\n    }\n  }\n  return uuid;\n}\n\nconst message = $input.item.json;\n\nreturn {\n  json: {\n    success: true,\n    data: {\n      id: message.id,\n      chat_id: message.chat_id,\n      role: message.role,\n      content: message.content,\n      metadata: message.metadata,\n      created_at: message.created_at\n    },\n    traceId: generateUUIDv4()\n  }\n};"
       },
-      "id": "respond-webhook",
-      "name": "Respond to Webhook",
+      "id": "build-response",
+      "name": "Build Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1850, 700]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": 201
+        }
+      },
+      "id": "response-success",
+      "name": "Respond Success",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [850, 300]
+      "position": [2050, 700]
     }
   ],
   "connections": {
-    "Webhook": {
+    "Webhook Trigger": {
       "main": [
         [
           {
-            "node": "Validate Data",
+            "node": "Extract & Validate",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Validate Data": {
+    "Extract & Validate": {
       "main": [
+        [
+          {
+            "node": "IF Validation Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Validation Error": {
+      "main": [
+        [
+          {
+            "node": "Respond Validation Error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Call auth.validate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call auth.validate": {
+      "main": [
+        [
+          {
+            "node": "IF Auth Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Auth Success": {
+      "main": [
+        [
+          {
+            "node": "Respond Auth Error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Check Chat Access",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Chat Access": {
+      "main": [
+        [
+          {
+            "node": "IF Chat Found",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Chat Found": {
+      "main": [
+        [
+          {
+            "node": "Respond Access Denied",
+            "type": "main",
+            "index": 0
+          }
+        ],
         [
           {
             "node": "Insert Message",
@@ -78,7 +341,18 @@
       "main": [
         [
           {
-            "node": "Respond to Webhook",
+            "node": "Build Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Response": {
+      "main": [
+        [
+          {
+            "node": "Respond Success",
             "type": "main",
             "index": 0
           }
@@ -86,14 +360,12 @@
       ]
     }
   },
-  "pinData": {},
   "settings": {
     "executionOrder": "v1"
   },
   "staticData": null,
   "tags": [],
-  "triggerCount": 1,
-  "updatedAt": "2024-01-01T00:00:00.000Z",
-  "versionId": "1"
+  "triggerCount": 0,
+  "updatedAt": "2025-11-04T13:45:00.000Z",
+  "versionId": "2"
 }
-
