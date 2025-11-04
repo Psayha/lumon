@@ -113,7 +113,7 @@
           "options": {
             "caseSensitive": true,
             "leftValue": "",
-            "typeValidation": "strict"
+            "typeValidation": "loose"
           },
           "conditions": [
             {
@@ -121,8 +121,8 @@
               "leftValue": "={{ $json.success }}",
               "rightValue": "true",
               "operator": {
-                "type": "boolean",
-                "operation": "true"
+                "type": "string",
+                "operation": "equals"
               }
             }
           ],
@@ -134,7 +134,7 @@
       "name": "IF Auth Success",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [1050, 500]
+      "position": [1250, 500]
     },
     {
       "parameters": {
