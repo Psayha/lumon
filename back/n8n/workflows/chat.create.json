@@ -100,13 +100,42 @@
     },
     {
       "parameters": {
-        "jsCode": "// Mock auth - используем тестовые данные\n// TODO: заменить на реальный вызов auth.validate когда разберёмся с HTTP между workflows\nconst token = $('Extract Token').item.json.token;\n\nreturn {\n  json: {\n    success: true,\n    data: {\n      user: {\n        id: '52a8dd93-0bce-41c1-b69b-34744bf5e16b',\n        telegram_id: '123456789',\n        role: 'owner',\n        company_id: null\n      }\n    }\n  }\n};"
+        "method": "POST",
+        "url": "http://91.229.10.47:5678/webhook/auth-validate-v2",
+        "authentication": "none",
+        "sendBody": true,
+        "contentType": "json",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "token",
+              "value": "={{ $('Extract Token').item.json.token }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
       },
-      "id": "validate-token-mock",
+      "id": "validate-token-http",
       "name": "Validate Token",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1050, 500]
+    },
+    {
+      "parameters": {
+        "jsCode": "const httpResponse = $input.item.json;\nconst responseText = httpResponse.data;\n\nif (typeof responseText === 'string') {\n  return { json: JSON.parse(responseText) };\n}\n\nreturn { json: responseText };"
+      },
+      "id": "parse-auth-response",
+      "name": "Parse Auth Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1050, 500]
+      "position": [1250, 500]
     },
     {
       "parameters": {
@@ -153,7 +182,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const authData = $('Validate Token').item.json;\nconst titleNode = $('Extract Token').item.json;\n\nconst userId = authData?.data?.user?.id || authData?.user?.id;\nconst companyId = authData?.data?.user?.company_id || authData?.user?.company_id || null;\nconst title = titleNode?.title || 'New Chat';\n\nif (!userId) {\n  throw new Error('User ID not found');\n}\n\nreturn {\n  json: {\n    user_id: userId,\n    company_id: companyId,\n    title: title\n  }\n};"
+        "jsCode": "const authData = $('Parse Auth Response').item.json;\nconst titleNode = $('Extract Token').item.json;\n\nconst userId = authData?.data?.user?.id;\nconst companyId = authData?.data?.user?.company_id || null;\nconst title = titleNode?.title || 'New Chat';\n\nif (!userId) {\n  throw new Error('User ID not found in auth response');\n}\n\nreturn {\n  json: {\n    user_id: userId,\n    company_id: companyId,\n    title: title\n  }\n};"
       },
       "id": "prepare-chat-data",
       "name": "Prepare Chat Data",
@@ -281,6 +310,17 @@
       ]
     },
     "Validate Token": {
+      "main": [
+        [
+          {
+            "node": "Parse Auth Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Auth Response": {
       "main": [
         [
           {
