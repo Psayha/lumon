@@ -2,12 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Building2, Clock, ArrowRight } from 'lucide-react';
 import { isTelegramWebApp } from '../../hooks/useTelegram';
-import { API_CONFIG, getApiUrl, getDefaultHeaders } from '../../config/api';
+import { getApiUrl, getDefaultHeaders } from '../../config/api';
 
 interface CompanyModalProps {
   isOpen: boolean;
-  onConnectCompany: () => void;
-  onLater: () => void;
+  onConnectCompany: () => void; // Создатель компании → роль owner
+  onLater: () => void; // Пропустить → роль viewer
 }
 
 export const CompanyModal: React.FC<CompanyModalProps> = ({
@@ -21,7 +21,8 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
     try {
       setIsSettingViewerRole(true);
       
-      // Устанавливаем роль viewer через API
+      // Устанавливаем роль viewer через API (ограниченный доступ, только просмотр)
+      // Создатель компании получает роль owner через onConnectCompany
       const token = localStorage.getItem('session_token');
       if (!token) {
         console.warn('[CompanyModal] Нет session_token, пропускаем установку роли');
@@ -128,7 +129,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
                   Готовы начать работу?
                 </h3>
                 <p className="text-sm text-gray-600 dark:text-gray-300">
-                  Подключите вашу компанию, чтобы получить доступ ко всем возможностям платформы
+                  Подключите вашу компанию и станьте её владельцем с полным доступом
                 </p>
               </div>
 
@@ -141,7 +142,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
                   <div>
                     <h4 className="text-sm sm:text-base font-medium text-gray-900 dark:text-white">Командная работа</h4>
                     <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">
-                      Пригласите коллег и настройте роли доступа
+                      Пригласите коллег как менеджеров и настройте роли доступа
                     </p>
                   </div>
                 </div>
@@ -196,6 +197,7 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
               <button
                 onClick={onConnectCompany}
                 className="flex-1 px-4 sm:px-6 py-2 sm:py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm sm:text-base font-medium transition-colors duration-200 flex items-center justify-center space-x-2"
+                title="Вы станете владельцем (owner) компании"
               >
                 <span>Подключить компанию</span>
                 <ArrowRight className="w-4 h-4" />
