@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { Brain, Sparkles, Zap } from 'lucide-react';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { ModernSplashScreen } from './components/ModernSplashScreen';
+import { AuthGuard } from './components/AuthGuard';
 import { useTelegram, isTelegramWebApp } from './hooks/useTelegram';
 import TelegramOnlyPage from '../front/TelegramOnlyPage';
 
@@ -439,19 +440,21 @@ const App: React.FC = () => {
         <ErrorBoundary>
           <Router>
             <TelegramUIManager />
-            <Suspense fallback={<LoadingFallback />}>
-              <div className="app-content">
-                <Routes>
-                  <Route path="/" element={<MenuPage />} />
-                  <Route path="/voice-assistant" element={<VoiceAssistantPage />} />
-                  <Route path="/app/crm" element={<CRMPage />} />
-                  <Route path="/app/analytics" element={<AnalyticsPage />} />
-                  <Route path="/app/knowledge" element={<KnowledgeBasePage />} />
-                  <Route path="/app/payment" element={<PricingPage />} />
-                  <Route path="/api-test" element={<ApiTestPage />} />
-                </Routes>
-              </div>
-            </Suspense>
+            <AuthGuard>
+              <Suspense fallback={<LoadingFallback />}>
+                <div className="app-content">
+                  <Routes>
+                    <Route path="/" element={<MenuPage />} />
+                    <Route path="/voice-assistant" element={<VoiceAssistantPage />} />
+                    <Route path="/app/crm" element={<CRMPage />} />
+                    <Route path="/app/analytics" element={<AnalyticsPage />} />
+                    <Route path="/app/knowledge" element={<KnowledgeBasePage />} />
+                    <Route path="/app/payment" element={<PricingPage />} />
+                    <Route path="/api-test" element={<ApiTestPage />} />
+                  </Routes>
+                </div>
+              </Suspense>
+            </AuthGuard>
           </Router>
         </ErrorBoundary>
       </div>
