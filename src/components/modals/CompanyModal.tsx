@@ -1,7 +1,8 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Building2, Clock, ArrowRight } from 'lucide-react';
 import { isTelegramWebApp } from '../../hooks/useTelegram';
+import { API_CONFIG, getApiUrl, getDefaultHeaders } from '../../config/api';
 
 interface CompanyModalProps {
   isOpen: boolean;
@@ -14,6 +15,50 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
   onConnectCompany,
   onLater
 }) => {
+  const [isSettingViewerRole, setIsSettingViewerRole] = useState(false);
+
+  const handleLater = async () => {
+    try {
+      setIsSettingViewerRole(true);
+      
+      // Устанавливаем роль viewer через API
+      const token = localStorage.getItem('session_token');
+      if (!token) {
+        console.warn('[CompanyModal] Нет session_token, пропускаем установку роли');
+        onLater();
+        return;
+      }
+
+      const response = await fetch(getApiUrl('/webhook/auth-set-viewer-role'), {
+        method: 'POST',
+        headers: getDefaultHeaders(),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        
+        // Обновляем user_context с новой ролью
+        if (data.success && data.data) {
+          const currentContext = localStorage.getItem('user_context');
+          if (currentContext) {
+            const context = JSON.parse(currentContext);
+            context.role = 'viewer';
+            localStorage.setItem('user_context', JSON.stringify(context));
+          }
+        }
+        
+        console.log('[CompanyModal] Роль viewer установлена успешно');
+      } else {
+        console.error('[CompanyModal] Ошибка установки роли viewer:', response.status);
+      }
+    } catch (error) {
+      console.error('[CompanyModal] Ошибка при установке роли viewer:', error);
+    } finally {
+      setIsSettingViewerRole(false);
+      onLater();
+    }
+  };
+
   // Блокируем скролл body когда модальное окно открыто
   useEffect(() => {
     if (isOpen) {
@@ -24,10 +69,10 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
         const tg = (window as any).Telegram.WebApp;
         tg.MainButton.hide();
         
-        // Показываем кнопку "Назад" и привязываем к закрытию модального окна (onLater)
+        // Показываем кнопку "Назад" и привязываем к handleLater
         tg.BackButton.show();
         tg.BackButton.onClick(() => {
-          onLater();
+          handleLater();
         });
       }
     } else {
@@ -140,11 +185,12 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
           <div className="p-4 sm:p-6 border-t border-gray-200 dark:border-gray-700">
             <div className="flex flex-col sm:flex-row gap-3">
               <button
-                onClick={onLater}
-                className="flex-1 px-4 sm:px-6 py-2 sm:py-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-sm sm:text-base font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200 flex items-center justify-center space-x-2"
+                onClick={handleLater}
+                disabled={isSettingViewerRole}
+                className="flex-1 px-4 sm:px-6 py-2 sm:py-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-sm sm:text-base font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200 flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Clock className="w-4 h-4" />
-                <span>Позже</span>
+                <span>{isSettingViewerRole ? 'Сохранение...' : 'Позже'}</span>
               </button>
               
               <button
@@ -161,10 +207,11 @@ export const CompanyModal: React.FC<CompanyModalProps> = ({
           {isTelegramWebApp() && (
             <div className="p-3 sm:p-4 border-t border-gray-200/50 dark:border-white/[0.05]">
               <button
-                onClick={onLater}
-                className="w-full py-2 px-4 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200"
+                onClick={handleLater}
+                disabled={isSettingViewerRole}
+                className="w-full py-2 px-4 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Назад
+                {isSettingViewerRole ? 'Сохранение...' : 'Назад'}
               </button>
             </div>
           )}

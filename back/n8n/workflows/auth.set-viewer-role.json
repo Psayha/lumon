@@ -1,0 +1,213 @@
+{
+  "name": "auth.set-viewer-role",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "auth-set-viewer-role",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [250, 300],
+      "webhookId": "auth-set-viewer-role"
+    },
+    {
+      "parameters": {
+        "functionCode": "// Extract token from Authorization header\nconst headers = $input.item.json.headers || {};\nconst authHeader = headers.authorization || headers.Authorization || '';\nconst token = authHeader.replace('Bearer ', '').trim();\n\nif (!token) {\n  throw new Error('Authorization token is required');\n}\n\nreturn {\n  json: {\n    token: token\n  }\n};"
+      },
+      "id": "extract-token",
+      "name": "Extract Token",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:5678/webhook/auth-validate-v2",
+        "method": "POST",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "token",
+              "value": "={{ $json.token }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "validate-session",
+      "name": "Validate Session",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Parse auth response\nconst rawData = $input.item.json;\nlet parsedData = rawData;\n\nif (typeof rawData === 'string') {\n  try {\n    parsedData = JSON.parse(rawData);\n  } catch (e) {\n    throw new Error('Failed to parse auth response');\n  }\n}\n\n// Handle array response\nif (Array.isArray(parsedData)) {\n  parsedData = parsedData[0];\n}\n\n// Check for auth error\nif (parsedData.error || parsedData.status === 401 || parsedData.status === 403) {\n  throw new Error('UNAUTHORIZED: ' + (parsedData.message || 'Invalid or expired token'));\n}\n\n// Check for success and user data\nif (!parsedData.success || !parsedData.data || !parsedData.data.user) {\n  throw new Error('Invalid auth response structure');\n}\n\nconst user = parsedData.data.user;\n\nreturn {\n  json: {\n    success: true,\n    user_id: user.id,\n    token: $('Extract Token').item.json.token\n  }\n};"
+      },
+      "id": "parse-auth-response",
+      "name": "Parse Auth Response",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE sessions \nSET role = 'viewer' \nWHERE session_token = '{{ $json.token }}' AND is_active = true",
+        "options": {}
+      },
+      "id": "update-session-role",
+      "name": "Update Session Role",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1050, 300],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-postgres",
+          "name": "Supabase PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "// Build success response\nconst authData = $('Parse Auth Response').item.json;\n\nfunction uuidv4() {\n  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {\n    const r = Math.random() * 16 | 0;\n    const v = c === 'x' ? r : (r & 0x3 | 0x8);\n    return v.toString(16);\n  });\n}\n\nreturn {\n  json: {\n    success: true,\n    data: {\n      user_id: authData.user_id,\n      role: 'viewer',\n      message: 'Viewer role set successfully'\n    },\n    traceId: uuidv4()\n  }\n};"
+      },
+      "id": "format-response",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1250, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "response-success",
+      "name": "Response Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1450, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Format error response\nconst error = $input.item.error || {};\nconst message = error.message || 'Internal server error';\n\nfunction uuidv4() {\n  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {\n    const r = Math.random() * 16 | 0;\n    const v = c === 'x' ? r : (r & 0x3 | 0x8);\n    return v.toString(16);\n  });\n}\n\nlet status = 500;\nlet errorType = 'internal_error';\n\nif (message.includes('UNAUTHORIZED') || message.includes('Invalid or expired token')) {\n  status = 401;\n  errorType = 'unauthorized';\n} else if (message.includes('Authorization token is required')) {\n  status = 400;\n  errorType = 'bad_request';\n}\n\nreturn {\n  json: {\n    error: errorType,\n    status: status,\n    message: message.replace('UNAUTHORIZED: ', ''),\n    traceId: uuidv4()\n  }\n};"
+      },
+      "id": "format-error",
+      "name": "Format Error",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1050, 500],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "responseCode": "={{ $json.status }}",
+        "options": {}
+      },
+      "id": "response-error",
+      "name": "Response Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1250, 500]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Extract Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Token": {
+      "main": [
+        [
+          {
+            "node": "Validate Session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Session": {
+      "main": [
+        [
+          {
+            "node": "Parse Auth Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Auth Response": {
+      "main": [
+        [
+          {
+            "node": "Update Session Role",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Session Role": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Response": {
+      "main": [
+        [
+          {
+            "node": "Response Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Error": {
+      "main": [
+        [
+          {
+            "node": "Response Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2025-11-04T00:00:00.000Z",
+  "versionId": "1"
+}
+

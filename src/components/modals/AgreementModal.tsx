@@ -142,10 +142,12 @@ Cookies — это небольшие текстовые файлы, котор�
         const tg = (window as any).Telegram.WebApp;
         tg.MainButton.hide();
         
-        // Показываем кнопку "Назад" и привязываем к отказу от соглашения
+        // Показываем кнопку "Назад" и привязываем к закрытию приложения
         tg.BackButton.show();
         tg.BackButton.onClick(() => {
-          onDecline();
+          if (tg.close) {
+            tg.close();
+          }
         });
       }
     } else {
@@ -318,7 +320,15 @@ Cookies — это небольшие текстовые файлы, котор�
           <div className="p-4 sm:p-6 border-t border-gray-200 dark:border-gray-700">
             <div className="flex flex-col sm:flex-row gap-3">
               <button
-                onClick={onDecline}
+                onClick={() => {
+                  // Закрываем приложение Telegram при отклонении соглашения
+                  if (window.Telegram?.WebApp?.close) {
+                    window.Telegram.WebApp.close();
+                  } else {
+                    // Fallback для браузера
+                    onDecline();
+                  }
+                }}
                 className="flex-1 px-4 sm:px-6 py-2 sm:py-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-sm sm:text-base font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200 flex items-center justify-center space-x-2"
               >
                 <X className="w-4 h-4" />
