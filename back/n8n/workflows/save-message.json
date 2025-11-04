@@ -83,13 +83,29 @@
             }
           ]
         },
-        "options": {}
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
       },
       "id": "call-auth-validate",
       "name": "Call auth.validate",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [850, 500]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse JSON from text response\nconst input = $input.item.json;\nlet responseText = input.data || input;\n\nif (typeof responseText === 'string') {\n  try {\n    return { json: JSON.parse(responseText) };\n  } catch (e) {\n    return { json: { success: false, error: 'Failed to parse auth response' } };\n  }\n}\n\nreturn { json: responseText };"
+      },
+      "id": "parse-auth-response",
+      "name": "Parse Auth Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1050, 500]
     },
     {
       "parameters": {
@@ -280,6 +296,17 @@
       ]
     },
     "Call auth.validate": {
+      "main": [
+        [
+          {
+            "node": "Parse Auth Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Auth Response": {
       "main": [
         [
           {
