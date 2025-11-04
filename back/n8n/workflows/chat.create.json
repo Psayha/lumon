@@ -284,24 +284,6 @@
       "main": [
         [
           {
-            "node": "IF Auth Success",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "IF Auth Success": {
-      "main": [
-        [
-          {
-            "node": "Respond Auth Error",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
             "node": "Prepare Chat Data",
             "type": "main",
             "index": 0
