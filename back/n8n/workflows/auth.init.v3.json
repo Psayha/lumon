@@ -46,14 +46,19 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT \n  uc.role,\n  c.id as company_id,\n  c.name as company_name,\n  c.settings as company_settings\nFROM user_companies uc\nJOIN companies c ON c.id = uc.company_id\nWHERE uc.user_id = '{{ $json.id }}' AND uc.is_active = true\nORDER BY uc.created_at ASC\nLIMIT 1",
-        "options": {}
+        "query": "SELECT \n  uc.role,\n  c.id as company_id,\n  c.name as company_name\nFROM user_companies uc\nJOIN companies c ON c.id = uc.company_id\nWHERE uc.user_id = '{{ $json.id }}' AND uc.is_active = true\nORDER BY uc.created_at ASC\nLIMIT 1",
+        "options": {
+          "nodeOptions": {
+            "continueOnFail": true
+          }
+        }
       },
       "id": "get-role-company",
       "name": "Get Role & Company",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.4,
       "position": [850, 300],
+      "continueOnFail": true,
       "credentials": {
         "postgres": {
           "id": "supabase-postgres",
@@ -63,7 +68,7 @@
     },
     {
       "parameters": {
-        "functionCode": "// Generate session token (UUID v4)\nconst crypto = require('crypto');\nconst sessionToken = crypto.randomUUID();\n\n// Get data from previous nodes\nconst items = $input.all();\nconst userData = items[items.length - 2].json; // Upsert User output\nconst roleData = items[items.length - 1].json; // Get Role & Company output\n\n// Set default role if no company assigned (empty result from SQL)\nconst role = (roleData && roleData.role) ? roleData.role : 'viewer';\nconst companyId = (roleData && roleData.company_id) ? roleData.company_id : null;\n\nreturn {\n  json: {\n    session_token: sessionToken,\n    user_id: userData.id,\n    company_id: companyId,\n    role: role\n  }\n};"
+        "functionCode": "// Generate session token and prepare data\nconst crypto = require('crypto');\nconst sessionToken = crypto.randomUUID();\n\n// Get user data (always present from Upsert User)\nconst userData = $('Upsert User').item.json;\n\n// Try to get role data (might be empty)\nconst roleData = $('Get Role & Company').item?.json || {};\n\n// Set default role if no company assigned\nconst role = roleData.role || 'viewer';\nconst companyId = roleData.company_id || null;\n\nreturn {\n  json: {\n    session_token: sessionToken,\n    user_id: userData.id,\n    company_id: companyId,\n    role: role\n  }\n};"
       },
       "id": "generate-session",
       "name": "Generate Session Token",
