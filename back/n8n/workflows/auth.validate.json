@@ -2,12 +2,36 @@
   "name": "auth.validate",
   "nodes": [
     {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "auth-validate",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "auth-validate"
+    },
+    {
+      "parameters": {
+        "functionCode": "const body = $json.body || {};\nconst token = body.token;\n\nif (!token) {\n  return {\n    json: {\n      error: 'bad_request',\n      status: 400,\n      message: 'token is required',\n      traceId: require('crypto').randomUUID()\n    }\n  };\n}\n\nreturn { json: { token } };"
+      },
+      "id": "extract-token",
+      "name": "Extract Token",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [350, 300]
+    },
+    {
       "parameters": {},
       "id": "workflow-trigger",
       "name": "Execute Workflow Trigger",
       "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1,
-      "position": [250, 300]
+      "position": [250, 500]
     },
     {
       "parameters": {
@@ -155,6 +179,28 @@
     }
   ],
   "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Extract Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Token": {
+      "main": [
+        [
+          {
+            "node": "Check Session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "Execute Workflow Trigger": {
       "main": [
         [
