@@ -79,7 +79,7 @@
           "parameters": [
             {
               "name": "token",
-              "value": "={{ $json.token }}"
+              "value": "={{ $('Extract Token').item.json.token }}"
             }
           ]
         },
