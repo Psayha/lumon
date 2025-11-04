@@ -274,6 +274,37 @@ const App: React.FC = () => {
     const navigate = useNavigate();
     const { tg, isReady } = useTelegram();
 
+    // Автопродление сессии каждые 4 минуты
+    useEffect(() => {
+      const refreshInterval = setInterval(async () => {
+        const token = localStorage.getItem('session_token');
+        if (!token) return;
+
+        try {
+          const response = await fetch('/webhook/auth-refresh', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ token })
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.data?.session_token) {
+              localStorage.setItem('session_token', data.data.session_token);
+              console.log('[App] Session refreshed successfully');
+            }
+          }
+        } catch (error) {
+          console.warn('[App] Session refresh failed:', error);
+        }
+      }, 4 * 60 * 1000); // 4 минуты
+
+      return () => clearInterval(refreshInterval);
+    }, []);
+
     // Применяем тему Telegram к CSS-переменным и классу dark
     useEffect(() => {
       if (!isReady || !tg) return;
