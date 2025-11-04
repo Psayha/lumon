@@ -1,18 +1,14 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AppHeader } from '../src/components/AppHeader';
 // import { AppFooter } from '../src/components/AppFooter';
 import { AnimatedAIChat } from '../src/components/ui/animated-ai-chat';
-import { useTelegram } from '../src/hooks/useTelegram';
 import { 
   createChat, 
   saveMessage, 
-  getChatHistory, 
-  trackEvent,
-  type Message as ApiMessage 
+  trackEvent
 } from '../src/utils/api';
 
 const VoiceAssistantPage: React.FC = () => {
-  const { tg, isReady } = useTelegram();
   const [isTyping, setIsTyping] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [isRecognizing, setIsRecognizing] = useState(false);

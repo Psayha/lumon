@@ -257,8 +257,8 @@ const ApiTestPage: React.FC = () => {
             break;
           }
           case 'create-chat': {
-            const chatData = JSON.parse(requestBody) as { user_id: string; title?: string };
-            apiResult = await createChat(chatData.user_id, chatData.title);
+            const chatData = JSON.parse(requestBody) as { title?: string };
+            apiResult = await createChat(chatData.title);
             break;
           }
           case 'save-message': {
