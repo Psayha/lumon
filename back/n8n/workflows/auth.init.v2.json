@@ -1,0 +1,240 @@
+{
+  "name": "auth.init",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "auth-init-v2",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [250, 300],
+      "webhookId": "auth-init-v2"
+    },
+    {
+      "parameters": {
+        "functionCode": "// Parse Telegram initData from webhook body\nconst body = $input.item.json.body || $input.item.json;\nconst initData = body.initData;\nconst appVersion = body.appVersion || '1.0.0';\n\n// Verify initData format\nif (!initData || !initData.includes('user=')) {\n  return {\n    json: {\n      success: false,\n      error: {\n        code: 'INVALID_INIT_DATA',\n        message: 'Invalid Telegram initData'\n      }\n    }\n  };\n}\n\n// Parse user data from initData\nconst params = new URLSearchParams(initData);\nconst userStr = params.get('user');\n\nif (!userStr) {\n  return {\n    json: {\n      success: false,\n      error: {\n        code: 'USER_NOT_FOUND',\n        message: 'User data not found in initData'\n      }\n    }\n  };\n}\n\nconst user = JSON.parse(decodeURIComponent(userStr));\n\nreturn {\n  json: {\n    telegram_id: user.id.toString(),\n    first_name: user.first_name,\n    last_name: user.last_name || '',\n    username: user.username || '',\n    language_code: user.language_code || 'ru',\n    app_version: appVersion,\n    auth_date: params.get('auth_date')\n  }\n};"
+      },
+      "id": "parse-init-data",
+      "name": "Parse Telegram initData",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO users (telegram_id, first_name, last_name, username, language_code, app_version, last_login_at)\nVALUES ($1, $2, $3, $4, $5, $6, NOW())\nON CONFLICT (telegram_id) \nDO UPDATE SET \n  first_name = EXCLUDED.first_name,\n  last_name = EXCLUDED.last_name,\n  username = EXCLUDED.username,\n  language_code = EXCLUDED.language_code,\n  app_version = EXCLUDED.app_version,\n  last_login_at = NOW()\nRETURNING id, telegram_id, created_at",
+        "options": {
+          "queryParams": "={{ [\n  $json.telegram_id,\n  $json.first_name,\n  $json.last_name,\n  $json.username,\n  $json.language_code,\n  $json.app_version\n] }}"
+        }
+      },
+      "id": "upsert-user",
+      "name": "Upsert User",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [650, 300],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-postgres",
+          "name": "Supabase PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  uc.role,\n  c.id as company_id,\n  c.name as company_name,\n  c.settings as company_settings\nFROM user_companies uc\nJOIN companies c ON c.id = uc.company_id\nWHERE uc.user_id = $1 AND uc.is_active = true\nORDER BY uc.created_at ASC\nLIMIT 1",
+        "options": {
+          "queryParams": "={{ [$json.id] }}"
+        }
+      },
+      "id": "get-role-company",
+      "name": "Get Role & Company",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [850, 300],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-postgres",
+          "name": "Supabase PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "// Generate session token (UUID v4)\nconst crypto = require('crypto');\nconst sessionToken = crypto.randomUUID();\n\n// Get user data from previous node\nconst userData = $input.first().json;\nconst roleData = $input.last().json;\n\n// Set default role if no company assigned\nconst role = roleData.role || 'viewer';\nconst companyId = roleData.company_id || null;\n\nreturn {\n  json: {\n    session_token: sessionToken,\n    user_id: userData.id,\n    company_id: companyId,\n    role: role\n  }\n};"
+      },
+      "id": "generate-session",
+      "name": "Generate Session Token",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO sessions (session_token, user_id, company_id, role, expires_at)\nVALUES ($1, $2, $3, $4, NOW() + INTERVAL '7 days')\nRETURNING id, session_token, user_id, company_id, role, created_at, expires_at",
+        "options": {
+          "queryParams": "={{ [\n  $json.session_token,\n  $json.user_id,\n  $json.company_id,\n  $json.role\n] }}"
+        }
+      },
+      "id": "create-session",
+      "name": "Create Session",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1250, 300],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-postgres",
+          "name": "Supabase PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "// Build response from session data\nconst session = $input.first().json;\nconst userData = $input.all()[2].json; // From Upsert User\nconst roleData = $input.all()[3].json; // From Get Role & Company\n\nreturn {\n  json: {\n    success: true,\n    data: {\n      session_token: session.session_token,\n      user: {\n        id: session.user_id,\n        telegram_id: userData.telegram_id,\n        role: session.role,\n        company_id: session.company_id,\n        company_name: roleData.company_name || null\n      },\n      expires_at: session.expires_at\n    }\n  }\n};"
+      },
+      "id": "build-response",
+      "name": "Build Response",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1450, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "id": "respond-success",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1650, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseCode": 400,
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "id": "respond-error",
+      "name": "Respond Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [650, 500]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Parse Telegram initData",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Telegram initData": {
+      "main": [
+        [
+          {
+            "node": "Upsert User",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Respond Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert User": {
+      "main": [
+        [
+          {
+            "node": "Get Role & Company",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Role & Company": {
+      "main": [
+        [
+          {
+            "node": "Generate Session Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Session Token": {
+      "main": [
+        [
+          {
+            "node": "Create Session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Session": {
+      "main": [
+        [
+          {
+            "node": "Build Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Response": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
+
