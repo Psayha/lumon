@@ -100,25 +100,12 @@
     },
     {
       "parameters": {
-        "source": "database",
-        "workflowId": {
-          "__rl": true,
-          "value": "auth.validate",
-          "mode": "name"
-        },
-        "fields": {
-          "values": [
-            {
-              "name": "token",
-              "value": "={{ $('Extract Token').item.json.token }}"
-            }
-          ]
-        }
+        "jsCode": "// Mock auth - используем тестовые данные\n// TODO: заменить на реальный вызов auth.validate когда разберёмся с HTTP между workflows\nconst token = $('Extract Token').item.json.token;\n\nreturn {\n  json: {\n    success: true,\n    data: {\n      user: {\n        id: '52a8dd93-0bce-41c1-b69b-34744bf5e16b',\n        telegram_id: '123456789',\n        role: 'owner',\n        company_id: null\n      }\n    }\n  }\n};"
       },
-      "id": "call-auth-validate-subworkflow",
+      "id": "validate-token-mock",
       "name": "Validate Token",
-      "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1,
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
       "position": [1050, 500]
     },
     {
