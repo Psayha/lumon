@@ -99,7 +99,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const httpResponse = $('Call auth.validate').item.json;\nconst responseText = httpResponse.data;\n\nif (typeof responseText === 'string') {\n  return { json: JSON.parse(responseText) };\n}\n\nreturn { json: responseText };"
+        "jsCode": "const httpResponse = $('Call auth.validate').item.json;\nconst responseText = httpResponse.data;\n\nif (!responseText) {\n  throw new Error('responseText is empty: ' + JSON.stringify(httpResponse, null, 2));\n}\n\nif (typeof responseText === 'string') {\n  const parsed = JSON.parse(responseText);\n  throw new Error('PARSED: ' + JSON.stringify(parsed, null, 2));\n}\n\nthrow new Error('ALREADY OBJECT: ' + JSON.stringify(responseText, null, 2));"
       },
       "id": "parse-auth-response",
       "name": "Parse Auth Response",
