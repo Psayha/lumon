@@ -80,13 +80,12 @@ jobs:
 
       - name: Deploy admin panel via rsync
         run: |
-          ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "mkdir -p $DEPLOY_PATH/../adminpage"
-          rsync -avz --delete -e "ssh -i ~/.ssh/deploy_key -p $SSH_PORT" dist-admin/ "$SSH_USER@$SSH_HOST:$DEPLOY_PATH/../adminpage/"
+          ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "mkdir -p /var/www/adminpage"
+          rsync -avz --delete -e "ssh -i ~/.ssh/deploy_key -p $SSH_PORT" dist-admin/ "$SSH_USER@$SSH_HOST:/var/www/adminpage/"
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_PORT: ${{ secrets.SSH_PORT }}
           SSH_USER: ${{ secrets.SSH_USER }}
-          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
 
       - name: Deploy simple HTML pages
         run: |
@@ -224,7 +223,7 @@ jobs:
           ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "sudo tee /etc/nginx/sites-available/admin-panel > /dev/null << 'NGINX_CONFIG'
           server {
               server_name admin.psayha.ru;
-              root $DEPLOY_PATH/../adminpage;
+              root /var/www/adminpage;
               index index.html;
               location / {
                   try_files \$uri \$uri/ /index.html;
@@ -244,7 +243,6 @@ jobs:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_PORT: ${{ secrets.SSH_PORT }}
           SSH_USER: ${{ secrets.SSH_USER }}
-          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
 
       - name: Setup Nginx configuration for frontend
         run: |
