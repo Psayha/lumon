@@ -13,8 +13,8 @@ export const API_CONFIG = {
   // API endpoints
   endpoints: {
     // Auth endpoints
-    authInit: '/webhook/auth-init',
-    authValidate: '/webhook/auth-validate',
+    authInit: '/webhook/auth-init-v2',
+    authValidate: '/webhook/auth-validate-v2',
     authRefresh: '/webhook/auth-refresh',
     authLogout: '/webhook/auth-logout',
     
