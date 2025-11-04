@@ -99,7 +99,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const httpResponse = $('Call auth.validate').item.json;\n\nthrow new Error('DEBUG: ' + JSON.stringify({\n  httpResponse: httpResponse,\n  type: typeof httpResponse,\n  keys: Object.keys(httpResponse || {})\n}, null, 2));"
+        "jsCode": "const httpResponse = $('Call auth.validate').item.json;\nconst responseText = httpResponse.data;\n\nif (typeof responseText === 'string') {\n  return { json: JSON.parse(responseText) };\n}\n\nreturn { json: responseText };"
       },
       "id": "parse-auth-response",
       "name": "Parse Auth Response",
