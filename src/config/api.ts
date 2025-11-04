@@ -51,8 +51,8 @@ export const getApiUrl = (endpoint: string): string => {
 };
 
 // Default headers for API requests
-export const getDefaultHeaders = (): HeadersInit => {
-  const headers: HeadersInit = {
+export const getDefaultHeaders = (): Record<string, string> => {
+  const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
   };
@@ -67,7 +67,7 @@ export const getDefaultHeaders = (): HeadersInit => {
 };
 
 // Headers для идемпотентных запросов (mutating operations)
-export const getIdempotentHeaders = (): HeadersInit => {
+export const getIdempotentHeaders = (): Record<string, string> => {
   const headers = getDefaultHeaders();
   headers['Idempotency-Key'] = crypto.randomUUID();
   return headers;

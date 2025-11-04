@@ -27,6 +27,7 @@ export type TelegramWebApp = {
   DeviceStorage?: { setItem?: (k: string, v: string) => Promise<void> | void };
   SecureStorage?: { setItem?: (k: string, v: string) => Promise<void> | void };
   onEvent?: (event: string, handler: (payload?: any) => void) => void;
+  initData?: string;
   initDataUnsafe?: { user?: any; theme_params?: Record<string, any> };
   colorScheme?: 'light' | 'dark';
 };
