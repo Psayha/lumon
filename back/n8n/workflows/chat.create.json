@@ -100,7 +100,12 @@
     },
     {
       "parameters": {
-        "workflowId": "auth.validate.v3",
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "value": "auth.validate",
+          "mode": "name"
+        },
         "fields": {
           "values": [
             {
