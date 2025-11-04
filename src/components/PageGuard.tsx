@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useUserRole } from '../hooks/useUserRole';
 import { ViewerRestrictionsModal } from './modals/ViewerRestrictionsModal';
 
@@ -16,7 +16,6 @@ export const PageGuard: React.FC<PageGuardProps> = ({
 }) => {
   const { role, isLoading } = useUserRole();
   const navigate = useNavigate();
-  const location = useLocation();
   const [showRestrictionsModal, setShowRestrictionsModal] = useState(false);
 
   useEffect(() => {

@@ -5,7 +5,6 @@ import {
     BarChart3,
     MessageSquare,
     CheckCircle,
-    AlertCircle,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import * as React from "react";
@@ -111,7 +110,7 @@ export function AnimatedAIChat({
     const [, startTransition] = useTransition();
     
     // Лимит генераций для viewer
-    const { remaining, canGenerate, incrementGeneration, isViewer } = useViewerGenerationLimit();
+    const { canGenerate, incrementGeneration, isViewer } = useViewerGenerationLimit();
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const commandPaletteRef = useRef<HTMLDivElement>(null);

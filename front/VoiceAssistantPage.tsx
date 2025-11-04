@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { AppHeader } from '../src/components/AppHeader';
 // import { AppFooter } from '../src/components/AppFooter';
 import { AnimatedAIChat } from '../src/components/ui/animated-ai-chat';
-import { useUserRole } from '../src/hooks/useUserRole';
 import { 
   createChat, 
   saveMessage, 
