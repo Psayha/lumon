@@ -152,7 +152,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Prepare data for Create Chat\nconst authData = $input.item.json;\nconst titleNode = $('Extract Token').item.json;\n\n// Extract user data from auth response\nconst userId = authData.data?.user?.id || null;\nconst companyId = authData.data?.user?.company_id || null;\nconst title = titleNode?.title || 'New Chat';\n\nif (!userId) {\n  throw new Error('User ID is missing from auth response');\n}\n\nreturn {\n  json: {\n    user_id: userId,\n    company_id: companyId,\n    title: title\n  }\n};"
+        "jsCode": "// Prepare data for Create Chat\nconst authData = $input.item.json;\nconst titleNode = $('Extract Token').item.json;\n\n// Try different paths to find user data\nlet userId = null;\nlet companyId = null;\n\n// Path 1: authData.data.user (from Parse Auth Response)\nif (authData.data?.user?.id) {\n  userId = authData.data.user.id;\n  companyId = authData.data.user.company_id || null;\n}\n// Path 2: direct authData.user\nelse if (authData.user?.id) {\n  userId = authData.user.id;\n  companyId = authData.user.company_id || null;\n}\n// Path 3: authData itself has user_id\nelse if (authData.user_id) {\n  userId = authData.user_id;\n  companyId = authData.company_id || null;\n}\n\nconst title = titleNode?.title || 'New Chat';\n\nif (!userId) {\n  // Log the structure for debugging\n  console.log('Auth data structure:', JSON.stringify(authData, null, 2));\n  throw new Error('User ID is missing from auth response. Check auth.validate output structure.');\n}\n\nreturn {\n  json: {\n    user_id: userId,\n    company_id: companyId,\n    title: title\n  }\n};"
       },
       "id": "prepare-chat-data",
       "name": "Prepare Chat Data",
