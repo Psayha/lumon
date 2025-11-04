@@ -68,7 +68,7 @@
     },
     {
       "parameters": {
-        "functionCode": "// Generate session token and prepare data\nconst crypto = require('crypto');\nconst sessionToken = crypto.randomUUID();\n\n// Get user data (always present from Upsert User)\nconst userData = $('Upsert User').item.json;\n\n// Try to get role data (might be empty)\nconst roleData = $('Get Role & Company').item?.json || {};\n\n// Set default role if no company assigned\nconst role = roleData.role || 'viewer';\nconst companyId = roleData.company_id || null;\n\nreturn {\n  json: {\n    session_token: sessionToken,\n    user_id: userData.id,\n    company_id: companyId,\n    role: role\n  }\n};"
+        "functionCode": "// Generate UUID v4 (manual implementation)\nfunction uuidv4() {\n  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {\n    const r = Math.random() * 16 | 0;\n    const v = c === 'x' ? r : (r & 0x3 | 0x8);\n    return v.toString(16);\n  });\n}\n\nconst sessionToken = uuidv4();\n\n// Get user data (always present from Upsert User)\nconst userData = $('Upsert User').item.json;\n\n// Try to get role data (might be empty)\nconst roleData = $('Get Role & Company').item?.json || {};\n\n// Set default role if no company assigned\nconst role = roleData.role || 'viewer';\nconst companyId = roleData.company_id || null;\n\nreturn {\n  json: {\n    session_token: sessionToken,\n    user_id: userData.id,\n    company_id: companyId,\n    role: role\n  }\n};"
       },
       "id": "generate-session",
       "name": "Generate Session Token",
