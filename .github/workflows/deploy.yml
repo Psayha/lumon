@@ -24,8 +24,16 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build
+      - name: Build frontend
         run: npm run build
+        env:
+          VITE_API_URL: ''
+
+      - name: Build admin panel
+        run: |
+          cd adminpage
+          npm ci
+          npm run build
         env:
           VITE_API_URL: ''
 
@@ -70,6 +78,25 @@ jobs:
           SSH_PORT: ${{ secrets.SSH_PORT }}
           SSH_USER: ${{ secrets.SSH_USER }}
           DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+
+      - name: Deploy admin panel via rsync
+        run: |
+          ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "mkdir -p $DEPLOY_PATH/../adminpage"
+          rsync -avz --delete -e "ssh -i ~/.ssh/deploy_key -p $SSH_PORT" adminpage/dist-admin/ "$SSH_USER@$SSH_HOST:$DEPLOY_PATH/../adminpage/"
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+
+      - name: Deploy simple HTML pages
+        run: |
+          ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "mkdir -p ${{ steps.backend_path.outputs.path }}/nginx-simple-pages"
+          rsync -avz -e "ssh -i ~/.ssh/deploy_key -p $SSH_PORT" back/nginx-simple-pages/ "$SSH_USER@$SSH_HOST:${{ steps.backend_path.outputs.path }}/nginx-simple-pages/"
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_USER: ${{ secrets.SSH_USER }}
 
       - name: Ensure remote backend directory exists
         run: |
@@ -142,6 +169,67 @@ jobs:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_PORT: ${{ secrets.SSH_PORT }}
           SSH_USER: ${{ secrets.SSH_USER }}
+
+      - name: Setup Nginx configuration for simple pages (n8n, sb)
+        run: |
+          ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "cd ${{ steps.backend_path.outputs.path }} && sudo tee /etc/nginx/sites-available/n8n-simple > /dev/null << 'EOF'
+          server {
+              server_name n8n.psayha.ru;
+              root ${{ steps.backend_path.outputs.path }}/nginx-simple-pages;
+              index n8n.html;
+              location / {
+                  try_files \$uri \$uri/ =404;
+              }
+              listen 80;
+              listen [::]:80;
+          }
+          EOF
+          sudo tee /etc/nginx/sites-available/sb-simple > /dev/null << 'EOF'
+          server {
+              server_name sb.psayha.ru;
+              root ${{ steps.backend_path.outputs.path }}/nginx-simple-pages;
+              index sb.html;
+              location / {
+                  try_files \$uri \$uri/ =404;
+              }
+              listen 80;
+              listen [::]:80;
+          }
+          EOF
+          sudo ln -sf /etc/nginx/sites-available/n8n-simple /etc/nginx/sites-enabled/ || true
+          sudo ln -sf /etc/nginx/sites-available/sb-simple /etc/nginx/sites-enabled/ || true
+          sudo nginx -t && sudo systemctl reload nginx || echo 'Nginx reload skipped'"
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+
+      - name: Setup Nginx configuration for admin panel
+        run: |
+          ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "sudo tee /etc/nginx/sites-available/admin-panel > /dev/null << 'EOF'
+          server {
+              server_name admin.psayha.ru;
+              root $DEPLOY_PATH/../adminpage;
+              index index.html;
+              location / {
+                  try_files \$uri \$uri/ /index.html;
+              }
+              location ~* \.(jpg|jpeg|png|gif|ico|css|js|svg|woff|woff2|ttf|eot)\$ {
+                  expires 1y;
+                  add_header Cache-Control \"public, immutable\";
+                  access_log off;
+              }
+              listen 80;
+              listen [::]:80;
+          }
+          EOF
+          sudo ln -sf /etc/nginx/sites-available/admin-panel /etc/nginx/sites-enabled/ || true
+          sudo nginx -t && sudo systemctl reload nginx || echo 'Nginx reload skipped'"
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
 
       - name: Setup Nginx configuration for frontend
         run: |
