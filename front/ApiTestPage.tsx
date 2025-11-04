@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { AppHeader } from '../src/components/AppHeader';
+import { useNavigate } from 'react-router-dom';
+import { ArrowLeft, Play, Copy, Bot, RefreshCw, Trash2 } from 'lucide-react';
 import { 
   createUser, 
   createChat, 
@@ -11,12 +12,22 @@ import {
 } from '../src/utils/api';
 import { API_CONFIG, getApiUrl } from '../src/config/api';
 
+interface UserContext {
+  userId: string;
+  role: 'owner' | 'manager' | 'viewer' | null;
+  companyId: string | null;
+  companyName?: string;
+  permissions: string[];
+}
+
 const ApiTestPage: React.FC = () => {
+  const navigate = useNavigate();
   const [selectedEndpoint, setSelectedEndpoint] = useState<string>('auth-init');
   const [requestBody, setRequestBody] = useState<string>('{}');
   const [response, setResponse] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [sessionToken, setSessionToken] = useState<string>('');
+  const [userContext, setUserContext] = useState<UserContext | null>(null);
   const [chatIdForHistory, setChatIdForHistory] = useState<string>('');
   const [lastTestResult, setLastTestResult] = useState<{
     success: boolean;
@@ -24,11 +35,19 @@ const ApiTestPage: React.FC = () => {
     timestamp: string;
   } | null>(null);
 
-  // Загружаем сохранённый токен при монтировании
+  // Загружаем сохранённый токен и контекст при монтировании
   useEffect(() => {
     const savedToken = localStorage.getItem('test_session_token');
+    const savedContext = localStorage.getItem('test_user_context');
     if (savedToken) {
       setSessionToken(savedToken);
+    }
+    if (savedContext) {
+      try {
+        setUserContext(JSON.parse(savedContext));
+      } catch (e) {
+        console.error('Failed to parse user context:', e);
+      }
     }
   }, []);
 
@@ -192,12 +211,40 @@ const ApiTestPage: React.FC = () => {
         timestamp
       });
 
-      // Автосохранение session_token из auth-init
+      // Автосохранение session_token и context из auth-init
       if (selectedEndpoint === 'auth-init' && response.ok && responseData?.data?.session_token) {
         const token = responseData.data.session_token;
         setSessionToken(token);
         localStorage.setItem('test_session_token', token);
         console.log('[API Test] Session token saved:', token);
+        
+        // Сохраняем user context
+        if (responseData.data) {
+          const context: UserContext = {
+            userId: responseData.data.user?.id || '',
+            role: responseData.data.role || null,
+            companyId: responseData.data.companyId || null,
+            companyName: responseData.data.companyName,
+            permissions: []
+          };
+          setUserContext(context);
+          localStorage.setItem('test_user_context', JSON.stringify(context));
+          console.log('[API Test] User context saved:', context);
+        }
+      }
+      
+      // Сохраняем context из auth-validate
+      if (selectedEndpoint === 'auth-validate' && response.ok && responseData?.context) {
+        const context: UserContext = {
+          userId: responseData.context.userId || '',
+          role: responseData.context.role || null,
+          companyId: responseData.context.companyId || null,
+          companyName: responseData.context.companyName,
+          permissions: responseData.context.permissions || []
+        };
+        setUserContext(context);
+        localStorage.setItem('test_user_context', JSON.stringify(context));
+        console.log('[API Test] User context updated:', context);
       }
 
       // Также пробуем через обычные функции API для сравнения
@@ -353,75 +400,183 @@ const ApiTestPage: React.FC = () => {
 
   const info = endpointInfo[selectedEndpoint as keyof typeof endpointInfo];
 
+  const handleClearSession = () => {
+    setSessionToken('');
+    setUserContext(null);
+    localStorage.removeItem('test_session_token');
+    localStorage.removeItem('test_user_context');
+    setLastTestResult(null);
+    setResponse('');
+  };
+
+  const getRoleBadgeColor = (role: string | null) => {
+    switch (role) {
+      case 'owner': return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300';
+      case 'manager': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300';
+      case 'viewer': return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
+      default: return 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400';
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <AppHeader showHomeButton={true} />
-      
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-          <h1 className="text-3xl font-bold mb-6 text-gray-900 dark:text-white">
-            🧪 Тестирование API
-          </h1>
-
-          {/* Информация о текущем API */}
-          <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-              <strong>API URL:</strong> {API_CONFIG.baseUrl}
-            </p>
-            <p className="text-xs text-gray-500 dark:text-gray-500 mb-2">
-              <strong>VITE_API_URL:</strong> {import.meta.env.VITE_API_URL || 'не установлен (используется localhost)'}
-            </p>
-            <p className="text-xs text-orange-600 dark:text-orange-400 mb-1">
-              ⚠️ Если видишь localhost в продакшене — нужно пересобрать фронтенд с VITE_API_URL
-            </p>
-            <p className="text-xs text-gray-500 dark:text-gray-500">
-              Открой консоль (F12) для детального логирования запросов
-            </p>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+      {/* Header */}
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <button
+              onClick={() => navigate('/')}
+              className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5" />
+              <span className="font-medium">Назад</span>
+            </button>
+            <h1 className="text-xl font-bold text-gray-900 dark:text-white">
+              🧪 API Test
+            </h1>
+            <div className="w-20"></div>
           </div>
+        </div>
+      </div>
+      
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">{/* Left sidebar - User Context & Status */}
+          <div className="lg:col-span-1 space-y-4">
+            {/* User Context Card */}
+            {userContext ? (
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    👤 Пользователь
+                  </h2>
+                  <button
+                    onClick={handleClearSession}
+                    className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                    title="Очистить сессию"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+                
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">User ID</p>
+                    <p className="text-sm font-mono text-gray-900 dark:text-white truncate">
+                      {userContext.userId || 'N/A'}
+                    </p>
+                  </div>
+                  
+                  {userContext.role && (
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Роль</p>
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getRoleBadgeColor(userContext.role)}`}>
+                        {userContext.role}
+                      </span>
+                    </div>
+                  )}
+                  
+                  {userContext.companyId && (
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Компания</p>
+                      <p className="text-sm font-mono text-gray-900 dark:text-white truncate">
+                        {userContext.companyName || userContext.companyId}
+                      </p>
+                    </div>
+                  )}
+                  
+                  {userContext.permissions.length > 0 && (
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Права</p>
+                      <div className="flex flex-wrap gap-1">
+                        {userContext.permissions.map((perm, idx) => (
+                          <span
+                            key={idx}
+                            className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
+                          >
+                            {perm}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                  👤 Пользователь
+                </h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Выполните Auth Init для загрузки данных пользователя
+                </p>
+              </div>
+            )}
 
-          {/* Session Token индикатор */}
-          {sessionToken && (
-            <div className="mb-4 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-700">
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-green-800 dark:text-green-300 mb-1">
-                    🔑 Session Token активен
-                  </p>
-                  <p className="text-xs text-gray-600 dark:text-gray-400 font-mono truncate">
-                    {sessionToken.substring(0, 40)}...
+            {/* Session Token Status */}
+            {sessionToken && (
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+                  🔑 Session Token
+                </h2>
+                <p className="text-xs font-mono text-gray-600 dark:text-gray-400 break-all">
+                  {sessionToken}
+                </p>
+              </div>
+            )}
+
+            {/* Last Test Result */}
+            {lastTestResult && (
+              <div className={`rounded-xl shadow-sm border p-6 ${
+                lastTestResult.success 
+                  ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700' 
+                  : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-700'
+              }`}>
+                <div className="flex items-center gap-2 mb-2">
+                  {lastTestResult.success ? (
+                    <span className="text-2xl">✅</span>
+                  ) : (
+                    <span className="text-2xl">❌</span>
+                  )}
+                  <h2 className={`text-lg font-semibold ${
+                    lastTestResult.success ? 'text-green-800 dark:text-green-300' : 'text-red-800 dark:text-red-300'
+                  }`}>
+                    {lastTestResult.success ? 'Успешно' : 'Ошибка'}
+                  </h2>
+                </div>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  <span className="font-mono">{lastTestResult.endpoint}</span>
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                  {new Date(lastTestResult.timestamp).toLocaleString()}
+                </p>
+              </div>
+            )}
+
+            {/* API Info */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+                ⚙️ Настройки
+              </h2>
+              <div className="space-y-2 text-sm">
+                <div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">API URL</p>
+                  <p className="font-mono text-xs text-gray-900 dark:text-white break-all">
+                    {API_CONFIG.baseUrl}
                   </p>
                 </div>
-                <button
-                  onClick={() => {
-                    setSessionToken('');
-                    localStorage.removeItem('test_session_token');
-                  }}
-                  className="ml-4 px-3 py-1 text-xs bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-900/50"
-                >
-                  Очистить
-                </button>
+                <div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">VITE_API_URL</p>
+                  <p className="font-mono text-xs text-gray-900 dark:text-white">
+                    {import.meta.env.VITE_API_URL || 'localhost'}
+                  </p>
+                </div>
               </div>
             </div>
-          )}
+          </div>
 
-          {/* Last Test Result */}
-          {lastTestResult && (
-            <div className={`mb-4 p-4 rounded-lg border ${
-              lastTestResult.success 
-                ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700' 
-                : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-700'
-            }`}>
-              <p className={`text-sm font-medium ${
-                lastTestResult.success ? 'text-green-800 dark:text-green-300' : 'text-red-800 dark:text-red-300'
-              }`}>
-                {lastTestResult.success ? '✅ Последний тест успешен' : '❌ Последний тест провален'}
-              </p>
-              <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                Endpoint: <span className="font-mono">{lastTestResult.endpoint}</span> | 
-                Время: {new Date(lastTestResult.timestamp).toLocaleTimeString()}
-              </p>
-            </div>
-          )}
+          {/* Main content area */}
+          <div className="lg:col-span-2 space-y-6">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
 
           {/* Выбор endpoint */}
           <div className="mb-6">
@@ -515,36 +670,48 @@ const ApiTestPage: React.FC = () => {
             </div>
           )}
 
-          {/* Кнопка тестирования */}
-          <button
-            onClick={handleTestEndpoint}
-            disabled={loading || (selectedEndpoint === 'get-chat-history' && !chatIdForHistory)}
-            className="w-full py-3 px-6 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            {loading ? '⏳ Отправка запроса...' : `🚀 Тестировать ${info.method}`}
-          </button>
+              {/* Кнопка тестирования */}
+              <button
+                onClick={handleTestEndpoint}
+                disabled={loading || (selectedEndpoint === 'get-chat-history' && !chatIdForHistory)}
+                className="w-full py-3 px-6 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-medium hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
+              >
+                {loading ? (
+                  <>
+                    <RefreshCw className="w-5 h-5 animate-spin" />
+                    <span>Отправка запроса...</span>
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-5 h-5" />
+                    <span>Тестировать {info.method}</span>
+                  </>
+                )}
+              </button>
+            </div>
 
-          {/* Ответ */}
-          {response && (
-            <div className="mt-6">
-              <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Ответ:
-                </label>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(response);
-                      alert('✅ Ответ скопирован в буфер обмена!');
-                    }}
-                    className="px-3 py-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded text-xs hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
-                  >
-                    📋 Копировать JSON
-                  </button>
-                  <button
-                    onClick={() => {
-                      const logData = JSON.parse(response);
-                      const aiLog = `
+            {/* Ответ */}
+            {response && (
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    📄 Ответ
+                  </h2>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(response);
+                        alert('✅ Ответ скопирован в буфер обмена!');
+                      }}
+                      className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-sm hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                    >
+                      <Copy className="w-4 h-4" />
+                      <span>JSON</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        const logData = JSON.parse(response);
+                        const aiLog = `
 === API Test Log для AI ===
 Timestamp: ${logData.timestamp}
 Endpoint: ${logData.endpoint}
@@ -564,50 +731,24 @@ RESPONSE:
 FULL RESPONSE:
 ${JSON.stringify(logData.fullResponse, null, 2)}
 ===========================
-                      `.trim();
-                      navigator.clipboard.writeText(aiLog);
-                      alert('🤖 Лог для AI скопирован! Теперь можешь отправить его мне.');
-                    }}
-                    className="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 transition-colors font-medium"
-                  >
-                    🤖 Копировать лог для AI
-                  </button>
+                        `.trim();
+                        navigator.clipboard.writeText(aiLog);
+                        alert('🤖 Лог для AI скопирован! Теперь можешь отправить его мне.');
+                      }}
+                      className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition-colors font-medium"
+                    >
+                      <Bot className="w-4 h-4" />
+                      <span>Лог для AI</span>
+                    </button>
+                  </div>
+                </div>
+                <div className="relative">
+                  <pre className="w-full px-4 py-3 rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white font-mono text-xs overflow-auto max-h-96 border border-gray-200 dark:border-gray-700">
+                    {response}
+                  </pre>
                 </div>
               </div>
-              <div className="relative">
-                <pre className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white font-mono text-sm overflow-auto max-h-96">
-                  {response}
-                </pre>
-              </div>
-            </div>
-          )}
-
-          {/* Инструкция */}
-          <div className="mt-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
-            <h3 className="font-medium text-gray-900 dark:text-white mb-2">📝 Инструкция по использованию:</h3>
-            <ol className="list-decimal list-inside text-sm text-gray-600 dark:text-gray-400 space-y-1">
-              <li><strong>Начни с Auth Init:</strong> Сначала протестируй "Auth Init" чтобы получить session_token</li>
-              <li><strong>Выбери endpoint:</strong> После получения токена можешь тестировать защищённые endpoints</li>
-              <li><strong>Загрузи тестовые данные:</strong> Нажми "Загрузить тестовые данные" для автозаполнения</li>
-              <li><strong>Проверь результат:</strong> Смотри на индикаторы ✅/❌ сверху</li>
-              <li><strong>Скопируй лог для AI:</strong> Если нужна помощь - нажми "🤖 Копировать лог для AI" и отправь мне</li>
-              <li><strong>DevTools:</strong> Открой консоль (F12 → Network) для детального анализа запросов</li>
-            </ol>
-          </div>
-
-          {/* Roadmap ссылка */}
-          <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-700">
-            <h3 className="font-medium text-blue-900 dark:text-blue-300 mb-2">📚 Документация:</h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-              Полная информация о новой архитектуре авторизации в файле:
-            </p>
-            <a 
-              href="/ROADMAP_AUTH.md" 
-              target="_blank"
-              className="text-sm text-blue-600 dark:text-blue-400 hover:underline font-mono"
-            >
-              → ROADMAP_AUTH.md
-            </a>
+            )}
           </div>
         </div>
       </div>
