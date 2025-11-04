@@ -28,10 +28,8 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "INSERT INTO users (telegram_id, first_name, last_name, username, language_code, app_version, last_login_at)\nVALUES ($1, $2, $3, $4, $5, $6, NOW())\nON CONFLICT (telegram_id) \nDO UPDATE SET \n  first_name = EXCLUDED.first_name,\n  last_name = EXCLUDED.last_name,\n  username = EXCLUDED.username,\n  language_code = EXCLUDED.language_code,\n  app_version = EXCLUDED.app_version,\n  last_login_at = NOW()\nRETURNING id, telegram_id, created_at",
-        "options": {
-          "queryParams": "={{ [\n  $json.telegram_id,\n  $json.first_name,\n  $json.last_name,\n  $json.username,\n  $json.language_code,\n  $json.app_version\n] }}"
-        }
+        "query": "INSERT INTO users (telegram_id, first_name, last_name, username, language_code, app_version, last_login_at)\nVALUES ({{ $json.telegram_id }}, '{{ $json.first_name }}', '{{ $json.last_name }}', '{{ $json.username }}', '{{ $json.language_code }}', '{{ $json.app_version }}', NOW())\nON CONFLICT (telegram_id) \nDO UPDATE SET \n  first_name = EXCLUDED.first_name,\n  last_name = EXCLUDED.last_name,\n  username = EXCLUDED.username,\n  language_code = EXCLUDED.language_code,\n  app_version = EXCLUDED.app_version,\n  last_login_at = NOW()\nRETURNING id, telegram_id, created_at",
+        "options": {}
       },
       "id": "upsert-user",
       "name": "Upsert User",
@@ -48,10 +46,8 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT \n  uc.role,\n  c.id as company_id,\n  c.name as company_name,\n  c.settings as company_settings\nFROM user_companies uc\nJOIN companies c ON c.id = uc.company_id\nWHERE uc.user_id = $1 AND uc.is_active = true\nORDER BY uc.created_at ASC\nLIMIT 1",
-        "options": {
-          "queryParams": "={{ [$json.id] }}"
-        }
+        "query": "SELECT \n  uc.role,\n  c.id as company_id,\n  c.name as company_name,\n  c.settings as company_settings\nFROM user_companies uc\nJOIN companies c ON c.id = uc.company_id\nWHERE uc.user_id = '{{ $json.id }}' AND uc.is_active = true\nORDER BY uc.created_at ASC\nLIMIT 1",
+        "options": {}
       },
       "id": "get-role-company",
       "name": "Get Role & Company",
@@ -78,10 +74,8 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "INSERT INTO sessions (session_token, user_id, company_id, role, expires_at)\nVALUES ($1, $2, $3, $4, NOW() + INTERVAL '7 days')\nRETURNING id, session_token, user_id, company_id, role, created_at, expires_at",
-        "options": {
-          "queryParams": "={{ [\n  $json.session_token,\n  $json.user_id,\n  $json.company_id,\n  $json.role\n] }}"
-        }
+        "query": "INSERT INTO sessions (session_token, user_id, company_id, role, expires_at)\nVALUES ('{{ $json.session_token }}', '{{ $json.user_id }}', {{ $json.company_id ? \"'\" + $json.company_id + \"'\" : \"NULL\" }}, '{{ $json.role }}', NOW() + INTERVAL '7 days')\nRETURNING id, session_token, user_id, company_id, role, created_at, expires_at",
+        "options": {}
       },
       "id": "create-session",
       "name": "Create Session",
