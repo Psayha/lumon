@@ -84,7 +84,25 @@
     },
     {
       "parameters": {
-        "functionCode": "// Collect cleanup results\nconst sessionsDeleted = $('Postgres: Cleanup Expired Sessions').item?.json?.length || 0;\nconst idempotencyDeleted = $('Postgres: Cleanup Old Idempotency Keys').item?.json?.length || 0;\nconst rateLimitsDeleted = $('Postgres: Cleanup Old Rate Limits').item?.json?.length || 0;\n\nconst result = {\n  timestamp: $('Prepare Cleanup').item.json.timestamp,\n  results: {\n    sessions_deleted: sessionsDeleted,\n    idempotency_keys_deleted: idempotencyDeleted,\n    rate_limits_deleted: rateLimitsDeleted,\n    total_deleted: sessionsDeleted + idempotencyDeleted + rateLimitsDeleted\n  }\n};\n\nconsole.log('[Cron Cleanup]', JSON.stringify(result, null, 2));\n\nreturn {\n  json: result\n};"
+        "operation": "executeQuery",
+        "query": "-- Удаление чатов viewer старше 3 дней (чаты без компании)\nDELETE FROM chats\nWHERE company_id IS NULL\n  AND created_at < now() - interval '3 days'\nRETURNING id;",
+        "options": {}
+      },
+      "id": "postgres-cleanup-viewer-chats",
+      "name": "Postgres: Cleanup Viewer Chats (> 3 days)",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [650, 500],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-postgres",
+          "name": "Supabase PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "// Collect cleanup results\nconst sessionsDeleted = $('Postgres: Cleanup Expired Sessions').item?.json?.length || 0;\nconst idempotencyDeleted = $('Postgres: Cleanup Old Idempotency Keys').item?.json?.length || 0;\nconst rateLimitsDeleted = $('Postgres: Cleanup Old Rate Limits').item?.json?.length || 0;\nconst viewerChatsDeleted = $('Postgres: Cleanup Viewer Chats (> 3 days)').item?.json?.length || 0;\n\nconst result = {\n  timestamp: $('Prepare Cleanup').item.json.timestamp,\n  results: {\n    sessions_deleted: sessionsDeleted,\n    idempotency_keys_deleted: idempotencyDeleted,\n    rate_limits_deleted: rateLimitsDeleted,\n    viewer_chats_deleted: viewerChatsDeleted,\n    total_deleted: sessionsDeleted + idempotencyDeleted + rateLimitsDeleted + viewerChatsDeleted\n  }\n};\n\nconsole.log('[Cron Cleanup]', JSON.stringify(result, null, 2));\n\nreturn {\n  json: result\n};"
       },
       "id": "format-results",
       "name": "Format Results",
@@ -181,6 +199,11 @@
             "node": "postgres-cleanup-rate-limits",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "postgres-cleanup-viewer-chats",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
@@ -208,6 +231,17 @@
       ]
     },
     "postgres-cleanup-rate-limits": {
+      "main": [
+        [
+          {
+            "node": "format-results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "postgres-cleanup-viewer-chats": {
       "main": [
         [
           {

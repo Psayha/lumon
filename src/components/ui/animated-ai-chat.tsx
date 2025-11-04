@@ -5,6 +5,7 @@ import {
     BarChart3,
     MessageSquare,
     CheckCircle,
+    AlertCircle,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import * as React from "react";
@@ -13,6 +14,7 @@ import { WelcomeMessage } from "./WelcomeMessage";
 import { QuickCommands } from "./QuickCommands";
 import { InputArea } from "./InputArea";
 import { ChatHistory } from "./ChatHistory";
+import { useViewerGenerationLimit } from "../../hooks/useViewerGenerationLimit";
 
 function useAutoResizeTextarea({
     value,
@@ -107,6 +109,9 @@ export function AnimatedAIChat({
     const [showChatHistory, setShowChatHistory] = useState(false);
     const [activeSuggestion] = useState(0);
     const [, startTransition] = useTransition();
+    
+    // Лимит генераций для viewer
+    const { remaining, canGenerate, incrementGeneration, isViewer } = useViewerGenerationLimit();
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const commandPaletteRef = useRef<HTMLDivElement>(null);
@@ -223,6 +228,22 @@ export function AnimatedAIChat({
         }
         
         if (value.trim()) {
+            // Проверяем лимит генераций для viewer
+            if (isViewer && !canGenerate) {
+                const limitMessage: Message = {
+                    id: Date.now().toString(),
+                    text: `❌ Вы достигли дневного лимита генераций (3 в сутки). Лимит обновится завтра. Для снятия ограничений подключите компанию.`,
+                    isUser: false,
+                    timestamp: new Date()
+                };
+                setMessages(prev => [...prev, limitMessage]);
+                setValue("");
+                setTimeout(() => {
+                    adjustHeight(true);
+                }, 0);
+                return;
+            }
+            
             const userMessage: Message = {
                 id: Date.now().toString(),
                 text: value.trim(),
@@ -243,6 +264,12 @@ export function AnimatedAIChat({
             });
 
             try {
+                // Увеличиваем счётчик генераций для viewer (перед вызовом AI)
+                if (!incrementGeneration()) {
+                    // Лимит превышен (хотя уже проверили выше, но для надёжности)
+                    return;
+                }
+                
                 const aiResponse = await sendToAI(userMessage.text);
                 
                 const aiMessage: Message = {

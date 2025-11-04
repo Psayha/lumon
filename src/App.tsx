@@ -5,6 +5,7 @@ import { Brain, Sparkles, Zap } from 'lucide-react';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { ModernSplashScreen } from './components/ModernSplashScreen';
 import { AuthGuard } from './components/AuthGuard';
+import { PageGuard } from './components/PageGuard';
 import { useTelegram, isTelegramWebApp } from './hooks/useTelegram';
 import TelegramOnlyPage from '../front/TelegramOnlyPage';
 
@@ -477,9 +478,30 @@ const App: React.FC = () => {
                   <Routes>
                     <Route path="/" element={<MenuPage />} />
                     <Route path="/voice-assistant" element={<VoiceAssistantPage />} />
-                    <Route path="/app/crm" element={<CRMPage />} />
-                    <Route path="/app/analytics" element={<AnalyticsPage />} />
-                    <Route path="/app/knowledge" element={<KnowledgeBasePage />} />
+                    <Route 
+                      path="/app/crm" 
+                      element={
+                        <PageGuard blockViewer={true}>
+                          <CRMPage />
+                        </PageGuard>
+                      } 
+                    />
+                    <Route 
+                      path="/app/analytics" 
+                      element={
+                        <PageGuard blockViewer={true}>
+                          <AnalyticsPage />
+                        </PageGuard>
+                      } 
+                    />
+                    <Route 
+                      path="/app/knowledge" 
+                      element={
+                        <PageGuard blockViewer={true}>
+                          <KnowledgeBasePage />
+                        </PageGuard>
+                      } 
+                    />
                     <Route path="/app/payment" element={<PricingPage />} />
                     <Route path="/api-test" element={<ApiTestPage />} />
                   </Routes>
