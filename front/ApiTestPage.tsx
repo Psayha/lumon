@@ -66,6 +66,13 @@ const ApiTestPage: React.FC = () => {
     'auth-logout': {
       token: sessionToken || 'your-session-token-here'
     },
+    'auth-set-viewer-role': {
+      token: sessionToken || 'your-session-token-here'
+    },
+    'auth-switch-company': {
+      token: sessionToken || 'your-session-token-here',
+      companyId: ''
+    },
     'chat-create': {
       title: 'Test Chat ' + new Date().toLocaleTimeString()
     },
@@ -139,7 +146,7 @@ const ApiTestPage: React.FC = () => {
       };
 
       // Добавляем Authorization header для защищённых endpoints
-      const protectedEndpoints = ['auth-validate', 'auth-refresh', 'auth-logout', 'chat-create', 'chat-save-message', 'chat-get-history', 'analytics-log-event'];
+      const protectedEndpoints = ['auth-validate', 'auth-refresh', 'auth-logout', 'auth-set-viewer-role', 'auth-switch-company', 'chat-create', 'chat-save-message', 'chat-get-history', 'analytics-log-event'];
       if (protectedEndpoints.includes(selectedEndpoint) && sessionToken) {
         (requestOptions.headers as Record<string, string>)['Authorization'] = `Bearer ${sessionToken}`;
       }
@@ -233,8 +240,8 @@ const ApiTestPage: React.FC = () => {
         }
       }
       
-      // Сохраняем context из auth-validate
-      if (selectedEndpoint === 'auth-validate' && response.ok && responseData?.context) {
+      // Сохраняем context из auth-validate, auth-set-viewer-role, auth-switch-company
+      if (['auth-validate', 'auth-set-viewer-role', 'auth-switch-company'].includes(selectedEndpoint) && response.ok && responseData?.context) {
         const context: UserContext = {
           userId: responseData.context.userId || '',
           role: responseData.context.role || null,
@@ -342,6 +349,18 @@ const ApiTestPage: React.FC = () => {
       method: 'POST',
       url: getApiUrl(API_CONFIG.endpoints.authLogout),
       description: '🚪 Выход (удаляет сессию)',
+      requiresAuth: true
+    },
+    'auth-set-viewer-role': {
+      method: 'POST',
+      url: getApiUrl('/webhook/auth-set-viewer-role'),
+      description: '👀 Установить роль viewer (для пользователей без компании)',
+      requiresAuth: true
+    },
+    'auth-switch-company': {
+      method: 'POST',
+      url: getApiUrl('/webhook/auth-switch-company'),
+      description: '🔄 Сменить активную компанию (multi-company support)',
       requiresAuth: true
     },
     // Chat endpoints
@@ -469,9 +488,20 @@ const ApiTestPage: React.FC = () => {
                   {userContext.role && (
                     <div>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Роль</p>
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getRoleBadgeColor(userContext.role)}`}>
-                        {userContext.role}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getRoleBadgeColor(userContext.role)}`}>
+                          {userContext.role}
+                        </span>
+                        {userContext.role === 'owner' && (
+                          <span className="text-xs text-purple-600 dark:text-purple-400" title="Владелец компании">👑</span>
+                        )}
+                        {userContext.role === 'manager' && (
+                          <span className="text-xs text-blue-600 dark:text-blue-400" title="Менеджер">🔧</span>
+                        )}
+                        {userContext.role === 'viewer' && (
+                          <span className="text-xs text-gray-600 dark:text-gray-400" title="Только просмотр">👁️</span>
+                        )}
+                      </div>
                     </div>
                   )}
                   
@@ -598,6 +628,8 @@ const ApiTestPage: React.FC = () => {
                 <option value="auth-validate">Auth Validate - Проверка токена (POST)</option>
                 <option value="auth-refresh">Auth Refresh - Продление сессии (POST)</option>
                 <option value="auth-logout">Auth Logout - Выход (POST)</option>
+                <option value="auth-set-viewer-role">Auth Set Viewer Role - Установить роль viewer (POST)</option>
+                <option value="auth-switch-company">Auth Switch Company - Сменить компанию (POST)</option>
               </optgroup>
               <optgroup label="💬 Chat Endpoints">
                 <option value="chat-create">Chat Create - Создание чата (POST)</option>
