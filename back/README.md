@@ -78,55 +78,116 @@ back/
 
 ## 🗄️ База данных
 
-Миграции находятся в `../base/supabase/migrations/`
+Миграции находятся в `supabase/migrations/`
 
-Первая миграция (`001_initial_schema.sql`) создает:
-- `users` - пользователи Telegram
-- `chats` - сессии чатов (хранение 14 дней)
-- `messages` - сообщения чатов
-- `documents` - документы базы знаний
-- `analytics_events` - события аналитики
+**Применённые миграции:**
+- `20251104000000_drop_old_tables.sql` - очистка старых таблиц
+- `20251104000001_auth_system.sql` - auth система
+
+**Таблицы:**
+- `users` - пользователи Telegram (telegram_id, username, first_name, last_name)
+- `companies` - компании
+- `user_companies` - связь пользователь-компания с ролями (owner, manager, viewer)
+- `sessions` - активные сессии (session_token, expires_at, last_activity_at)
+- `chats` - сессии чатов (user_id, company_id, title)
+- `messages` - сообщения чатов (chat_id, role, content, metadata)
+- `audit_events` - аудит действий (опционально)
+- `idempotency_keys` - идемпотентность запросов (опционально)
+- `rate_limits` - ограничение частоты запросов (опционально)
+
+**Применение миграций:**
+```bash
+./apply-migration.sh
+```
 
 ## 📝 Следующие шаги
 
-### 1. Настройка n8n Workflows
+### 1. n8n Workflows (Актуальные)
 
-1. Откройте n8n: http://localhost:5678
-2. Создайте базовые workflows для API endpoints:
-   - `/webhook/save-message` - сохранение сообщений чата
-   - `/webhook/get-chat-history` - получение истории чата
-   - `/webhook/create-user` - создание пользователя
-   - `/webhook/analytics` - отправка аналитики
+#### Auth System (✅ Реализовано)
+- `/webhook/auth-init-v2` - инициализация сессии (Telegram initData)
+- `/webhook/auth-validate-v2` - валидация session_token
+- `/webhook/auth-refresh` - продление сессии
+- `/webhook/auth-logout` - завершение сессии
+- `/webhook/auth-set-viewer-role` - установка роли viewer
+- `auth.validate.v3` (subworkflow) - валидация токена
 
-### 2. Создание API Workflows
+#### Chat System (✅ Реализовано)
+- `/webhook/chat-create` - создание чата (с auth.validate)
+- `/webhook/chat-save-message` - сохранение сообщения (с auth.validate)
+- `/webhook/chat-get-history` - история чата (с auth.validate)
 
-Каждый workflow должен:
-- Получать данные через Webhook Trigger
-- Валидировать входные данные
-- Сохранять в PostgreSQL через Supabase
-- Возвращать JSON ответ
+#### Analytics (⏳ В разработке)
+- `/webhook/analytics` - логирование событий
 
-### 3. Интеграция с Frontend
+### 2. Архитектура Workflows
 
-1. Создайте конфигурацию API в frontend:
-   ```typescript
-   // src/config/api.ts
-   export const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5678';
-   ```
-
-2. Используйте `useApi` хук для запросов:
-   ```typescript
-   const { data, loading, error } = useApi(`${API_BASE_URL}/webhook/save-message`, {
-     method: 'POST',
-     body: JSON.stringify({ message, userId })
-   });
-   ```
-
-### 4. Переменные окружения Frontend
-
-Создайте `.env` в корне проекта:
+Все бизнес-workflows следуют паттерну:
 ```
-REACT_APP_API_URL=http://localhost:5678
+Webhook → auth.validate → Parse Auth Response → IF Auth Success → Бизнес-логика → Response
+                                              → Response 401 (если auth failed)
+```
+
+**Единый формат ответов:**
+```json
+{
+  "success": true,
+  "data": { /* payload */ },
+  "traceId": "uuid"
+}
+```
+
+**Единый формат ошибок:**
+```json
+{
+  "error": "unauthorized",
+  "status": 401,
+  "message": "Invalid or expired token",
+  "traceId": "uuid"
+}
+```
+
+### 3. Интеграция с Frontend (✅ Реализовано)
+
+**API конфигурация:**
+- `src/config/api.ts` - endpoints и headers
+- `src/utils/api.ts` - API функции с retry и auth
+
+**Автоматическая авторизация:**
+- `AuthGuard` компонент инициализирует сессию при старте
+- `Authorization: Bearer <session_token>` добавляется автоматически
+- Автоматический re-auth при 401/403
+- Автопродление сессии каждые 4 минуты
+
+**Пример использования:**
+```typescript
+import { createChat, saveMessage } from './utils/api';
+
+// Создание чата (userId берется из session_token)
+const chatResponse = await createChat('My Chat');
+
+// Сохранение сообщения
+await saveMessage({
+  chat_id: chatResponse.data.id,
+  role: 'user',
+  content: 'Hello!'
+});
+```
+
+### 4. Переменные окружения
+
+**Backend (.env):**
+```env
+POSTGRES_PASSWORD=lumon_dev_password
+N8N_USER=admin
+N8N_PASSWORD=lumon_dev
+N8N_ENCRYPTION_KEY=your-encryption-key
+TELEGRAM_BOT_TOKEN=your-bot-token
+```
+
+**Frontend (.env.local):**
+```env
+VITE_API_URL=http://localhost:5678
 ```
 
 ## 🔧 Управление

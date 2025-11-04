@@ -129,7 +129,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const httpResponse = $input.item.json;\nconst responseText = httpResponse.data;\n\nif (typeof responseText === 'string') {\n  return { json: JSON.parse(responseText) };\n}\n\nreturn { json: responseText };"
+        "jsCode": "const httpResponse = $input.item.json;\nconst responseText = httpResponse.data;\n\nlet parsedData;\nif (typeof responseText === 'string') {\n  try {\n    parsedData = JSON.parse(responseText);\n  } catch (e) {\n    return { json: { success: false, error: 'Failed to parse auth response' } };\n  }\n} else {\n  parsedData = responseText;\n}\n\n// Check if parsedData is empty or missing required fields\nif (!parsedData || Object.keys(parsedData).length === 0) {\n  return { json: { success: false, error: 'Empty auth response' } };\n}\n\n// Check if response has success field\nif (parsedData.success === undefined) {\n  return { json: { success: false, error: 'Invalid auth response format' } };\n}\n\nreturn { json: parsedData };"
       },
       "id": "parse-auth-response",
       "name": "Parse Auth Response",
@@ -322,6 +322,24 @@
     },
     "Parse Auth Response": {
       "main": [
+        [
+          {
+            "node": "IF Auth Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Auth Success": {
+      "main": [
+        [
+          {
+            "node": "Respond Auth Error",
+            "type": "main",
+            "index": 0
+          }
+        ],
         [
           {
             "node": "Prepare Chat Data",
