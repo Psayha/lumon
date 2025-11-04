@@ -4,19 +4,14 @@ import path from 'path';
 
 export default defineConfig({
   plugins: [react()],
-  root: './adminpage',
+  root: path.resolve(__dirname),
   build: {
     outDir: '../dist-admin',
     emptyOutDir: true,
-    rollupOptions: {
-      input: {
-        main: path.resolve(__dirname, 'adminpage/index.html'),
-      },
-    },
   },
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, 'src'),
+      '@': path.resolve(__dirname, '../src'),
     },
   },
   server: {
