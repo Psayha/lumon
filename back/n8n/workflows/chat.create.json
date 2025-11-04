@@ -83,13 +83,7 @@
             }
           ]
         },
-        "options": {
-          "response": {
-            "response": {
-              "responseFormat": "text"
-            }
-          }
-        }
+        "options": {}
       },
       "id": "call-auth-validate",
       "name": "Call auth.validate",
@@ -99,7 +93,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Parse JSON from text response\n// Get data directly from Call auth.validate (HTTP Request might not pass data through $input)\nconst httpResponse = $('Call auth.validate').item.json;\n\n// DEBUG: throw error with full HTTP response structure\nthrow new Error('DEBUG HTTP Response: ' + JSON.stringify(httpResponse, null, 2));"
+        "jsCode": "// Get auth response directly from HTTP Request node\n// HTTP Request returns JSON response automatically when responseFormat is not 'text'\nconst authResponse = $('Call auth.validate').item.json;\n\n// Return the response as-is (it should already be parsed JSON)\nreturn { json: authResponse };"
       },
       "id": "parse-auth-response",
       "name": "Parse Auth Response",
