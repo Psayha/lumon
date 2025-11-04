@@ -1,0 +1,250 @@
+{
+  "name": "auth.refresh",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "auth-refresh",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [250, 300],
+      "webhookId": "auth-refresh"
+    },
+    {
+      "parameters": {
+        "functionCode": "// Extract token from webhook body\nconst body = $input.item.json.body || $input.item.json;\nconst token = body.token;\n\nif (!token) {\n  throw new Error('Session token is required');\n}\n\nreturn {\n  json: {\n    old_token: token\n  }\n};"
+      },
+      "id": "extract-token",
+      "name": "Extract Token",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  s.id,\n  s.session_token,\n  s.user_id,\n  s.company_id,\n  s.role,\n  s.expires_at\nFROM sessions s\nWHERE s.session_token = '{{ $json.old_token }}' AND s.is_active = true",
+        "options": {}
+      },
+      "id": "get-old-session",
+      "name": "Get Old Session",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [650, 300],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-postgres",
+          "name": "Supabase PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "// Check if old session exists\nconst session = $input.item.json;\n\nif (!session.id) {\n  throw new Error('SESSION_NOT_FOUND: Invalid session token');\n}\n\n// Check if session is expired\nconst now = new Date();\nconst expiresAt = new Date(session.expires_at);\n\nif (now > expiresAt) {\n  throw new Error('SESSION_EXPIRED: Cannot refresh expired session');\n}\n\n// Pass through session data\nreturn {\n  json: session\n};"
+      },
+      "id": "validate-old-session",
+      "name": "Validate Old Session",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Generate new UUID v4\nfunction uuidv4() {\n  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {\n    const r = Math.random() * 16 | 0;\n    const v = c === 'x' ? r : (r & 0x3 | 0x8);\n    return v.toString(16);\n  });\n}\n\nconst oldSession = $input.item.json;\nconst newToken = uuidv4();\n\nreturn {\n  json: {\n    old_token: oldSession.session_token,\n    new_token: newToken,\n    user_id: oldSession.user_id,\n    company_id: oldSession.company_id,\n    role: oldSession.role\n  }\n};"
+      },
+      "id": "generate-new-token",
+      "name": "Generate New Token",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE sessions \nSET is_active = false \nWHERE session_token = '{{ $json.old_token }}'",
+        "options": {}
+      },
+      "id": "deactivate-old-session",
+      "name": "Deactivate Old Session",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1250, 300],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-postgres",
+          "name": "Supabase PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO sessions (session_token, user_id, company_id, role, expires_at)\nVALUES ('{{ $json.new_token }}', '{{ $json.user_id }}', {{ $json.company_id ? \"'\" + $json.company_id + \"'\" : \"NULL\" }}, '{{ $json.role }}', NOW() + INTERVAL '7 days')\nRETURNING id, session_token, user_id, company_id, role, created_at, expires_at",
+        "options": {}
+      },
+      "id": "create-new-session",
+      "name": "Create New Session",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1450, 300],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-postgres",
+          "name": "Supabase PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "// Build response\nconst newSession = $input.item.json;\n\nreturn {\n  json: {\n    success: true,\n    data: {\n      session_token: newSession.session_token,\n      user: {\n        id: newSession.user_id,\n        role: newSession.role,\n        company_id: newSession.company_id\n      },\n      expires_at: newSession.expires_at\n    }\n  }\n};"
+      },
+      "id": "build-response",
+      "name": "Build Response",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1650, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "id": "respond-success",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1850, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseCode": 401,
+        "responseBody": "={{ JSON.stringify({success: false, error: {code: 'UNAUTHORIZED', message: $json.message || 'Cannot refresh session'}}) }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "id": "respond-error",
+      "name": "Respond Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [850, 500]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Extract Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Token": {
+      "main": [
+        [
+          {
+            "node": "Get Old Session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Old Session": {
+      "main": [
+        [
+          {
+            "node": "Validate Old Session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Old Session": {
+      "main": [
+        [
+          {
+            "node": "Generate New Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate New Token": {
+      "main": [
+        [
+          {
+            "node": "Deactivate Old Session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Deactivate Old Session": {
+      "main": [
+        [
+          {
+            "node": "Create New Session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create New Session": {
+      "main": [
+        [
+          {
+            "node": "Build Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Response": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
+
