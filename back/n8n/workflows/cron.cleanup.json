@@ -1,0 +1,255 @@
+{
+  "name": "cron.cleanup",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 * * * *"
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Schedule Trigger (Every Hour)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Prepare cleanup tasks\nreturn {\n  json: {\n    timestamp: new Date().toISOString(),\n    tasks: [\n      'cleanup_expired_sessions',\n      'cleanup_old_idempotency_keys',\n      'cleanup_old_rate_limits'\n    ]\n  }\n};"
+      },
+      "id": "prepare-cleanup",
+      "name": "Prepare Cleanup",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Удаление просроченных сессий\nDELETE FROM sessions\nWHERE expires_at < now() - interval '7 days'\nRETURNING id;",
+        "options": {}
+      },
+      "id": "postgres-cleanup-sessions",
+      "name": "Postgres: Cleanup Expired Sessions",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [650, 200],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-postgres",
+          "name": "Supabase PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Удаление старых idempotency keys (старше 24 часов)\nDELETE FROM idempotency_keys\nWHERE created_at < now() - interval '24 hours'\nRETURNING key;",
+        "options": {}
+      },
+      "id": "postgres-cleanup-idempotency",
+      "name": "Postgres: Cleanup Old Idempotency Keys",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [650, 300],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-postgres",
+          "name": "Supabase PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Удаление старых rate limits (старше 1 часа)\nDELETE FROM rate_limits\nWHERE minute_bucket < now() - interval '1 hour'\nRETURNING id;",
+        "options": {}
+      },
+      "id": "postgres-cleanup-rate-limits",
+      "name": "Postgres: Cleanup Old Rate Limits",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [650, 400],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-postgres",
+          "name": "Supabase PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "// Collect cleanup results\nconst sessionsDeleted = $('Postgres: Cleanup Expired Sessions').item?.json?.length || 0;\nconst idempotencyDeleted = $('Postgres: Cleanup Old Idempotency Keys').item?.json?.length || 0;\nconst rateLimitsDeleted = $('Postgres: Cleanup Old Rate Limits').item?.json?.length || 0;\n\nconst result = {\n  timestamp: $('Prepare Cleanup').item.json.timestamp,\n  results: {\n    sessions_deleted: sessionsDeleted,\n    idempotency_keys_deleted: idempotencyDeleted,\n    rate_limits_deleted: rateLimitsDeleted,\n    total_deleted: sessionsDeleted + idempotencyDeleted + rateLimitsDeleted\n  }\n};\n\nconsole.log('[Cron Cleanup]', JSON.stringify(result, null, 2));\n\nreturn {\n  json: result\n};"
+      },
+      "id": "format-results",
+      "name": "Format Results",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.results.total_deleted }}",
+              "operation": "largerEqual",
+              "value2": 1
+            }
+          ]
+        }
+      },
+      "id": "if-items-deleted",
+      "name": "IF Items Deleted",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "schema": {
+          "__rl": true,
+          "value": "public",
+          "mode": "list",
+          "cachedResultName": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "audit_events",
+          "mode": "list",
+          "cachedResultName": "audit_events"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "action": "cron.cleanup",
+            "resource": "database",
+            "meta": "={{ JSON.stringify($json.results) }}",
+            "ip": "system",
+            "user_agent": "n8n-cron"
+          },
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "postgres-log-audit",
+      "name": "Postgres: Log Audit Event",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1250, 200],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-postgres",
+          "name": "Supabase PostgreSQL"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "schedule-trigger": {
+      "main": [
+        [
+          {
+            "node": "prepare-cleanup",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "prepare-cleanup": {
+      "main": [
+        [
+          {
+            "node": "postgres-cleanup-sessions",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "postgres-cleanup-idempotency",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "postgres-cleanup-rate-limits",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "postgres-cleanup-sessions": {
+      "main": [
+        [
+          {
+            "node": "format-results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "postgres-cleanup-idempotency": {
+      "main": [
+        [
+          {
+            "node": "format-results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "postgres-cleanup-rate-limits": {
+      "main": [
+        [
+          {
+            "node": "format-results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "format-results": {
+      "main": [
+        [
+          {
+            "node": "if-items-deleted",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "if-items-deleted": {
+      "main": [
+        [
+          {
+            "node": "postgres-log-audit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "id": "cron-cleanup",
+  "meta": {
+    "instanceId": "lumon-n8n"
+  },
+  "tags": []
+}
+

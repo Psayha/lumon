@@ -1,0 +1,368 @@
+{
+  "name": "auth.switch-company",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "auth-switch-company",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [250, 300],
+      "webhookId": "auth-switch-company"
+    },
+    {
+      "parameters": {
+        "functionCode": "// Extract token and companyId from request\nconst token = $input.item.json.headers?.authorization?.split(' ')[1];\nconst companyId = $input.item.json.body?.companyId;\n\nif (!token) {\n  return {\n    json: {\n      error: 'unauthorized',\n      status: 401,\n      message: 'Missing authorization token',\n      traceId: crypto.randomUUID()\n    }\n  };\n}\n\nif (!companyId) {\n  return {\n    json: {\n      error: 'bad_request',\n      status: 400,\n      message: 'Missing companyId',\n      traceId: crypto.randomUUID()\n    }\n  };\n}\n\nreturn {\n  json: {\n    token,\n    companyId,\n    traceId: crypto.randomUUID()\n  }\n};"
+      },
+      "id": "parse-request",
+      "name": "Parse Request",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.error }}",
+              "operation": "exists"
+            }
+          ]
+        }
+      },
+      "id": "if-parse-error",
+      "name": "IF Parse Error",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": "={{ $json.status || 400 }}"
+        }
+      },
+      "id": "response-parse-error",
+      "name": "Response (Parse Error)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [850, 200]
+    },
+    {
+      "parameters": {
+        "workflowId": "auth.validate.v3",
+        "mode": "subWorkflow",
+        "input": "={{ {\"token\": $json.token} }}",
+        "options": {}
+      },
+      "id": "execute-workflow-auth-validate",
+      "name": "Execute Workflow: auth.validate",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1,
+      "position": [850, 400]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Check if auth.validate returned an error\nconst authResult = $input.item.json;\n\nif (authResult.error) {\n  return {\n    json: {\n      error: authResult.error,\n      status: authResult.status,\n      message: authResult.message,\n      traceId: authResult.traceId\n    }\n  };\n}\n\n// Extract user context\nconst context = authResult.context;\n\nif (!context || !context.userId) {\n  return {\n    json: {\n      error: 'unauthorized',\n      status: 401,\n      message: 'Invalid or missing user context',\n      traceId: authResult.traceId\n    }\n  };\n}\n\nreturn {\n  json: {\n    userId: context.userId,\n    companyId: $('Parse Request').item.json.companyId,\n    token: $('Parse Request').item.json.token,\n    traceId: $('Parse Request').item.json.traceId\n  }\n};"
+      },
+      "id": "parse-auth-response",
+      "name": "Parse Auth Response",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1050, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.error }}",
+              "operation": "exists"
+            }
+          ]
+        }
+      },
+      "id": "if-auth-error",
+      "name": "IF Auth Error",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1250, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": "={{ $json.status || 401 }}"
+        }
+      },
+      "id": "response-auth-error",
+      "name": "Response (Auth Error)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1450, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT 1 FROM user_companies\nWHERE user_id = '{{ $json.userId }}' AND company_id = '{{ $json.companyId }}'\nLIMIT 1;",
+        "options": {}
+      },
+      "id": "postgres-check-access",
+      "name": "Postgres: Check Company Access",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1450, 500],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-postgres",
+          "name": "Supabase PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "// Check if user has access to the company\nconst result = $input.item.json;\n\nif (!result || result.length === 0) {\n  return {\n    json: {\n      error: 'forbidden',\n      status: 403,\n      message: 'User does not have access to this company',\n      traceId: $('Parse Auth Response').item.json.traceId\n    }\n  };\n}\n\nreturn {\n  json: {\n    userId: $('Parse Auth Response').item.json.userId,\n    companyId: $('Parse Auth Response').item.json.companyId,\n    token: $('Parse Auth Response').item.json.token,\n    traceId: $('Parse Auth Response').item.json.traceId\n  }\n};"
+      },
+      "id": "check-access-result",
+      "name": "Check Access Result",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1650, 500]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.error }}",
+              "operation": "exists"
+            }
+          ]
+        }
+      },
+      "id": "if-access-error",
+      "name": "IF Access Error",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1850, 500]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": "={{ $json.status || 403 }}"
+        }
+      },
+      "id": "response-access-error",
+      "name": "Response (Access Error)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [2050, 400]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE sessions\nSET active_company_id = '{{ $json.companyId }}'\nWHERE id = '{{ $json.token }}'\nRETURNING active_company_id;",
+        "options": {}
+      },
+      "id": "postgres-update-session",
+      "name": "Postgres: Update Active Company",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [2050, 600],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-postgres",
+          "name": "Supabase PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "// Format the success response\nconst updatedSession = $input.item.json;\n\nreturn {\n  json: {\n    success: true,\n    data: {\n      companyId: updatedSession.active_company_id || $('Check Access Result').item.json.companyId\n    },\n    traceId: $('Check Access Result').item.json.traceId\n  }\n};"
+      },
+      "id": "format-success-response",
+      "name": "Format Success Response",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [2250, 600]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "response-success",
+      "name": "Response (Success)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [2450, 600]
+    }
+  ],
+  "connections": {
+    "webhook-trigger": {
+      "main": [
+        [
+          {
+            "node": "parse-request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "parse-request": {
+      "main": [
+        [
+          {
+            "node": "if-parse-error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "if-parse-error": {
+      "main": [
+        [
+          {
+            "node": "response-parse-error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "execute-workflow-auth-validate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "execute-workflow-auth-validate": {
+      "main": [
+        [
+          {
+            "node": "parse-auth-response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "parse-auth-response": {
+      "main": [
+        [
+          {
+            "node": "if-auth-error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "if-auth-error": {
+      "main": [
+        [
+          {
+            "node": "response-auth-error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "postgres-check-access",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "postgres-check-access": {
+      "main": [
+        [
+          {
+            "node": "check-access-result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "check-access-result": {
+      "main": [
+        [
+          {
+            "node": "if-access-error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "if-access-error": {
+      "main": [
+        [
+          {
+            "node": "response-access-error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "postgres-update-session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "postgres-update-session": {
+      "main": [
+        [
+          {
+            "node": "format-success-response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "format-success-response": {
+      "main": [
+        [
+          {
+            "node": "response-success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "id": "auth-switch-company",
+  "meta": {
+    "instanceId": "lumon-n8n"
+  },
+  "tags": []
+}
+
