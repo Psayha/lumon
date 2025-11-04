@@ -438,10 +438,10 @@ lumon2/
   - `auth.refresh.json` - продление сессии с созданием нового токена
   - `auth.logout.json` - завершение сессии (деактивация токена)
   
-  **Chat System (⏳ Требует обновления):**
-  - `chat.create.json` - создание чата (требует интеграции auth.validate)
-  - `save-message.json` - сохранение сообщений (требует auth.validate)
-  - `get-chat-history.json` - получение истории (требует auth.validate)
+  **Chat System:**
+  - `chat.create.json` - ✅ создание чата (работает с mock auth)
+  - `save-message.json` - ⏳ требует обновления (mock auth)
+  - `get-chat-history.json` - ⏳ требует обновления (mock auth)
   
   **Legacy (будут удалены/обновлены):**
   - `create-user.json` - устарел (заменён на auth.init)
