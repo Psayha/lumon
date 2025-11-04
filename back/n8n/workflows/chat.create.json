@@ -152,15 +152,25 @@
     },
     {
       "parameters": {
+        "jsCode": "// Prepare data for Create Chat\nconst authData = $input.item.json;\nconst titleNode = $('Extract Token').item.json;\n\n// Extract user data from auth response\nconst userId = authData.data?.user?.id || null;\nconst companyId = authData.data?.user?.company_id || null;\nconst title = titleNode?.title || 'New Chat';\n\nif (!userId) {\n  throw new Error('User ID is missing from auth response');\n}\n\nreturn {\n  json: {\n    user_id: userId,\n    company_id: companyId,\n    title: title\n  }\n};"
+      },
+      "id": "prepare-chat-data",
+      "name": "Prepare Chat Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1450, 600]
+    },
+    {
+      "parameters": {
         "operation": "executeQuery",
-        "query": "=INSERT INTO chats (user_id, company_id, title, created_at, updated_at)\nVALUES (\n  CAST('{{ $json.data.user.id }}' AS UUID),\n  {{ $json.data.user.company_id ? \"CAST('\" + $json.data.user.company_id + \"' AS UUID)\" : \"NULL\" }},\n  '{{ $('Extract Token').item.json.title }}',\n  NOW(),\n  NOW()\n)\nRETURNING id, user_id, company_id, title, created_at;",
+        "query": "=INSERT INTO chats (user_id, company_id, title, created_at, updated_at)\nVALUES (\n  CAST('{{ $json.user_id }}' AS UUID),\n  {{ $json.company_id ? \"CAST('\" + $json.company_id + \"' AS UUID)\" : \"NULL\" }},\n  '{{ $json.title }}',\n  NOW(),\n  NOW()\n)\nRETURNING id, user_id, company_id, title, created_at;",
         "options": {}
       },
       "id": "create-chat",
       "name": "Create Chat",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.4,
-      "position": [1450, 600],
+      "position": [1650, 600],
       "credentials": {
         "postgres": {
           "id": "supabase_postgres",
@@ -289,6 +299,17 @@
             "index": 0
           }
         ],
+        [
+          {
+            "node": "Prepare Chat Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Chat Data": {
+      "main": [
         [
           {
             "node": "Create Chat",
