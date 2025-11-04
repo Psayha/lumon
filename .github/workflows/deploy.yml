@@ -187,10 +187,10 @@ jobs:
 
       - name: Setup Nginx configuration for simple pages (n8n, sb)
         run: |
-          ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "BACKEND_PATH=${{ steps.backend_path.outputs.path }} && sudo tee /etc/nginx/sites-available/n8n-simple > /dev/null << EOF
+          ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "BACKEND_PATH=${{ steps.backend_path.outputs.path }} && sudo tee /etc/nginx/sites-available/n8n-simple > /dev/null << 'NGINX_CONFIG'
           server {
               server_name n8n.psayha.ru;
-              root \${BACKEND_PATH}/nginx-simple-pages;
+              root ${{ steps.backend_path.outputs.path }}/nginx-simple-pages;
               index n8n.html;
               location / {
                   try_files \$uri \$uri/ =404;
@@ -198,11 +198,11 @@ jobs:
               listen 80;
               listen [::]:80;
           }
-          EOF
-          sudo tee /etc/nginx/sites-available/sb-simple > /dev/null << EOF
+          NGINX_CONFIG
+          sudo tee /etc/nginx/sites-available/sb-simple > /dev/null << 'NGINX_CONFIG'
           server {
               server_name sb.psayha.ru;
-              root \${BACKEND_PATH}/nginx-simple-pages;
+              root ${{ steps.backend_path.outputs.path }}/nginx-simple-pages;
               index sb.html;
               location / {
                   try_files \$uri \$uri/ =404;
@@ -210,7 +210,7 @@ jobs:
               listen 80;
               listen [::]:80;
           }
-          EOF
+          NGINX_CONFIG
           sudo ln -sf /etc/nginx/sites-available/n8n-simple /etc/nginx/sites-enabled/
           sudo ln -sf /etc/nginx/sites-available/sb-simple /etc/nginx/sites-enabled/
           sudo nginx -t && sudo systemctl reload nginx || echo 'Nginx reload skipped'"
@@ -221,10 +221,10 @@ jobs:
 
       - name: Setup Nginx configuration for admin panel
         run: |
-          ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "ADMIN_PATH=\$(dirname $DEPLOY_PATH)/adminpage && sudo tee /etc/nginx/sites-available/admin-panel > /dev/null << EOF
+          ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "sudo tee /etc/nginx/sites-available/admin-panel > /dev/null << 'NGINX_CONFIG'
           server {
               server_name admin.psayha.ru;
-              root \${ADMIN_PATH};
+              root $DEPLOY_PATH/../adminpage;
               index index.html;
               location / {
                   try_files \$uri \$uri/ /index.html;
@@ -237,7 +237,7 @@ jobs:
               listen 80;
               listen [::]:80;
           }
-          EOF
+          NGINX_CONFIG
           sudo ln -sf /etc/nginx/sites-available/admin-panel /etc/nginx/sites-enabled/
           sudo nginx -t && sudo systemctl reload nginx || echo 'Nginx reload skipped'"
         env:
