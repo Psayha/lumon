@@ -5,6 +5,7 @@
 CREATE TABLE IF NOT EXISTS companies (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name VARCHAR(255) NOT NULL,
+  settings JSONB DEFAULT '{}',
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
@@ -19,6 +20,8 @@ CREATE TABLE IF NOT EXISTS users (
   first_name VARCHAR(255),
   last_name VARCHAR(255),
   language_code VARCHAR(10) DEFAULT 'ru',
+  app_version VARCHAR(50),
+  last_login_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
@@ -32,6 +35,7 @@ CREATE TABLE IF NOT EXISTS user_companies (
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
   role VARCHAR(50) NOT NULL CHECK (role IN ('owner', 'manager', 'viewer')),
+  is_active BOOLEAN DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT now(),
   UNIQUE(user_id, company_id)
 );
@@ -43,17 +47,20 @@ CREATE INDEX idx_user_companies_role ON user_companies(role);
 -- 4. Таблица sessions (сессии)
 CREATE TABLE IF NOT EXISTS sessions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  session_token UUID UNIQUE NOT NULL DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  company_id UUID REFERENCES companies(id) ON DELETE CASCADE,
+  role VARCHAR(50) NOT NULL CHECK (role IN ('owner', 'manager', 'viewer')),
   expires_at TIMESTAMPTZ NOT NULL,
-  last_seen_at TIMESTAMPTZ DEFAULT now(),
-  user_agent TEXT,
-  ip VARCHAR(45),
+  last_activity_at TIMESTAMPTZ DEFAULT now(),
+  is_active BOOLEAN DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
+CREATE INDEX idx_sessions_session_token ON sessions(session_token);
 CREATE INDEX idx_sessions_user_id ON sessions(user_id);
 CREATE INDEX idx_sessions_expires_at ON sessions(expires_at);
-CREATE INDEX idx_sessions_id_expires ON sessions(id, expires_at) WHERE expires_at > now();
+CREATE INDEX idx_sessions_is_active ON sessions(is_active) WHERE is_active = true;
 
 -- 5. Таблица chats (чаты)
 CREATE TABLE IF NOT EXISTS chats (
