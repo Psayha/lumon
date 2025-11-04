@@ -83,6 +83,16 @@
     },
     {
       "parameters": {
+        "functionCode": "// Get data from Generate New Token node\nconst tokenData = $('Generate New Token').item.json;\n\nreturn {\n  json: {\n    new_token: tokenData.new_token,\n    user_id: tokenData.user_id,\n    company_id: tokenData.company_id,\n    role: tokenData.role\n  }\n};"
+      },
+      "id": "prepare-session-data",
+      "name": "Prepare Session Data",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1450, 300]
+    },
+    {
+      "parameters": {
         "operation": "executeQuery",
         "query": "INSERT INTO sessions (session_token, user_id, company_id, role, expires_at)\nVALUES ('{{ $json.new_token }}', '{{ $json.user_id }}', {{ $json.company_id ? \"'\" + $json.company_id + \"'\" : \"NULL\" }}, '{{ $json.role }}', NOW() + INTERVAL '7 days')\nRETURNING id, session_token, user_id, company_id, role, created_at, expires_at",
         "options": {}
@@ -91,7 +101,7 @@
       "name": "Create New Session",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.4,
-      "position": [1450, 300],
+      "position": [1650, 300],
       "credentials": {
         "postgres": {
           "id": "supabase-postgres",
@@ -107,7 +117,7 @@
       "name": "Build Response",
       "type": "n8n-nodes-base.function",
       "typeVersion": 1,
-      "position": [1650, 300]
+      "position": [1850, 300]
     },
     {
       "parameters": {
@@ -128,7 +138,7 @@
       "name": "Respond to Webhook",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [1850, 300]
+      "position": [2050, 300]
     },
     {
       "parameters": {
@@ -210,6 +220,17 @@
       ]
     },
     "Deactivate Old Session": {
+      "main": [
+        [
+          {
+            "node": "Prepare Session Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Session Data": {
       "main": [
         [
           {
