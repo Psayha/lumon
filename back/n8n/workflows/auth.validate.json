@@ -17,13 +17,13 @@
     },
     {
       "parameters": {
-        "functionCode": "const body = $json.body || {};\nconst token = body.token;\n\nif (!token) {\n  return {\n    json: {\n      error: 'bad_request',\n      status: 400,\n      message: 'token is required',\n      traceId: require('crypto').randomUUID()\n    }\n  };\n}\n\nreturn { json: { token } };"
+        "functionCode": "// Получаем данные из webhook body\nconst body = $input.item.json.body || $input.item.json;\nconst token = body.token;\n\nif (!token) {\n  return {\n    json: {\n      error: 'bad_request',\n      status: 400,\n      message: 'token is required',\n      traceId: require('crypto').randomUUID()\n    }\n  };\n}\n\nreturn { json: { token, hasError: false } };"
       },
       "id": "extract-token",
       "name": "Extract Token",
       "type": "n8n-nodes-base.function",
       "typeVersion": 1,
-      "position": [350, 300]
+      "position": [450, 300]
     },
     {
       "parameters": {},
@@ -169,13 +169,41 @@
     },
     {
       "parameters": {
-        "functionCode": "const userData = $json;\nconst role = userData.role;\n\nlet permissions = [];\nif (role === 'owner') {\n  permissions = ['read', 'write', 'delete'];\n} else if (role === 'manager') {\n  permissions = ['read', 'write'];\n} else if (role === 'viewer') {\n  permissions = ['read'];\n}\n\nreturn {\n  json: {\n    context: {\n      userId: userData.user_id,\n      role: userData.role || null,\n      companyId: userData.company_id || null,\n      permissions: permissions\n    }\n  }\n};"
+        "functionCode": "const userData = $json;\nconst role = userData.role;\n\nlet permissions = [];\nif (role === 'owner') {\n  permissions = ['read', 'write', 'delete'];\n} else if (role === 'manager') {\n  permissions = ['read', 'write'];\n} else if (role === 'viewer') {\n  permissions = ['read'];\n}\n\nreturn {\n  json: {\n    success: true,\n    context: {\n      userId: userData.user_id,\n      role: userData.role || null,\n      companyId: userData.company_id || null,\n      permissions: permissions\n    },\n    traceId: require('crypto').randomUUID()\n  }\n};"
       },
       "id": "build-permissions",
       "name": "Build Permissions",
       "type": "n8n-nodes-base.function",
       "typeVersion": 1,
       "position": [1850, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{$json}}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "response-success",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [2050, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{$json}}",
+        "options": {
+          "responseCode": "={{$json.status || 401}}"
+        }
+      },
+      "id": "response-error-final",
+      "name": "Respond Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [850, 200]
     }
   ],
   "connections": {
@@ -297,6 +325,28 @@
         [
           {
             "node": "Build Permissions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Permissions": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Return Error": {
+      "main": [
+        [
+          {
+            "node": "Respond Error",
             "type": "main",
             "index": 0
           }
