@@ -7,11 +7,16 @@ export default defineConfig(() => {
     plugins: [react()],
     // Запускаем сборку из каталога adminpage, выводим в ../dist-admin
     build: {
-      outDir: path.resolve(process.cwd(), '../dist-admin'),
+      outDir: path.resolve(__dirname, '../dist-admin'),
       emptyOutDir: true,
     },
+    root: __dirname,
     server: {
       port: 5174,
+      fs: {
+        // Разрешаем импортировать файлы из родительской папки (../src/index.css)
+        allow: ['..']
+      }
     },
   };
 });
