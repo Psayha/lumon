@@ -47,10 +47,10 @@ services:
       - N8N_BASIC_AUTH_ACTIVE=true
       - N8N_BASIC_AUTH_USER=${N8N_USER:-admin}
       - N8N_BASIC_AUTH_PASSWORD=${N8N_PASSWORD:-lumon_dev}
-      - N8N_HOST=${N8N_HOST:-localhost}
+      - N8N_HOST=${N8N_HOST:-n8n.psayha.ru}
       - N8N_PORT=5678
-      - N8N_PROTOCOL=${N8N_PROTOCOL:-http}
-      - N8N_SECURE_COOKIE=${N8N_SECURE_COOKIE:-false}
+      - N8N_PROTOCOL=${N8N_PROTOCOL:-https}
+      - N8N_SECURE_COOKIE=${N8N_SECURE_COOKIE:-true}
       - DB_TYPE=postgresdb
       - DB_POSTGRESDB_HOST=supabase-db
       - DB_POSTGRESDB_PORT=5432
@@ -58,7 +58,7 @@ services:
       - DB_POSTGRESDB_USER=${POSTGRES_USER:-postgres}
       - DB_POSTGRESDB_PASSWORD=${POSTGRES_PASSWORD:-lumon_dev_password}
       - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY:-lumon-encryption-key-change-in-production}
-      - N8N_CORS_ORIGIN=${N8N_CORS_ORIGIN:-*}
+      - N8N_CORS_ORIGIN=${N8N_CORS_ORIGIN:-https://psayha.ru,https://n8n.psayha.ru}
     volumes:
       - n8n-data:/home/node/.n8n
       - ./n8n/workflows:/data/workflows

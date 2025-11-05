@@ -53,8 +53,10 @@ docker-compose up -d
 
 ### 3. Доступ к сервисам
 
-- **Supabase Studio**: http://localhost:3001
-- **n8n**: http://localhost:5678
+- **Supabase Studio (prod)**: https://sb.psayha.ru
+- **n8n (prod)**: https://n8n.psayha.ru
+- **Supabase Studio (local)**: http://localhost:3001
+- **n8n (local)**: http://localhost:5678
   - Пользователь: `admin` (из .env)
   - Пароль: `lumon_dev` (из .env)
 - **PostgreSQL**: localhost:5432
@@ -160,7 +162,7 @@ Webhook → auth.validate → Parse Auth Response → IF Auth Success → Биз
 - Автопродление сессии каждые 4 минуты
 
 **Пример использования:**
-```typescript
+   ```typescript
 import { createChat, saveMessage } from './utils/api';
 
 // Создание чата (userId берется из session_token)
@@ -171,8 +173,8 @@ await saveMessage({
   chat_id: chatResponse.data.id,
   role: 'user',
   content: 'Hello!'
-});
-```
+   });
+   ```
 
 ### 4. Переменные окружения
 
@@ -187,7 +189,11 @@ TELEGRAM_BOT_TOKEN=your-bot-token
 
 **Frontend (.env.local):**
 ```env
+# Локально
 VITE_API_URL=http://localhost:5678
+
+# Продакшен (деплой): используется домен n8n
+# VITE_API_URL=https://n8n.psayha.ru
 ```
 
 ## 🔧 Управление
@@ -242,6 +248,10 @@ cp .env.example .env
 1. Скопируйте `docker-compose.yml` на сервер
 2. Создайте `.env` с продакшн значениями
 3. Запустите: `docker-compose up -d`
+4. Убедитесь, что nginx проксирует поддомены:
+   - `back/nginx-n8n.conf` → `n8n.psayha.ru` → `http://localhost:5678`
+   - `back/nginx-sb.conf` → `sb.psayha.ru` → `http://localhost:3001`
+5. Получите SSL сертификаты (если ещё не): `sudo certbot --nginx -d n8n.psayha.ru -d sb.psayha.ru`
 
 ## 📚 Документация
 

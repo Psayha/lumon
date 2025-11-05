@@ -473,11 +473,11 @@ const App: React.FC = () => {
           <Router>
             <TelegramUIManager />
             <AuthGuard>
-              <Suspense fallback={<LoadingFallback />}>
-                <div className="app-content">
-                  <Routes>
-                    <Route path="/" element={<MenuPage />} />
-                    <Route path="/voice-assistant" element={<VoiceAssistantPage />} />
+            <Suspense fallback={<LoadingFallback />}>
+              <div className="app-content">
+                <Routes>
+                  <Route path="/" element={<MenuPage />} />
+                  <Route path="/voice-assistant" element={<VoiceAssistantPage />} />
                     <Route 
                       path="/app/crm" 
                       element={
@@ -502,11 +502,11 @@ const App: React.FC = () => {
                         </PageGuard>
                       } 
                     />
-                    <Route path="/app/payment" element={<PricingPage />} />
-                    <Route path="/api-test" element={<ApiTestPage />} />
-                  </Routes>
-                </div>
-              </Suspense>
+                  <Route path="/app/payment" element={<PricingPage />} />
+                  <Route path="/api-test" element={<ApiTestPage />} />
+                </Routes>
+              </div>
+            </Suspense>
             </AuthGuard>
           </Router>
         </ErrorBoundary>

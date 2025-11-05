@@ -489,9 +489,9 @@ const ApiTestPage: React.FC = () => {
                     <div>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Роль</p>
                       <div className="flex items-center gap-2">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getRoleBadgeColor(userContext.role)}`}>
-                          {userContext.role}
-                        </span>
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getRoleBadgeColor(userContext.role)}`}>
+                        {userContext.role}
+                      </span>
                         {userContext.role === 'owner' && (
                           <span className="text-xs text-purple-600 dark:text-purple-400" title="Владелец компании">👑</span>
                         )}
