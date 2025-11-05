@@ -18,6 +18,12 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
     setIsLoading(true);
 
     try {
+      // Быстрый вход для разработки без бэкенда
+      if (username === 'admin' && password === 'admin') {
+        onLogin('admin-token-' + Date.now());
+        return;
+      }
+
       // TODO: Заменить на реальный API endpoint
       const response = await fetch('/api/admin/login', {
         method: 'POST',
@@ -32,12 +38,7 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
         setError('Неверный логин или пароль');
       }
     } catch (err) {
-      // Временная заглушка для разработки
-      if (username === 'admin' && password === 'admin') {
-        onLogin('admin-token-' + Date.now());
-      } else {
-        setError('Неверный логин или пароль');
-      }
+      setError('Неверный логин или пароль');
     } finally {
       setIsLoading(false);
     }
