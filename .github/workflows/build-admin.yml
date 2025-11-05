@@ -1,0 +1,34 @@
+name: Build Admin
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch: {}
+
+jobs:
+  build-admin:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node.js 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+
+      - name: Install deps (adminpage)
+        working-directory: adminpage
+        run: npm ci --no-audit --no-fund
+
+      - name: Build admin
+        working-directory: adminpage
+        run: npm run build
+
+      - name: Upload dist-admin artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-admin
+          path: dist-admin
+
