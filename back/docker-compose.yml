@@ -28,10 +28,13 @@ services:
     environment:
       DEFAULT_ORGANIZATION_NAME: Lumon
       DEFAULT_PROJECT_NAME: Lumon Development
-      STUDIO_PG_META_URL: http://supabase-db:5432
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-lumon_dev_password}
-      POSTGRES_DB: ${POSTGRES_DB:-lumon}
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      # Явная строка подключения к PostgreSQL
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-lumon_dev_password}@supabase-db:5432/${POSTGRES_DB:-lumon}
+      PGHOST: supabase-db
+      PGPORT: 5432
+      PGDATABASE: ${POSTGRES_DB:-lumon}
+      PGUSER: ${POSTGRES_USER:-postgres}
+      PGPASSWORD: ${POSTGRES_PASSWORD:-lumon_dev_password}
     depends_on:
       supabase-db:
         condition: service_healthy
