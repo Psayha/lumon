@@ -2,21 +2,13 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 
-export default defineConfig(({ mode }) => {
-  const root = path.resolve(process.cwd(), 'adminpage');
-  const srcPath = path.resolve(process.cwd(), 'src');
-  
+export default defineConfig(() => {
   return {
     plugins: [react()],
-    root: root,
+    // Запускаем сборку из каталога adminpage, выводим в ../dist-admin
     build: {
-      outDir: path.resolve(process.cwd(), 'dist-admin'),
+      outDir: path.resolve(process.cwd(), '../dist-admin'),
       emptyOutDir: true,
-    },
-    resolve: {
-      alias: {
-        '@': srcPath,
-      },
     },
     server: {
       port: 5174,
