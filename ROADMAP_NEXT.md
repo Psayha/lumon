@@ -13,8 +13,11 @@
 
 ## 2) Backend (n8n)
 - ✅ Идемпотентность: реализована в `chat.save-message` (проверка/кэширование через `idempotency_keys`).
-- ✅ Rate limiting: subworkflow `rate-limit.check` создан. Инструкция: `back/SETUP_RATE_LIMITING.md`.
-  - Требует интеграции в `chat.create`, `chat.save-message`, `analytics`.
+- ✅ Rate limiting: полностью интегрировано.
+  - Subworkflow `rate-limit.check` создан и активен
+  - Интегрировано в `chat.create`, `chat.save-message`, `analytics`
+  - Лимиты: 30 req/min (mutating), 100 req/min (analytics)
+  - Инструкция: `back/SETUP_RATE_LIMITING.md`
 - ✅ Analytics: workflow `analytics.log-event` готов (логирование в `audit_events` через `auth.validate`).
 
 ## 3) Frontend
@@ -46,7 +49,7 @@
 - ✅ Все запросы идут через `https://n8n.psayha.ru`; ApiTestPage зелёная.
 - ✅ Все домены работают: n8n.psayha.ru (200), sb.psayha.ru (307), admin.psayha.ru (200), psayha.ru (200) с SSL.
 - ✅ `chat.save-message` устойчив к ретраям через `idempotency_keys`.
-- Лимиты возвращают 429 при превышении (требует интеграции).
+- ✅ Rate limiting активно: workflows возвращают 429 при превышении лимитов.
 - ✅ Вход в админку через реальный бэкенд (`/webhook/admin-login`); роли ограничивают вкладки (в процессе).
 - Workflow деплоя админки собирает и выкатывает `dist-admin` на сервер.
 - ✅ Certbot renew проходит `--dry-run` (таймер активен, сертификаты действительны 81-89 дней).
