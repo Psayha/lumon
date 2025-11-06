@@ -13,8 +13,9 @@
 
 ## 2) Backend (n8n)
 - ✅ Идемпотентность: реализована в `chat.save-message` (проверка/кэширование через `idempotency_keys`).
-- Rate limiting: subworkflow `rate-limit.check`; 30 req/min на mutating (`chat.create`, `chat.save-message`), 100 req/min для `analytics`.
-- Analytics: доделать/включить `analytics.json` (логирование событий через `auth.validate`).
+- ✅ Rate limiting: subworkflow `rate-limit.check` создан. Инструкция: `back/SETUP_RATE_LIMITING.md`.
+  - Требует интеграции в `chat.create`, `chat.save-message`, `analytics`.
+- ✅ Analytics: workflow `analytics.log-event` готов (логирование в `audit_events` через `auth.validate`).
 
 ## 3) Frontend
 - Перевести прод-конфигурацию на `VITE_API_URL=https://n8n.psayha.ru`.
