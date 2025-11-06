@@ -18,14 +18,9 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
     setIsLoading(true);
 
     try {
-      // Быстрый вход для разработки без бэкенда
-      if (username === 'admin' && password === 'admin') {
-        onLogin('admin-token-' + Date.now());
-        return;
-      }
-
-      // TODO: Заменить на реальный API endpoint
-      const response = await fetch('/api/admin/login', {
+      // API endpoint для админ-логина
+      const apiUrl = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://n8n.psayha.ru' : 'http://localhost:5678');
+      const response = await fetch(`${apiUrl}/webhook/admin-login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
@@ -33,12 +28,18 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
 
       if (response.ok) {
         const data = await response.json();
-        onLogin(data.token);
+        if (data.success && data.data?.token) {
+          onLogin(data.data.token);
+        } else {
+          setError('Неверный логин или пароль');
+        }
       } else {
-        setError('Неверный логин или пароль');
+        const errorData = await response.json().catch(() => ({}));
+        setError(errorData.message || 'Неверный логин или пароль');
       }
     } catch (err) {
-        setError('Неверный логин или пароль');
+      console.error('Login error:', err);
+      setError('Ошибка подключения к серверу');
     } finally {
       setIsLoading(false);
     }
