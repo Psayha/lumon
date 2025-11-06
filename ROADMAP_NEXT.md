@@ -9,10 +9,10 @@
 - ✅ Проверить Supabase Studio: устойчивая работа с `DATABASE_URL`/`PG*`; устранить `ECONNRESET`.
 - ✅ Финализировать окружение n8n: `WEBHOOK_URL`, `N8N_EDITOR_BASE_URL`; перезапуск n8n.
 - ✅ Nginx конфигурация: все домены работают с SSL, правильная маршрутизация.
-- Certbot renew: проверить таймер/`--dry-run` для автообновления сертификатов.
+- ✅ Certbot renew: systemd таймер активен, все сертификаты действительны 81-89 дней.
 
 ## 2) Backend (n8n)
-- Идемпотентность: обновить `chat.save-message` (чтение/запись `idempotency_keys`).
+- ✅ Идемпотентность: реализована в `chat.save-message` (проверка/кэширование через `idempotency_keys`).
 - Rate limiting: subworkflow `rate-limit.check`; 30 req/min на mutating (`chat.create`, `chat.save-message`), 100 req/min для `analytics`.
 - Analytics: доделать/включить `analytics.json` (логирование событий через `auth.validate`).
 

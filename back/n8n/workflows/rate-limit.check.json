@@ -2,25 +2,19 @@
   "name": "rate-limit.check",
   "nodes": [
     {
-      "parameters": {
-        "httpMethod": "POST",
-        "path": "rate-limit-check",
-        "responseMode": "lastNode",
-        "options": {}
-      },
-      "id": "webhook-trigger",
-      "name": "Webhook Trigger",
-      "type": "n8n-nodes-base.webhook",
-      "typeVersion": 2,
-      "position": [250, 400],
-      "webhookId": "rate-limit-check"
+      "parameters": {},
+      "id": "execute-workflow-trigger",
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [250, 400]
     },
     {
       "parameters": {
-        "jsCode": "// Extract user_id, endpoint, and limit from input\nconst input = $input.item.json;\nconst body = input.body || input;\n\nconst userId = body.user_id;\nconst endpoint = body.endpoint || '/webhook/unknown';\nconst limit = body.limit || 30; // default 30 requests per minute\nconst windowMinutes = body.window_minutes || 1;\n\nif (!userId) {\n  return {\n    json: {\n      error: 'bad_request',\n      status: 400,\n      message: 'Missing user_id'\n    }\n  };\n}\n\n// Calculate window start (round down to minute)\nconst now = new Date();\nconst windowStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), Math.floor(now.getMinutes() / windowMinutes) * windowMinutes, 0, 0);\n\nreturn {\n  json: {\n    user_id: userId,\n    endpoint: endpoint,\n    limit: limit,\n    window_start: windowStart.toISOString()\n  }\n};"
+        "jsCode": "// Extract user_id and endpoint from input\nconst input = $input.item.json;\n\nif (!input.user_id) {\n  return {\n    json: {\n      error: 'bad_request',\n      status: 400,\n      message: 'Missing user_id for rate limiting',\n      allowed: false\n    }\n  };\n}\n\nif (!input.endpoint) {\n  return {\n    json: {\n      error: 'bad_request',\n      status: 400,\n      message: 'Missing endpoint for rate limiting',\n      allowed: false\n    }\n  };\n}\n\n// Define rate limits per endpoint\nconst rateLimits = {\n  'chat.create': 30,\n  'chat.save-message': 30,\n  'analytics': 100\n};\n\nconst limit = rateLimits[input.endpoint] || 30; // Default to 30 req/min\n\nreturn {\n  json: {\n    user_id: input.user_id,\n    endpoint: input.endpoint,\n    limit: limit,\n    window_minutes: 1\n  }\n};"
       },
-      "id": "prepare-rate-limit-data",
-      "name": "Prepare Rate Limit Data",
+      "id": "extract-params",
+      "name": "Extract Params",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [450, 400]
@@ -35,7 +29,7 @@
           },
           "conditions": [
             {
-              "id": "error-check",
+              "id": "has-error",
               "leftValue": "={{ $json.error }}",
               "rightValue": "",
               "operator": {
@@ -48,34 +42,30 @@
         },
         "options": {}
       },
-      "id": "check-prepare-error",
-      "name": "IF Prepare Error",
+      "id": "check-params-error",
+      "name": "IF Params Error",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [650, 400]
     },
     {
       "parameters": {
-        "respondWith": "text",
-        "responseBody": "={{ JSON.stringify($json) }}",
-        "options": {
-          "responseCode": "={{ $json.status || 400 }}"
-        }
+        "jsCode": "// Return error response\nconst error = $input.item.json;\n\nreturn {\n  json: {\n    allowed: false,\n    error: error.error,\n    message: error.message,\n    status: error.status\n  }\n};"
       },
-      "id": "response-prepare-error",
-      "name": "Respond Prepare Error",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1,
+      "id": "return-error",
+      "name": "Return Error",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
       "position": [850, 300]
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "=INSERT INTO rate_limits (user_id, endpoint, request_count, window_start)\nVALUES (\n  CAST('{{ $json.user_id }}' AS UUID),\n  '{{ $json.endpoint }}',\n  1,\n  '{{ $json.window_start }}'::timestamptz\n)\nON CONFLICT (user_id, endpoint, window_start)\nDO UPDATE SET request_count = rate_limits.request_count + 1\nRETURNING request_count;\n",
+        "query": "=SELECT COUNT(*) as request_count\nFROM rate_limits\nWHERE user_id = '{{ $json.user_id }}'\n  AND endpoint = '{{ $json.endpoint }}'\n  AND created_at > NOW() - interval '{{ $json.window_minutes }} minutes';",
         "options": {}
       },
-      "id": "upsert-rate-limit",
-      "name": "Upsert Rate Limit",
+      "id": "check-rate-limit",
+      "name": "Check Rate Limit",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.4,
       "position": [850, 500],
@@ -88,10 +78,10 @@
     },
     {
       "parameters": {
-        "jsCode": "// Check if rate limit exceeded\nconst rateLimit = $input.item.json;\nconst limit = $('Prepare Rate Limit Data').item.json.limit;\nconst count = rateLimit.request_count || 0;\n\nconst allowed = count <= limit;\n\nreturn {\n  json: {\n    allowed: allowed,\n    count: count,\n    limit: limit,\n    remaining: Math.max(0, limit - count)\n  }\n};"
+        "jsCode": "// Check if rate limit exceeded\nconst params = $('Extract Params').item.json;\nconst result = $input.item.json;\n\nconst requestCount = parseInt(result.request_count) || 0;\nconst limit = params.limit;\n\nif (requestCount >= limit) {\n  return {\n    json: {\n      allowed: false,\n      error: 'rate_limit_exceeded',\n      message: `Rate limit exceeded: ${requestCount}/${limit} requests per minute`,\n      status: 429,\n      limit: limit,\n      current: requestCount,\n      retry_after: 60\n    }\n  };\n}\n\nreturn {\n  json: {\n    allowed: true,\n    user_id: params.user_id,\n    endpoint: params.endpoint,\n    limit: limit,\n    current: requestCount\n  }\n};"
       },
-      "id": "check-rate-limit",
-      "name": "Check Rate Limit",
+      "id": "evaluate-limit",
+      "name": "Evaluate Limit",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [1050, 500]
@@ -106,12 +96,12 @@
           },
           "conditions": [
             {
-              "id": "allowed-check",
+              "id": "is-allowed",
               "leftValue": "={{ $json.allowed }}",
-              "rightValue": true,
+              "rightValue": "true",
               "operator": {
-                "type": "boolean",
-                "operation": "true"
+                "type": "string",
+                "operation": "equals"
               }
             }
           ],
@@ -127,76 +117,75 @@
     },
     {
       "parameters": {
-        "respondWith": "text",
-        "responseBody": "={{ JSON.stringify({ error: 'rate_limit_exceeded', status: 429, message: `Too many requests. Limit: ${$json.limit}/minute`, retryAfter: 60 }) }}",
-        "options": {
-          "responseCode": 429
-        }
+        "jsCode": "// Return rate limit exceeded\nconst error = $input.item.json;\n\nreturn {\n  json: {\n    allowed: false,\n    error: error.error,\n    message: error.message,\n    status: error.status,\n    limit: error.limit,\n    current: error.current,\n    retry_after: error.retry_after\n  }\n};"
       },
-      "id": "response-rate-limit-error",
-      "name": "Respond Rate Limit Error",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1,
-      "position": [1250, 400]
+      "id": "return-rate-limit-exceeded",
+      "name": "Return Rate Limit Exceeded",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1450, 400]
     },
     {
       "parameters": {
-        "respondWith": "text",
-        "responseBody": "={{ JSON.stringify($json) }}",
-        "options": {
-          "responseCode": 200
-        }
+        "operation": "executeQuery",
+        "query": "=INSERT INTO rate_limits (user_id, endpoint, created_at)\nVALUES (\n  '{{ $json.user_id }}',\n  '{{ $json.endpoint }}',\n  NOW()\n);",
+        "options": {}
       },
-      "id": "response-allowed",
-      "name": "Respond Allowed",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1,
-      "position": [1450, 600]
+      "id": "record-request",
+      "name": "Record Request",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1450, 600],
+      "credentials": {
+        "postgres": {
+          "id": "supabase_postgres",
+          "name": "Supabase PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Return success\nconst data = $('Evaluate Limit').item.json;\n\nreturn {\n  json: {\n    allowed: true,\n    limit: data.limit,\n    current: data.current + 1,\n    remaining: data.limit - data.current - 1\n  }\n};"
+      },
+      "id": "return-success",
+      "name": "Return Success",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1650, 600]
     }
   ],
   "connections": {
-    "Webhook Trigger": {
+    "Execute Workflow Trigger": {
       "main": [
         [
           {
-            "node": "Prepare Rate Limit Data",
+            "node": "Extract Params",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Prepare Rate Limit Data": {
+    "Extract Params": {
       "main": [
         [
           {
-            "node": "IF Prepare Error",
+            "node": "IF Params Error",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "IF Prepare Error": {
+    "IF Params Error": {
       "main": [
         [
           {
-            "node": "Respond Prepare Error",
+            "node": "Return Error",
             "type": "main",
             "index": 0
           }
         ],
-        [
-          {
-            "node": "Upsert Rate Limit",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Upsert Rate Limit": {
-      "main": [
         [
           {
             "node": "Check Rate Limit",
@@ -207,6 +196,17 @@
       ]
     },
     "Check Rate Limit": {
+      "main": [
+        [
+          {
+            "node": "Evaluate Limit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Evaluate Limit": {
       "main": [
         [
           {
@@ -221,14 +221,25 @@
       "main": [
         [
           {
-            "node": "Respond Rate Limit Error",
+            "node": "Return Rate Limit Exceeded",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "Respond Allowed",
+            "node": "Record Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Record Request": {
+      "main": [
+        [
+          {
+            "node": "Return Success",
             "type": "main",
             "index": 0
           }
@@ -242,7 +253,6 @@
   "staticData": null,
   "tags": [],
   "triggerCount": 0,
-  "updatedAt": "2025-11-05T00:00:00.000Z",
+  "updatedAt": "2025-11-06T18:00:00.000Z",
   "versionId": "1"
 }
-
