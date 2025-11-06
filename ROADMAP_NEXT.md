@@ -44,12 +44,12 @@
 - ✅ Нет предупреждений `conflicting server name`.
 - ✅ `sb.psayha.ru` стабильно грузит схемы; логи Studio без `ECONNRESET`.
 - ✅ Все запросы идут через `https://n8n.psayha.ru`; ApiTestPage зелёная.
-- ✅ Все домены работают: n8n.psayha.ru, sb.psayha.ru, admin.psayha.ru, psayha.ru с SSL.
-- `chat.save-message` устойчив к ретраям (нет дублей).
-- Лимиты возвращают 429 при превышении.
+- ✅ Все домены работают: n8n.psayha.ru (200), sb.psayha.ru (307), admin.psayha.ru (200), psayha.ru (200) с SSL.
+- ✅ `chat.save-message` устойчив к ретраям через `idempotency_keys`.
+- Лимиты возвращают 429 при превышении (требует интеграции).
 - ✅ Вход в админку через реальный бэкенд (`/webhook/admin-login`); роли ограничивают вкладки (в процессе).
 - Workflow деплоя админки собирает и выкатывает `dist-admin` на сервер.
-- Certbot renew проходит `--dry-run`.
+- ✅ Certbot renew проходит `--dry-run` (таймер активен, сертификаты действительны 81-89 дней).
 
 ---
 
