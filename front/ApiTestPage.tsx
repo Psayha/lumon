@@ -34,6 +34,14 @@ const ApiTestPage: React.FC = () => {
     endpoint: string;
     timestamp: string;
   } | null>(null);
+  const [testAllResults, setTestAllResults] = useState<Array<{
+    endpoint: string;
+    success: boolean;
+    status?: number;
+    error?: string;
+    timestamp: string;
+  }>>([]);
+  const [testingAll, setTestingAll] = useState(false);
 
   // Загружаем сохранённый токен и контекст при монтировании
   useEffect(() => {
@@ -426,6 +434,148 @@ const ApiTestPage: React.FC = () => {
     localStorage.removeItem('test_user_context');
     setLastTestResult(null);
     setResponse('');
+    setTestAllResults([]);
+  };
+
+  const handleTestAllEndpoints = async () => {
+    setTestingAll(true);
+    setTestAllResults([]);
+    
+    // Основные эндпоинты для тестирования (без legacy)
+    const endpointsToTest = [
+      'auth-init',
+      'auth-validate',
+      'auth-refresh',
+      'auth-set-viewer-role',
+      'auth-switch-company',
+      'chat-create',
+      'chat-save-message',
+      'chat-get-history',
+      'analytics-log-event',
+      'auth-logout'
+    ];
+
+    const results: Array<{
+      endpoint: string;
+      success: boolean;
+      status?: number;
+      error?: string;
+      timestamp: string;
+    }> = [];
+
+    let currentToken = sessionToken;
+    let currentChatId = '';
+
+    for (const endpoint of endpointsToTest) {
+      const info = endpointInfo[endpoint as keyof typeof endpointInfo];
+      if (!info) continue;
+
+      try {
+        let testDataForEndpoint = { ...testData[endpoint as keyof typeof testData] } || {};
+        
+        // Обновляем токен в тестовых данных
+        if (['auth-validate', 'auth-refresh', 'auth-logout', 'auth-set-viewer-role', 'auth-switch-company'].includes(endpoint)) {
+          testDataForEndpoint.token = currentToken || 'your-session-token-here';
+        }
+
+        // Для chat-save-message нужен chat_id
+        if (endpoint === 'chat-save-message') {
+          if (!currentChatId) {
+            results.push({
+              endpoint,
+              success: false,
+              error: 'Требуется chat_id (сначала создай чат)',
+              timestamp: new Date().toISOString()
+            });
+            setTestAllResults([...results]);
+            continue;
+          }
+          testDataForEndpoint.chat_id = currentChatId;
+        }
+
+        // Для chat-get-history нужен chat_id
+        if (endpoint === 'chat-get-history') {
+          if (!currentChatId) {
+            results.push({
+              endpoint,
+              success: false,
+              error: 'Требуется chat_id',
+              timestamp: new Date().toISOString()
+            });
+            setTestAllResults([...results]);
+            continue;
+          }
+        }
+
+        const requestOptions: RequestInit = {
+          method: info.method,
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+        };
+
+        // Добавляем Authorization для защищённых эндпоинтов
+        const protectedEndpoints = ['auth-validate', 'auth-refresh', 'auth-logout', 'auth-set-viewer-role', 'auth-switch-company', 'chat-create', 'chat-save-message', 'chat-get-history', 'analytics-log-event'];
+        if (protectedEndpoints.includes(endpoint) && currentToken) {
+          (requestOptions.headers as Record<string, string>)['Authorization'] = `Bearer ${currentToken}`;
+        }
+
+        if (info.method === 'POST') {
+          requestOptions.body = JSON.stringify(testDataForEndpoint);
+        }
+
+        const fullUrl = endpoint === 'chat-get-history'
+          ? `${info.url}?chat_id=${currentChatId}`
+          : info.url;
+
+        const response = await fetch(fullUrl, requestOptions);
+        const responseText = await response.text();
+        
+        let responseData: any;
+        try {
+          responseData = JSON.parse(responseText);
+        } catch {
+          responseData = { raw: responseText };
+        }
+
+        results.push({
+          endpoint,
+          success: response.ok,
+          status: response.status,
+          error: !response.ok ? (responseData.message || responseData.error || `HTTP ${response.status}`) : undefined,
+          timestamp: new Date().toISOString()
+        });
+
+        // Сохраняем токен из auth-init
+        if (endpoint === 'auth-init' && response.ok && responseData?.data?.session_token) {
+          currentToken = responseData.data.session_token;
+          setSessionToken(currentToken);
+          localStorage.setItem('test_session_token', currentToken);
+        }
+
+        // Сохраняем chat_id из chat-create
+        if (endpoint === 'chat-create' && response.ok && responseData?.data?.id) {
+          currentChatId = responseData.data.id;
+          setChatIdForHistory(currentChatId);
+        }
+
+        // Небольшая задержка между запросами
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+      } catch (error) {
+        results.push({
+          endpoint,
+          success: false,
+          error: error instanceof Error ? error.message : String(error),
+          timestamp: new Date().toISOString()
+        });
+      }
+
+      setTestAllResults([...results]);
+    }
+
+    setTestingAll(false);
   };
 
   const getRoleBadgeColor = (role: string | null) => {
@@ -702,24 +852,43 @@ const ApiTestPage: React.FC = () => {
             </div>
           )}
 
-              {/* Кнопка тестирования */}
-              <button
-                onClick={handleTestEndpoint}
-                disabled={loading || (selectedEndpoint === 'get-chat-history' && !chatIdForHistory)}
-                className="w-full py-3 px-6 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-medium hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
-              >
-                {loading ? (
-                  <>
-                    <RefreshCw className="w-5 h-5 animate-spin" />
-                    <span>Отправка запроса...</span>
-                  </>
-                ) : (
-                  <>
-                    <Play className="w-5 h-5" />
-                    <span>Тестировать {info.method}</span>
-                  </>
-                )}
-              </button>
+              {/* Кнопки тестирования */}
+              <div className="flex gap-3">
+                <button
+                  onClick={handleTestEndpoint}
+                  disabled={loading || testingAll || (selectedEndpoint === 'get-chat-history' && !chatIdForHistory)}
+                  className="flex-1 py-3 px-6 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-medium hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
+                >
+                  {loading ? (
+                    <>
+                      <RefreshCw className="w-5 h-5 animate-spin" />
+                      <span>Отправка...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Play className="w-5 h-5" />
+                      <span>Тестировать {info.method}</span>
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={handleTestAllEndpoints}
+                  disabled={loading || testingAll}
+                  className="px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl font-medium hover:from-green-700 hover:to-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
+                >
+                  {testingAll ? (
+                    <>
+                      <RefreshCw className="w-5 h-5 animate-spin" />
+                      <span>Тестирую все...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Play className="w-5 h-5" />
+                      <span>Тестировать все</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
 
             {/* Ответ */}
@@ -778,6 +947,70 @@ ${JSON.stringify(logData.fullResponse, null, 2)}
                   <pre className="w-full px-4 py-3 rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white font-mono text-xs overflow-auto max-h-96 border border-gray-200 dark:border-gray-700">
                     {response}
                   </pre>
+                </div>
+              </div>
+            )}
+
+            {/* Результаты тестирования всех эндпоинтов */}
+            {testAllResults.length > 0 && (
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    📊 Результаты тестирования всех эндпоинтов
+                  </h2>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-sm font-medium ${
+                      testAllResults.filter(r => r.success).length === testAllResults.length
+                        ? 'text-green-600 dark:text-green-400'
+                        : 'text-yellow-600 dark:text-yellow-400'
+                    }`}>
+                      {testAllResults.filter(r => r.success).length} / {testAllResults.length} успешно
+                    </span>
+                  </div>
+                </div>
+                <div className="space-y-2 max-h-96 overflow-y-auto">
+                  {testAllResults.map((result, idx) => (
+                    <div
+                      key={idx}
+                      className={`p-3 rounded-lg border ${
+                        result.success
+                          ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700'
+                          : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-700'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          {result.success ? (
+                            <span className="text-green-600 dark:text-green-400">✅</span>
+                          ) : (
+                            <span className="text-red-600 dark:text-red-400">❌</span>
+                          )}
+                          <span className="font-mono text-sm font-medium text-gray-900 dark:text-white">
+                            {result.endpoint}
+                          </span>
+                          {result.status && (
+                            <span className={`text-xs px-2 py-0.5 rounded ${
+                              result.status < 300
+                                ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                                : result.status < 400
+                                ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
+                                : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+                            }`}>
+                              {result.status}
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                          {new Date(result.timestamp).toLocaleTimeString()}
+                        </span>
+                      </div>
+                      {result.error && (
+                        <p className="mt-1 text-xs text-red-600 dark:text-red-400">
+                          {result.error}
+                        </p>
+                      )}
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
