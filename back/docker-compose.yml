@@ -67,6 +67,8 @@ services:
       - DB_POSTGRESDB_PASSWORD=${POSTGRES_PASSWORD:-lumon_dev_password}
       - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY:-lumon-encryption-key-change-in-production}
       - N8N_CORS_ORIGIN=${N8N_CORS_ORIGIN:-https://psayha.ru,https://n8n.psayha.ru}
+      - WEBHOOK_URL=${WEBHOOK_URL:-https://n8n.psayha.ru/}
+      - N8N_EDITOR_BASE_URL=${N8N_EDITOR_BASE_URL:-https://n8n.psayha.ru}
     volumes:
       - n8n-data:/home/node/.n8n
       - ./n8n/workflows:/data/workflows
