@@ -186,6 +186,13 @@ const ApiTestPage: React.FC = () => {
         requestOptions.body = JSON.stringify(parsedBody);
       }
 
+      // Валидация для chat-get-history
+      if ((selectedEndpoint === 'get-chat-history' || selectedEndpoint === 'chat-get-history')) {
+        if (!chatIdForHistory || chatIdForHistory.trim() === '') {
+          throw new Error('Требуется chat_id. Сначала создай чат через "chat-create" или укажи chat_id в поле "Chat ID"');
+        }
+      }
+
       // Добавляем Authorization header для защищённых endpoints
       const protectedEndpoints = ['auth-validate', 'auth-refresh', 'auth-logout', 'auth-set-viewer-role', 'auth-switch-company', 'chat-create', 'chat-save-message', 'chat-get-history', 'analytics-log-event'];
       if (protectedEndpoints.includes(selectedEndpoint) && sessionToken) {
@@ -920,7 +927,7 @@ const ApiTestPage: React.FC = () => {
               <div className="flex gap-3">
                 <button
                   onClick={handleTestEndpoint}
-                  disabled={loading || testingAll || (selectedEndpoint === 'get-chat-history' && !chatIdForHistory)}
+                  disabled={loading || testingAll || ((selectedEndpoint === 'get-chat-history' || selectedEndpoint === 'chat-get-history') && !chatIdForHistory)}
                   className="flex-1 py-3 px-6 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-medium hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
                 >
                   {loading ? (
