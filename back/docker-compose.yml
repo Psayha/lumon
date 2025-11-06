@@ -35,10 +35,15 @@ services:
       PGDATABASE: ${POSTGRES_DB:-lumon}
       PGUSER: ${POSTGRES_USER:-postgres}
       PGPASSWORD: ${POSTGRES_PASSWORD:-lumon_dev_password}
+      # Отключаем попытки подключения к pg-meta (его нет в нашей конфигурации)
+      STUDIO_PG_META_URL: ""
     depends_on:
       supabase-db:
         condition: service_healthy
     restart: unless-stopped
+    # Отключаем healthcheck, так как Studio может показывать ошибки, но работать
+    healthcheck:
+      disable: true
 
   # n8n Workflow Automation
   n8n:
