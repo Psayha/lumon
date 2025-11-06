@@ -80,8 +80,8 @@ jobs:
 
       - name: Deploy admin panel via rsync
         run: |
-          ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "mkdir -p /var/www/adminpage"
-          rsync -avz --delete -e "ssh -i ~/.ssh/deploy_key -p $SSH_PORT" dist-admin/ "$SSH_USER@$SSH_HOST:/var/www/adminpage/"
+          ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "mkdir -p /var/www/lumon2/dist-admin"
+          rsync -avz --delete -e "ssh -i ~/.ssh/deploy_key -p $SSH_PORT" dist-admin/ "$SSH_USER@$SSH_HOST:/var/www/lumon2/dist-admin/"
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_PORT: ${{ secrets.SSH_PORT }}
@@ -223,7 +223,7 @@ jobs:
           ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "sudo tee /etc/nginx/sites-available/admin-panel > /dev/null << 'NGINX_CONFIG'
           server {
               server_name admin.psayha.ru;
-              root /var/www/adminpage;
+              root /var/www/lumon2/dist-admin;
               index index.html;
               location / {
                   try_files \$uri \$uri/ /index.html;

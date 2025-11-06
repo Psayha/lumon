@@ -168,7 +168,7 @@ export const saveMessage = async (message: Message): Promise<ApiResponse<Message
       getApiUrl(API_CONFIG.endpoints.saveMessage),
       {
         method: 'POST',
-        headers: getDefaultHeaders(),
+        headers: getIdempotentHeaders(),
         body: JSON.stringify(message),
       }
     );

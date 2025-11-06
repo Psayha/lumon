@@ -38,7 +38,7 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
         setError('Неверный логин или пароль');
       }
     } catch (err) {
-      setError('Неверный логин или пароль');
+        setError('Неверный логин или пароль');
     } finally {
       setIsLoading(false);
     }

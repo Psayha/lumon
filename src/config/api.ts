@@ -5,10 +5,10 @@
 
 export const API_CONFIG = {
   // Base URL for n8n webhooks
-  // В продакшене используем пустую строку (относительный путь) - прокси через nginx /webhook/
-  // Локально: создай .env.local с VITE_API_URL=http://91.229.10.47:5678
-  // Или установи через: export VITE_API_URL=http://91.229.10.47:5678 (Linux/Mac) или set VITE_API_URL=http://91.229.10.47:5678 (Windows)
-  baseUrl: import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:5678'),
+  // В продакшене используем https://n8n.psayha.ru
+  // Локально: создай .env.local с VITE_API_URL=http://localhost:5678
+  // Или установи через: export VITE_API_URL=http://localhost:5678 (Linux/Mac) или set VITE_API_URL=http://localhost:5678 (Windows)
+  baseUrl: import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://n8n.psayha.ru' : 'http://localhost:5678'),
   
   // API endpoints
   endpoints: {
