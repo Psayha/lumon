@@ -471,7 +471,8 @@ const ApiTestPage: React.FC = () => {
       if (!info) continue;
 
       try {
-        let testDataForEndpoint = { ...testData[endpoint as keyof typeof testData] } || {};
+        const sourceData = testData[endpoint as keyof typeof testData];
+        let testDataForEndpoint = sourceData ? { ...sourceData } : {};
         
         // Обновляем токен в тестовых данных
         if (['auth-validate', 'auth-refresh', 'auth-logout', 'auth-set-viewer-role', 'auth-switch-company'].includes(endpoint)) {
