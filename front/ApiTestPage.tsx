@@ -91,8 +91,10 @@ const ApiTestPage: React.FC = () => {
     },
     'chat-get-history': {},
     'analytics-log-event': {
-      event_type: 'api_test',
-      event_data: {
+      action: 'api_test',
+      resource: 'api_test_page',
+      resource_id: null,
+      meta: {
         page: 'api-test',
         timestamp: new Date().toISOString(),
         endpoint: selectedEndpoint
