@@ -128,7 +128,14 @@ const ApiTestPage: React.FC = () => {
 
   const handleLoadTestData = () => {
     const data = testData[selectedEndpoint as keyof typeof testData];
-    setRequestBody(JSON.stringify(data, null, 2));
+    let dataToLoad = data ? { ...data } : {};
+    
+    // Автоматически подставляем chat_id для chat-save-message если он есть
+    if (selectedEndpoint === 'chat-save-message' && chatIdForHistory && chatIdForHistory.trim() !== '') {
+      dataToLoad.chat_id = chatIdForHistory;
+    }
+    
+    setRequestBody(JSON.stringify(dataToLoad, null, 2));
   };
 
   const handleTestEndpoint = async () => {
@@ -153,14 +160,34 @@ const ApiTestPage: React.FC = () => {
         },
       };
 
+      // Валидация и подготовка тела запроса
+      let parsedBody: any = {};
+      if (method === 'POST') {
+        try {
+          parsedBody = JSON.parse(requestBody);
+        } catch (e) {
+          throw new Error('Неверный JSON в теле запроса');
+        }
+
+        // Для chat-save-message проверяем chat_id
+        if (selectedEndpoint === 'chat-save-message') {
+          if (!parsedBody.chat_id || parsedBody.chat_id.trim() === '') {
+            // Пробуем использовать chatIdForHistory если он есть
+            if (chatIdForHistory && chatIdForHistory.trim() !== '') {
+              parsedBody.chat_id = chatIdForHistory;
+            } else {
+              throw new Error('Требуется chat_id. Сначала создай чат через "chat-create" или укажи chat_id в поле "Chat ID"');
+            }
+          }
+        }
+
+        requestOptions.body = JSON.stringify(parsedBody);
+      }
+
       // Добавляем Authorization header для защищённых endpoints
       const protectedEndpoints = ['auth-validate', 'auth-refresh', 'auth-logout', 'auth-set-viewer-role', 'auth-switch-company', 'chat-create', 'chat-save-message', 'chat-get-history', 'analytics-log-event'];
       if (protectedEndpoints.includes(selectedEndpoint) && sessionToken) {
         (requestOptions.headers as Record<string, string>)['Authorization'] = `Bearer ${sessionToken}`;
-      }
-
-      if (method === 'POST') {
-        requestOptions.body = requestBody;
       }
 
       // Делаем прямой fetch для детального логирования
@@ -260,6 +287,13 @@ const ApiTestPage: React.FC = () => {
         setUserContext(context);
         localStorage.setItem('test_user_context', JSON.stringify(context));
         console.log('[API Test] User context updated:', context);
+      }
+
+      // Сохраняем chat_id из chat-create
+      if (selectedEndpoint === 'chat-create' && response.ok && responseData?.data?.id) {
+        const newChatId = responseData.data.id;
+        setChatIdForHistory(newChatId);
+        console.log('[API Test] Chat ID saved:', newChatId);
       }
 
       // Также пробуем через обычные функции API для сравнения
@@ -767,10 +801,18 @@ const ApiTestPage: React.FC = () => {
             <select
               value={selectedEndpoint}
               onChange={(e) => {
-                setSelectedEndpoint(e.target.value);
-                setRequestBody(JSON.stringify(testData[e.target.value as keyof typeof testData] || {}, null, 2));
+                const newEndpoint = e.target.value;
+                setSelectedEndpoint(newEndpoint);
+                const data = testData[newEndpoint as keyof typeof testData];
+                let dataToLoad = data ? { ...data } : {};
+                
+                // Автоматически подставляем chat_id для chat-save-message если он есть
+                if (newEndpoint === 'chat-save-message' && chatIdForHistory && chatIdForHistory.trim() !== '') {
+                  dataToLoad.chat_id = chatIdForHistory;
+                }
+                
+                setRequestBody(JSON.stringify(dataToLoad, null, 2));
                 setResponse('');
-                setChatIdForHistory('');
               }}
               className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
             >
@@ -826,6 +868,25 @@ const ApiTestPage: React.FC = () => {
                 placeholder="Введите chat_id (UUID)"
                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
               />
+            </div>
+          )}
+
+          {/* Chat ID для chat-save-message */}
+          {selectedEndpoint === 'chat-save-message' && (
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Chat ID (будет использован в теле запроса):
+              </label>
+              <input
+                type="text"
+                value={chatIdForHistory}
+                onChange={(e) => setChatIdForHistory(e.target.value)}
+                placeholder="Введите chat_id (UUID) или создай чат через chat-create"
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+              />
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                💡 Chat ID будет автоматически подставлен в запрос, если он не указан в JSON
+              </p>
             </div>
           )}
 
