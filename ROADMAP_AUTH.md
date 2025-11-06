@@ -124,16 +124,22 @@ Frontend → API (с Bearer token)
 ```
 
 ### 🌐 Инфраструктура (прод)
-- ✅ Поддомены настроены: `https://n8n.psayha.ru`, `https://sb.psayha.ru`
-- ✅ SSL-сертификаты выданы и подключены (Let's Encrypt)
-- ✅ Nginx проксирует домены на `127.0.0.1:5678` (n8n) и `127.0.0.1:3001` (Studio)
+- ✅ Поддомены настроены: `https://n8n.psayha.ru`, `https://sb.psayha.ru`, `https://admin.psayha.ru`
+- ✅ SSL-сертификаты выданы и подключены (Let's Encrypt) для всех доменов
+- ✅ Nginx проксирует домены на соответствующие сервисы:
+  - `n8n.psayha.ru` → `127.0.0.1:5678` (n8n)
+  - `sb.psayha.ru` → `127.0.0.1:3001` (Supabase Studio)
+  - `admin.psayha.ru` → статика из `/var/www/lumon2/dist-admin`
+  - `psayha.ru` → статика из `/var/www/lumon2/`
 - ✅ Прямой доступ по IP закрыт (Docker-порты привязаны к `127.0.0.1`)
+- ✅ CORS настроен для admin.psayha.ru в n8n
 - ✅ Обновлены переменные окружения n8n:
   - `N8N_HOST=n8n.psayha.ru`
   - `N8N_PROTOCOL=https`
   - `N8N_SECURE_COOKIE=true`
   - `WEBHOOK_URL=https://n8n.psayha.ru/`
   - `N8N_EDITOR_BASE_URL=https://n8n.psayha.ru/`
+  - `N8N_CORS_ORIGIN=https://psayha.ru,https://admin.psayha.ru,https://n8n.psayha.ru`
 
 ### 📊 Статистика
 

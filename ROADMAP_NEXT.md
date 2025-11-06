@@ -8,6 +8,7 @@
 - ✅ Убрать дубли `server_name` в nginx (оставить по одному сервер-блоку на домен).
 - ✅ Проверить Supabase Studio: устойчивая работа с `DATABASE_URL`/`PG*`; устранить `ECONNRESET`.
 - ✅ Финализировать окружение n8n: `WEBHOOK_URL`, `N8N_EDITOR_BASE_URL`; перезапуск n8n.
+- ✅ Nginx конфигурация: все домены работают с SSL, правильная маршрутизация.
 - Certbot renew: проверить таймер/`--dry-run` для автообновления сертификатов.
 
 ## 2) Backend (n8n)
@@ -42,6 +43,7 @@
 - ✅ Нет предупреждений `conflicting server name`.
 - ✅ `sb.psayha.ru` стабильно грузит схемы; логи Studio без `ECONNRESET`.
 - ✅ Все запросы идут через `https://n8n.psayha.ru`; ApiTestPage зелёная.
+- ✅ Все домены работают: n8n.psayha.ru, sb.psayha.ru, admin.psayha.ru, psayha.ru с SSL.
 - `chat.save-message` устойчив к ретраям (нет дублей).
 - Лимиты возвращают 429 при превышении.
 - ✅ Вход в админку через реальный бэкенд (`/webhook/admin-login`); роли ограничивают вкладки (в процессе).
