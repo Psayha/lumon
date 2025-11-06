@@ -122,10 +122,6 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
             {isLoading ? 'Вход...' : 'Войти'}
           </button>
         </form>
-
-        <p className="mt-6 text-xs text-center text-gray-500 dark:text-gray-400">
-          Для разработки: admin / admin
-        </p>
       </motion.div>
     </div>
   );
