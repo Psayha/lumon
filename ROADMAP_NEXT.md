@@ -18,7 +18,7 @@
 - ✅ Analytics: workflow `analytics.log-event` готов (логирование в `audit_events` через `auth.validate`).
 
 ## 3) Frontend
-- Перевести прод-конфигурацию на `VITE_API_URL=https://n8n.psayha.ru`.
+- ✅ Прод-конфигурация использует `VITE_API_URL=https://n8n.psayha.ru` (уже настроено).
 - Прогнать ApiTestPage против домена (все 9–10 эндпоинтов без IP).
 - Улучшить сообщения об ошибках сети/auth.
 
