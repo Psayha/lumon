@@ -61,7 +61,7 @@
   - Создан скрипт `health-check.sh` для проверки всех сервисов
   - Добавлен таб "Health Checks" в админке с принудительной проверкой
   - Таблицы для хранения результатов проверок
-- ⏳ Осталось: создать полные workflows для backup.list, backup.restore, backup.delete, health-check
+- ✅ Все workflows созданы: backup.list, backup.restore, backup.delete, health-check, health-check-list, admin.validate
 
 ---
 
