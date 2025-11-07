@@ -186,7 +186,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "=INSERT INTO health_checks (service_name, status, response_time_ms, error_message, checked_by)\nVALUES {{ $json.results.map(r => `('${r.service}', '${r.status}', ${r.response_time_ms || 'NULL'}, ${r.error_message ? `'${r.error_message.replace(/'/g, \"''\")}'` : 'NULL'}, CAST('{{ $json.admin_user_id }}' AS UUID))`).join(', ') }};",
+        "query": "=INSERT INTO health_checks (service_name, status, response_time_ms, error_message, checked_by, metrics)\nVALUES {{ $json.results.map(r => `('${r.service}', '${r.status}', ${r.response_time_ms || 'NULL'}, ${r.error_message ? `'${r.error_message.replace(/'/g, \"''\")}'` : 'NULL'}, CAST('{{ $json.admin_user_id }}' AS UUID), ${r.metrics ? `'${JSON.stringify(r.metrics)}'::jsonb` : 'NULL'})`).join(', ') }};",
         "options": {}
       },
       "id": "save-health-checks",
@@ -204,7 +204,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Calculate overall status\nconst results = $('Parse Results').item.json.results;\n\nlet overallStatus = 'healthy';\nconst servicesStatus = {};\n\nfor (const result of results) {\n  servicesStatus[result.service] = result.status;\n  if (result.status === 'unhealthy') {\n    overallStatus = 'down';\n  } else if (result.status === 'degraded' && overallStatus === 'healthy') {\n    overallStatus = 'degraded';\n  }\n}\n\nreturn {\n  json: {\n    overall_status: overallStatus,\n    services_status: servicesStatus,\n    results: results\n  }\n};"
+        "jsCode": "// Calculate overall status and extract system metrics\nconst results = $('Parse Results').item.json.results;\n\nlet overallStatus = 'healthy';\nconst servicesStatus = {};\nlet systemMetrics = null;\n\nfor (const result of results) {\n  servicesStatus[result.service] = result.status;\n  if (result.status === 'unhealthy') {\n    overallStatus = 'down';\n  } else if (result.status === 'degraded' && overallStatus === 'healthy') {\n    overallStatus = 'degraded';\n  }\n  \n  // Extract system metrics\n  if (result.service === 'system' && result.metrics) {\n    systemMetrics = result.metrics;\n  }\n}\n\nreturn {\n  json: {\n    overall_status: overallStatus,\n    services_status: servicesStatus,\n    system_metrics: systemMetrics,\n    results: results\n  }\n};"
       },
       "id": "calculate-status",
       "name": "Calculate Status",
@@ -215,7 +215,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "=INSERT INTO system_status (overall_status, services_status, last_checked_at)\nVALUES (\n  '{{ $json.overall_status }}',\n  '{{ JSON.stringify($json.services_status) }}'::jsonb,\n  NOW()\n)\nON CONFLICT (id) DO UPDATE SET\n  overall_status = EXCLUDED.overall_status,\n  services_status = EXCLUDED.services_status,\n  last_checked_at = EXCLUDED.last_checked_at\nRETURNING id;",
+        "query": "=INSERT INTO system_status (overall_status, services_status, system_metrics, last_checked_at)\nVALUES (\n  '{{ $json.overall_status }}',\n  '{{ JSON.stringify($json.services_status) }}'::jsonb,\n  {{ $json.system_metrics ? `'${JSON.stringify($json.system_metrics)}'::jsonb` : 'NULL' }},\n  NOW()\n)\nON CONFLICT (id) DO UPDATE SET\n  overall_status = EXCLUDED.overall_status,\n  services_status = EXCLUDED.services_status,\n  system_metrics = EXCLUDED.system_metrics,\n  last_checked_at = EXCLUDED.last_checked_at\nRETURNING id;",
         "options": {}
       },
       "id": "update-system-status",

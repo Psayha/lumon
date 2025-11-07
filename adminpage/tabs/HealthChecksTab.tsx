@@ -1,5 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { RefreshCw, CheckCircle, XCircle, AlertCircle, Server } from 'lucide-react';
+import { RefreshCw, CheckCircle, XCircle, AlertCircle, Server, Cpu, HardDrive, MemoryStick } from 'lucide-react';
+
+interface SystemMetrics {
+  cpu_usage_percent: number;
+  memory_total_mb: number;
+  memory_used_mb: number;
+  memory_available_mb: number;
+  memory_usage_percent: number;
+  disk_total_gb: number;
+  disk_used_gb: number;
+  disk_available_gb: number;
+  disk_usage_percent: number;
+}
 
 interface HealthCheck {
   service_name: string;
@@ -7,12 +19,14 @@ interface HealthCheck {
   response_time_ms?: number;
   error_message?: string;
   checked_at: string;
+  metrics?: SystemMetrics;
 }
 
 interface SystemStatus {
   overall_status: string;
   services_status: Record<string, string>;
   last_checked_at: string;
+  system_metrics?: SystemMetrics;
 }
 
 export const HealthChecksTab: React.FC = () => {
@@ -164,9 +178,88 @@ export const HealthChecksTab: React.FC = () => {
               {systemStatus.overall_status}
             </span>
           </div>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
             Последняя проверка: {new Date(systemStatus.last_checked_at).toLocaleString('ru-RU')}
           </p>
+          
+          {systemStatus.system_metrics && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+              {/* CPU */}
+              <div className="bg-gray-50 dark:bg-slate-700 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Cpu className="w-4 h-4 text-blue-500" />
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">CPU</span>
+                </div>
+                <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                  {systemStatus.system_metrics.cpu_usage_percent.toFixed(1)}%
+                </div>
+                <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-2 mt-2">
+                  <div
+                    className={`h-2 rounded-full ${
+                      systemStatus.system_metrics.cpu_usage_percent > 80
+                        ? 'bg-red-500'
+                        : systemStatus.system_metrics.cpu_usage_percent > 60
+                        ? 'bg-yellow-500'
+                        : 'bg-green-500'
+                    }`}
+                    style={{ width: `${Math.min(systemStatus.system_metrics.cpu_usage_percent, 100)}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Memory */}
+              <div className="bg-gray-50 dark:bg-slate-700 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <MemoryStick className="w-4 h-4 text-purple-500" />
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Память</span>
+                </div>
+                <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                  {systemStatus.system_metrics.memory_usage_percent.toFixed(1)}%
+                </div>
+                <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {systemStatus.system_metrics.memory_used_mb} MB / {systemStatus.system_metrics.memory_total_mb} MB
+                </div>
+                <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-2 mt-2">
+                  <div
+                    className={`h-2 rounded-full ${
+                      systemStatus.system_metrics.memory_usage_percent > 80
+                        ? 'bg-red-500'
+                        : systemStatus.system_metrics.memory_usage_percent > 60
+                        ? 'bg-yellow-500'
+                        : 'bg-green-500'
+                    }`}
+                    style={{ width: `${Math.min(systemStatus.system_metrics.memory_usage_percent, 100)}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Disk */}
+              <div className="bg-gray-50 dark:bg-slate-700 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <HardDrive className="w-4 h-4 text-green-500" />
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Диск</span>
+                </div>
+                <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                  {systemStatus.system_metrics.disk_usage_percent.toFixed(1)}%
+                </div>
+                <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {systemStatus.system_metrics.disk_used_gb} GB / {systemStatus.system_metrics.disk_total_gb} GB
+                </div>
+                <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-2 mt-2">
+                  <div
+                    className={`h-2 rounded-full ${
+                      systemStatus.system_metrics.disk_usage_percent > 80
+                        ? 'bg-red-500'
+                        : systemStatus.system_metrics.disk_usage_percent > 60
+                        ? 'bg-yellow-500'
+                        : 'bg-green-500'
+                    }`}
+                    style={{ width: `${Math.min(systemStatus.system_metrics.disk_usage_percent, 100)}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

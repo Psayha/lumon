@@ -154,7 +154,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "=SELECT id, service_name, status, response_time_ms, error_message, checked_at\nFROM health_checks\nORDER BY checked_at DESC\nLIMIT 50;",
+        "query": "=SELECT id, service_name, status, response_time_ms, error_message, checked_at, metrics\nFROM health_checks\nORDER BY checked_at DESC\nLIMIT 50;",
         "options": {}
       },
       "id": "get-health-checks",
@@ -172,7 +172,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "=SELECT overall_status, services_status, last_checked_at\nFROM system_status\nORDER BY last_checked_at DESC\nLIMIT 1;",
+        "query": "=SELECT overall_status, services_status, system_metrics, last_checked_at\nFROM system_status\nORDER BY last_checked_at DESC\nLIMIT 1;",
         "options": {}
       },
       "id": "get-system-status",
@@ -190,7 +190,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Manual UUID v4 generator\nfunction generateUUIDv4() {\n  const hex = '0123456789abcdef';\n  let uuid = '';\n  for (let i = 0; i < 36; i++) {\n    if (i === 8 || i === 13 || i === 18 || i === 23) {\n      uuid += '-';\n    } else if (i === 14) {\n      uuid += '4';\n    } else if (i === 19) {\n      uuid += hex[(Math.random() * 4 | 8)];\n    } else {\n      uuid += hex[Math.random() * 16 | 0];\n    }\n  }\n  return uuid;\n}\n\nconst healthChecks = $('Get Health Checks').all();\nconst systemStatus = $('Get System Status').first()?.json || null;\n\nconst formattedChecks = healthChecks.map(item => {\n  const check = item.json;\n  return {\n    id: check.id,\n    service_name: check.service_name,\n    status: check.status,\n    response_time_ms: check.response_time_ms,\n    error_message: check.error_message,\n    checked_at: check.checked_at\n  };\n});\n\nreturn {\n  json: {\n    success: true,\n    data: {\n      health_checks: formattedChecks,\n      system_status: systemStatus ? {\n        overall_status: systemStatus.overall_status,\n        services_status: typeof systemStatus.services_status === 'string' ? JSON.parse(systemStatus.services_status) : systemStatus.services_status,\n        last_checked_at: systemStatus.last_checked_at\n      } : null\n    },\n    traceId: generateUUIDv4()\n  }\n};"
+        "jsCode": "// Manual UUID v4 generator\nfunction generateUUIDv4() {\n  const hex = '0123456789abcdef';\n  let uuid = '';\n  for (let i = 0; i < 36; i++) {\n    if (i === 8 || i === 13 || i === 18 || i === 23) {\n      uuid += '-';\n    } else if (i === 14) {\n      uuid += '4';\n    } else if (i === 19) {\n      uuid += hex[(Math.random() * 4 | 8)];\n    } else {\n      uuid += hex[Math.random() * 16 | 0];\n    }\n  }\n  return uuid;\n}\n\nconst healthChecks = $('Get Health Checks').all();\nconst systemStatus = $('Get System Status').first()?.json || null;\n\nconst formattedChecks = healthChecks.map(item => {\n  const check = item.json;\n  return {\n    id: check.id,\n    service_name: check.service_name,\n    status: check.status,\n    response_time_ms: check.response_time_ms,\n    error_message: check.error_message,\n    checked_at: check.checked_at,\n    metrics: typeof check.metrics === 'string' ? JSON.parse(check.metrics) : check.metrics\n  };\n});\n\nreturn {\n  json: {\n    success: true,\n    data: {\n      health_checks: formattedChecks,\n      system_status: systemStatus ? {\n        overall_status: systemStatus.overall_status,\n        services_status: typeof systemStatus.services_status === 'string' ? JSON.parse(systemStatus.services_status) : systemStatus.services_status,\n        system_metrics: typeof systemStatus.system_metrics === 'string' ? JSON.parse(systemStatus.system_metrics) : systemStatus.system_metrics,\n        last_checked_at: systemStatus.last_checked_at\n      } : null\n    },\n    traceId: generateUUIDv4()\n  }\n};"
       },
       "id": "format-response",
       "name": "Build Response",

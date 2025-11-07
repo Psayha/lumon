@@ -6,6 +6,26 @@ set -e
 
 SERVICE_NAME="${1:-all}"
 
+# Get system metrics
+get_system_metrics() {
+    # CPU usage (average over 1 second)
+    CPU_USAGE=$(top -bn1 | grep "Cpu(s)" | sed "s/.*, *\([0-9.]*\)%* id.*/\1/" | awk '{print 100 - $1}')
+    
+    # Memory usage
+    MEM_TOTAL=$(free -m | awk '/^Mem:/{print $2}')
+    MEM_USED=$(free -m | awk '/^Mem:/{print $3}')
+    MEM_AVAILABLE=$(free -m | awk '/^Mem:/{print $7}')
+    MEM_PERCENT=$((MEM_USED * 100 / MEM_TOTAL))
+    
+    # Disk usage (root partition)
+    DISK_TOTAL=$(df -h / | awk 'NR==2 {print $2}' | sed 's/G//')
+    DISK_USED=$(df -h / | awk 'NR==2 {print $3}' | sed 's/G//')
+    DISK_AVAILABLE=$(df -h / | awk 'NR==2 {print $4}' | sed 's/G//')
+    DISK_PERCENT=$(df -h / | awk 'NR==2 {print $5}' | sed 's/%//')
+    
+    echo "{\"service\": \"system\", \"status\": \"healthy\", \"metrics\": {\"cpu_usage_percent\": ${CPU_USAGE:-0}, \"memory_total_mb\": ${MEM_TOTAL:-0}, \"memory_used_mb\": ${MEM_USED:-0}, \"memory_available_mb\": ${MEM_AVAILABLE:-0}, \"memory_usage_percent\": ${MEM_PERCENT:-0}, \"disk_total_gb\": ${DISK_TOTAL:-0}, \"disk_used_gb\": ${DISK_USED:-0}, \"disk_available_gb\": ${DISK_AVAILABLE:-0}, \"disk_usage_percent\": ${DISK_PERCENT:-0}}}"
+}
+
 check_n8n() {
     echo "Checking n8n..."
     HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 5 http://localhost:5678/healthz || echo "000")
@@ -52,10 +72,13 @@ check_supabase_studio() {
 }
 
 if [ "$SERVICE_NAME" = "all" ]; then
+    get_system_metrics
     check_n8n
     check_postgresql
     check_nginx
     check_supabase_studio
+elif [ "$SERVICE_NAME" = "system" ]; then
+    get_system_metrics
 else
     case "$SERVICE_NAME" in
         n8n) check_n8n ;;
