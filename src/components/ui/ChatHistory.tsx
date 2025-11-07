@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageSquare, Calendar, Trash2 } from 'lucide-react';
+import { MessageSquare, Calendar, Trash2, RefreshCw } from 'lucide-react';
 import { useTelegramTheme } from '../../hooks/useTelegramTheme';
 import { useTelegram } from '../../hooks/useTelegram';
+import { getChatList, type Chat } from '../../utils/api';
 
 interface ChatHistoryItem {
   id: string;
@@ -29,86 +30,41 @@ export const ChatHistory: React.FC<ChatHistoryProps> = ({
 }) => {
   const { themeParams } = useTelegramTheme();
   const { tg, isReady } = useTelegram();
-  // Моковые данные для истории чатов
-  const chatHistory: ChatHistoryItem[] = [
-    {
-      id: '1',
-      title: 'Создание резюме',
-      lastMessage: 'Помогите составить резюме для позиции...',
-      timestamp: new Date(Date.now() - 1000 * 60 * 30), // 30 минут назад
-      messageCount: 12
-    },
-    {
-      id: '2', 
-      title: 'Анализ KPI',
-      lastMessage: 'Какие метрики нужно отслеживать...',
-      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2), // 2 часа назад
-      messageCount: 8
-    },
-    {
-      id: '3',
-      title: 'Скрипты продаж',
-      lastMessage: 'Как улучшить конверсию в воронке...',
-      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24), // 1 день назад
-      messageCount: 15
-    },
-    {
-      id: '4',
-      title: 'Контроль качества',
-      lastMessage: 'Процедуры проверки качества...',
-      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2), // 2 дня назад
-      messageCount: 6
-    },
-    {
-      id: '5',
-      title: 'Оптимизация процессов',
-      lastMessage: 'Как автоматизировать рутинные задачи...',
-      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3), // 3 дня назад
-      messageCount: 20
-    },
-    {
-      id: '6',
-      title: 'Работа с клиентами',
-      lastMessage: 'Стратегии повышения лояльности...',
-      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 4), // 4 дня назад
-      messageCount: 14
-    },
-    {
-      id: '7',
-      title: 'Бюджетирование',
-      lastMessage: 'Планирование бюджета на квартал...',
-      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 5), // 5 дней назад
-      messageCount: 9
-    },
-    {
-      id: '8',
-      title: 'Маркетинговая стратегия',
-      lastMessage: 'Разработка кампании для нового продукта...',
-      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 6), // 6 дней назад
-      messageCount: 18
-    },
-    {
-      id: '9',
-      title: 'Управление командой',
-      lastMessage: 'Мотивация сотрудников и оценка...',
-      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 7), // 7 дней назад
-      messageCount: 11
-    },
-    {
-      id: '10',
-      title: 'Анализ конкурентов',
-      lastMessage: 'Изучение рынка и позиционирование...',
-      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 8), // 8 дней назад
-      messageCount: 7
-    },
-    {
-      id: '11',
-      title: 'Финансовое планирование',
-      lastMessage: 'Прогнозирование доходов и расходов...',
-      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 9), // 9 дней назад
-      messageCount: 13
+  const [chatHistory, setChatHistory] = useState<ChatHistoryItem[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Загружаем список чатов при открытии
+  useEffect(() => {
+    if (isOpen) {
+      loadChatList();
     }
-  ];
+  }, [isOpen]);
+
+  const loadChatList = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await getChatList();
+      if (response.success && response.data) {
+        const formattedChats: ChatHistoryItem[] = response.data.map((chat: Chat) => ({
+          id: chat.id || '',
+          title: chat.title || 'Без названия',
+          lastMessage: chat.lastMessage || 'Нет сообщений',
+          timestamp: chat.lastMessageAt ? new Date(chat.lastMessageAt) : (chat.updated_at ? new Date(chat.updated_at) : new Date(chat.created_at || Date.now())),
+          messageCount: chat.messageCount || 0
+        }));
+        setChatHistory(formattedChats);
+      } else {
+        setError(response.error || 'Не удалось загрузить список чатов');
+      }
+    } catch (err) {
+      console.error('Error loading chat list:', err);
+      setError('Ошибка загрузки списка чатов');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Haptic feedback при взаимодействии
   const triggerHaptic = (style: 'light' | 'medium' | 'heavy' = 'light') => {
@@ -222,7 +178,36 @@ export const ChatHistory: React.FC<ChatHistoryProps> = ({
                 paddingTop: 'calc(max(var(--safe-top, 0px), env(safe-area-inset-top, 0px)) + 3rem)'
               }}
             >
-              {chatHistory.length === 0 ? (
+              {isLoading ? (
+                <div 
+                  className="p-4 text-center"
+                  style={{
+                    color: themeParams.hint_color || '#6B7280'
+                  }}
+                >
+                  <RefreshCw className="w-12 h-12 mx-auto mb-3 opacity-50 animate-spin" />
+                  <p>Загрузка...</p>
+                </div>
+              ) : error ? (
+                <div 
+                  className="p-4 text-center"
+                  style={{
+                    color: themeParams.hint_color || '#6B7280'
+                  }}
+                >
+                  <MessageSquare className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                  <p className="mb-2">{error}</p>
+                  <button
+                    onClick={loadChatList}
+                    className="text-sm underline"
+                    style={{
+                      color: themeParams.button_color || '#2481cc'
+                    }}
+                  >
+                    Попробовать снова
+                  </button>
+                </div>
+              ) : chatHistory.length === 0 ? (
                 <div 
                   className="p-4 text-center"
                   style={{

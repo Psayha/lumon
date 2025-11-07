@@ -49,6 +49,7 @@ const VoiceAssistantPage: React.FC = () => {
             isRecognizing={isRecognizing}
             onRecognizingChange={setIsRecognizing}
             chatId={chatId}
+            onChatIdChange={setChatId}
             onMessageSave={async (message, role) => {
               try {
                 // Создаем чат если нет

@@ -14,6 +14,7 @@ import { QuickCommands } from "./QuickCommands";
 import { InputArea } from "./InputArea";
 import { ChatHistory } from "./ChatHistory";
 import { useViewerGenerationLimit } from "../../hooks/useViewerGenerationLimit";
+import { getChatHistory, type Message as ApiMessage } from "../../utils/api";
 
 function useAutoResizeTextarea({
     value,
@@ -86,6 +87,7 @@ interface AnimatedAIChatProps {
     onRecognizingChange?: (isRecognizing: boolean) => void;
     chatId?: string | null;
     onMessageSave?: (message: string, role: 'user' | 'assistant') => Promise<void>;
+    onChatIdChange?: (chatId: string | null) => void;
 }
 
 export function AnimatedAIChat({ 
@@ -95,7 +97,8 @@ export function AnimatedAIChat({
     isRecognizing: externalIsRecognizing, 
     onRecognizingChange,
     chatId,
-    onMessageSave
+    onMessageSave,
+    onChatIdChange
 }: AnimatedAIChatProps) {
     const [value, setValue] = useState("");
     const [messages, setMessages] = useState<Message[]>([]);
@@ -444,34 +447,34 @@ export function AnimatedAIChat({
         setSelectedCommands(prev => prev.filter(cmd => cmd !== command));
     };
 
-    const handleSelectChat = (chatId: string) => {
+    const handleSelectChat = async (chatId: string) => {
         console.log('Выбран чат:', chatId);
         setShowChatHistory(false);
         
-        // Загружаем историю выбранного чата
-        const mockChatHistory = {
-            '1': [
-                { id: '1', text: 'Помогите составить резюме для позиции менеджера по продажам', isUser: true, timestamp: new Date(Date.now() - 1000 * 60 * 30) },
-                { id: '2', text: 'Конечно! Давайте создадим профессиональное резюме. Расскажите о вашем опыте работы в продажах.', isUser: false, timestamp: new Date(Date.now() - 1000 * 60 * 29) },
-                { id: '3', text: 'У меня 3 года опыта в B2B продажах, работал с крупными клиентами', isUser: true, timestamp: new Date(Date.now() - 1000 * 60 * 28) },
-                { id: '4', text: 'Отлично! Какие достижения можете выделить? Например, увеличение продаж или работа с ключевыми клиентами?', isUser: false, timestamp: new Date(Date.now() - 1000 * 60 * 27) }
-            ],
-            '2': [
-                { id: '1', text: 'Какие KPI нужно отслеживать для отдела продаж?', isUser: true, timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2) },
-                { id: '2', text: 'Для отдела продаж важно отслеживать: конверсию лидов, средний чек, время закрытия сделки, количество активных клиентов.', isUser: false, timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2 + 1000 * 60 * 5) }
-            ],
-            '3': [
-                { id: '1', text: 'Как улучшить конверсию в воронке продаж?', isUser: true, timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24) },
-                { id: '2', text: 'Для улучшения конверсии рекомендую: персонализировать подход, работать с возражениями, использовать социальные доказательства.', isUser: false, timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 + 1000 * 60 * 10) }
-            ],
-            '4': [
-                { id: '1', text: 'Какие процедуры контроля качества нужно внедрить?', isUser: true, timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2) },
-                { id: '2', text: 'Рекомендую внедрить: чек-листы для каждого этапа, регулярные аудиты, обратную связь от клиентов, метрики качества.', isUser: false, timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2 + 1000 * 60 * 15) }
-            ]
-        };
-        
-        const selectedChatMessages = mockChatHistory[chatId as keyof typeof mockChatHistory] || [];
-        setMessages(selectedChatMessages);
+        // Загружаем реальную историю выбранного чата
+        try {
+            const response = await getChatHistory(chatId);
+            if (response.success && response.data) {
+                // Преобразуем формат сообщений из API в формат компонента
+                const formattedMessages = response.data.map((msg: ApiMessage) => ({
+                    id: msg.id || '',
+                    text: msg.content,
+                    isUser: msg.role === 'user',
+                    timestamp: msg.created_at ? new Date(msg.created_at) : new Date()
+                }));
+                setMessages(formattedMessages);
+                // Обновляем chatId через callback
+                if (onChatIdChange) {
+                    onChatIdChange(chatId);
+                }
+            } else {
+                console.error('Failed to load chat history:', response.error);
+                setMessages([]);
+            }
+        } catch (error) {
+            console.error('Error loading chat history:', error);
+            setMessages([]);
+        }
     };
 
     const handleDeleteChat = (chatId: string) => {
@@ -493,6 +496,10 @@ export function AnimatedAIChat({
         setValue("");
         // Сбрасываем высоту textarea
         adjustHeight(true);
+        // Очищаем chatId через callback
+        if (onChatIdChange) {
+            onChatIdChange(null);
+        }
     };
 
     return (

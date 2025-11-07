@@ -20,6 +20,7 @@ export const API_CONFIG = {
     
     // Chat endpoints (обновлено с auth.validate)
     chatCreate: '/webhook/chat-create',
+    chatList: '/webhook/chat-list',
     chatGetHistory: '/webhook/chat-get-history',
     chatSaveMessage: '/webhook/chat-save-message',
     

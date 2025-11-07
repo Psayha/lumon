@@ -25,6 +25,10 @@ export interface Chat {
   user_id?: string;
   title?: string;
   created_at?: string;
+  updated_at?: string;
+  messageCount?: number;
+  lastMessageAt?: string;
+  lastMessage?: string;
 }
 
 export interface User {
@@ -196,14 +200,50 @@ export const saveMessage = async (message: Message): Promise<ApiResponse<Message
   }
 };
 
+// Get chat list
+export const getChatList = async (): Promise<ApiResponse<Chat[]>> => {
+  try {
+    const response = await fetchWithRetry(
+      getApiUrl(API_CONFIG.endpoints.chatList),
+      {
+        method: 'GET',
+        headers: getDefaultHeaders(),
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      let errorMessage = `HTTP error! status: ${response.status}`;
+      try {
+        const errorJson = JSON.parse(errorText);
+        errorMessage = errorJson.message || errorJson.error || errorMessage;
+      } catch {
+        errorMessage = errorText || errorMessage;
+      }
+      throw new Error(errorMessage);
+    }
+
+    const data = await response.json();
+    return { success: true, data: data.data || [] };
+  } catch (error) {
+    console.error('Error fetching chat list:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to fetch chat list',
+      data: [],
+    };
+  }
+};
+
 // Get chat history
 export const getChatHistory = async (chatId: string): Promise<ApiResponse<Message[]>> => {
   try {
     const response = await fetchWithRetry(
-      `${getApiUrl(API_CONFIG.endpoints.getChatHistory)}?chat_id=${chatId}`,
+      getApiUrl(API_CONFIG.endpoints.chatGetHistory),
       {
-        method: 'GET',
+        method: 'POST',
         headers: getDefaultHeaders(),
+        body: JSON.stringify({ chat_id: chatId }),
       }
     );
 
