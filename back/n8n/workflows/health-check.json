@@ -1,0 +1,432 @@
+{
+  "name": "health.check",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "health-check",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-health-check",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 400],
+      "webhookId": "health-check"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract token and service name\nconst input = $input.item.json;\nconst headers = input.headers || {};\nconst body = input.body || input;\n\nconst authHeader = headers.authorization || headers.Authorization || '';\n\nif (!authHeader || !authHeader.startsWith('Bearer ')) {\n  return {\n    json: {\n      error: 'unauthorized',\n      status: 401,\n      message: 'Missing or invalid Authorization header'\n    }\n  };\n}\n\nconst token = authHeader.replace('Bearer ', '').trim();\nconst service = body.service || 'all';\n\nreturn {\n  json: {\n    token: token,\n    service: service\n  }\n};"
+      },
+      "id": "extract-data",
+      "name": "Extract Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [450, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "error-check",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-extract-error",
+      "name": "IF Extract Error",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [650, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": "={{ $json.status || 401 }}"
+        }
+      },
+      "id": "response-extract-error",
+      "name": "Respond Extract Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:5678/webhook/admin-validate",
+        "authentication": "none",
+        "sendBody": true,
+        "contentType": "json",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "token",
+              "value": "={{ $('Extract Data').item.json.token }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "id": "call-admin-validate",
+      "name": "Call admin.validate",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [850, 500],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const httpResponse = $input.item.json;\nconst responseText = httpResponse.data;\n\nlet parsedData;\nif (typeof responseText === 'string') {\n  try {\n    parsedData = JSON.parse(responseText);\n  } catch (e) {\n    return { json: { success: false, error: 'Failed to parse admin response' } };\n  }\n} else {\n  parsedData = responseText;\n}\n\nif (!parsedData || Object.keys(parsedData).length === 0) {\n  return { json: { success: false, error: 'Empty admin response' } };\n}\n\nif (parsedData.success === undefined) {\n  return { json: { success: false, error: 'Invalid admin response format' } };\n}\n\nreturn { json: parsedData };"
+      },
+      "id": "parse-admin-response",
+      "name": "Parse Admin Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1050, 500]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "success-check",
+              "leftValue": "={{ $('Parse Admin Response').item.json.success }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-admin-success",
+      "name": "IF Admin Success",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1250, 500]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify({ error: 'unauthorized', status: 401, message: 'Invalid or expired admin token' }) }}",
+        "options": {
+          "responseCode": 401
+        }
+      },
+      "id": "response-admin-error",
+      "name": "Respond Admin Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1250, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "const extractData = $('Extract Data').item.json;\nconst adminData = $('Parse Admin Response').item.json.data;\n\nreturn {\n  json: {\n    service: extractData.service,\n    admin_user_id: adminData.admin_user_id\n  }\n};"
+      },
+      "id": "prepare-check-data",
+      "name": "Prepare Check Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1450, 600]
+    },
+    {
+      "parameters": {
+        "command": "cd /var/www/lumon2/back && bash scripts/health-check.sh \"{{ $json.service }}\"",
+        "options": {}
+      },
+      "id": "run-health-check",
+      "name": "Run Health Check",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1650, 600],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse health check results\nconst checkResult = $input.item.json;\nconst prepareData = $('Prepare Check Data').item.json;\n\nlet results = [];\n\nif (checkResult.stdout) {\n  const lines = checkResult.stdout.split('\\n').filter(line => line.trim());\n  for (const line of lines) {\n    try {\n      const parsed = JSON.parse(line);\n      results.push(parsed);\n    } catch (e) {\n      // Skip invalid JSON lines\n    }\n  }\n}\n\n// If no results, create default\nif (results.length === 0) {\n  const services = prepareData.service === 'all' ? ['n8n', 'postgresql', 'nginx', 'supabase-studio'] : [prepareData.service];\n  for (const service of services) {\n    results.push({\n      service: service,\n      status: 'unknown',\n      error_message: checkResult.stderr || 'Health check failed'\n    });\n  }\n}\n\nreturn {\n  json: {\n    results: results,\n    admin_user_id: prepareData.admin_user_id\n  }\n};"
+      },
+      "id": "parse-results",
+      "name": "Parse Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1450, 600]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=INSERT INTO health_checks (service_name, status, response_time_ms, error_message, checked_by)\nVALUES {{ $json.results.map(r => `('${r.service}', '${r.status}', ${r.response_time_ms || 'NULL'}, ${r.error_message ? `'${r.error_message.replace(/'/g, \"''\")}'` : 'NULL'}, CAST('{{ $json.admin_user_id }}' AS UUID))`).join(', ') }};",
+        "options": {}
+      },
+      "id": "save-health-checks",
+      "name": "Save Health Checks",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1850, 600],
+      "credentials": {
+        "postgres": {
+          "id": "supabase_postgres",
+          "name": "Supabase PostgreSQL"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Calculate overall status\nconst results = $('Parse Results').item.json.results;\n\nlet overallStatus = 'healthy';\nconst servicesStatus = {};\n\nfor (const result of results) {\n  servicesStatus[result.service] = result.status;\n  if (result.status === 'unhealthy') {\n    overallStatus = 'down';\n  } else if (result.status === 'degraded' && overallStatus === 'healthy') {\n    overallStatus = 'degraded';\n  }\n}\n\nreturn {\n  json: {\n    overall_status: overallStatus,\n    services_status: servicesStatus,\n    results: results\n  }\n};"
+      },
+      "id": "calculate-status",
+      "name": "Calculate Status",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1650, 600]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=INSERT INTO system_status (overall_status, services_status, last_checked_at)\nVALUES (\n  '{{ $json.overall_status }}',\n  '{{ JSON.stringify($json.services_status) }}'::jsonb,\n  NOW()\n)\nON CONFLICT (id) DO UPDATE SET\n  overall_status = EXCLUDED.overall_status,\n  services_status = EXCLUDED.services_status,\n  last_checked_at = EXCLUDED.last_checked_at\nRETURNING id;",
+        "options": {}
+      },
+      "id": "update-system-status",
+      "name": "Update System Status",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1850, 600],
+      "credentials": {
+        "postgres": {
+          "id": "supabase_postgres",
+          "name": "Supabase PostgreSQL"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Manual UUID v4 generator\nfunction generateUUIDv4() {\n  const hex = '0123456789abcdef';\n  let uuid = '';\n  for (let i = 0; i < 36; i++) {\n    if (i === 8 || i === 13 || i === 18 || i === 23) {\n      uuid += '-';\n    } else if (i === 14) {\n      uuid += '4';\n    } else if (i === 19) {\n      uuid += hex[(Math.random() * 4 | 8)];\n    } else {\n      uuid += hex[Math.random() * 16 | 0];\n    }\n  }\n  return uuid;\n}\n\nconst calculateStatus = $('Calculate Status').item.json;\n\nreturn {\n  json: {\n    success: true,\n    data: {\n      overall_status: calculateStatus.overall_status,\n      services_status: calculateStatus.services_status,\n      results: calculateStatus.results\n    },\n    traceId: generateUUIDv4()\n  }\n};"
+      },
+      "id": "format-response",
+      "name": "Build Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2050, 600]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "response-success",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [2250, 600]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Extract Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Data": {
+      "main": [
+        [
+          {
+            "node": "IF Extract Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Extract Error": {
+      "main": [
+        [
+          {
+            "node": "Respond Extract Error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Call admin.validate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call admin.validate": {
+      "main": [
+        [
+          {
+            "node": "Parse Admin Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Admin Response": {
+      "main": [
+        [
+          {
+            "node": "IF Admin Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Admin Success": {
+      "main": [
+        [
+          {
+            "node": "Respond Admin Error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Check Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Check Data": {
+      "main": [
+        [
+          {
+            "node": "Run Health Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run Health Check": {
+      "main": [
+        [
+          {
+            "node": "Parse Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Results": {
+      "main": [
+        [
+          {
+            "node": "Save Health Checks",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Calculate Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Health Checks": {
+      "main": [
+        [
+          {
+            "node": "Calculate Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Status": {
+      "main": [
+        [
+          {
+            "node": "Update System Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update System Status": {
+      "main": [
+        [
+          {
+            "node": "Build Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Response": {
+      "main": [
+        [
+          {
+            "node": "Respond Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2025-11-06T20:50:00.000Z",
+  "versionId": "1"
+}
+

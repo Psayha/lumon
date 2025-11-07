@@ -1,0 +1,423 @@
+{
+  "name": "backup.restore",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "backup-restore",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-backup-restore",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 400],
+      "webhookId": "backup-restore"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract token and backup info\nconst input = $input.item.json;\nconst headers = input.headers || {};\nconst body = input.body || input;\n\nconst authHeader = headers.authorization || headers.Authorization || '';\n\nif (!authHeader || !authHeader.startsWith('Bearer ')) {\n  return {\n    json: {\n      error: 'unauthorized',\n      status: 401,\n      message: 'Missing or invalid Authorization header'\n    }\n  };\n}\n\nconst token = authHeader.replace('Bearer ', '').trim();\nconst backupId = body.backup_id || '';\nconst filePath = body.file_path || '';\n\nif (!backupId && !filePath) {\n  return {\n    json: {\n      error: 'bad_request',\n      status: 400,\n      message: 'backup_id or file_path is required'\n    }\n  };\n}\n\nreturn {\n  json: {\n    token: token,\n    backup_id: backupId,\n    file_path: filePath\n  }\n};"
+      },
+      "id": "extract-data",
+      "name": "Extract Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [450, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "error-check",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-extract-error",
+      "name": "IF Extract Error",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [650, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": "={{ $json.status || 400 }}"
+        }
+      },
+      "id": "response-extract-error",
+      "name": "Respond Extract Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:5678/webhook/admin-validate",
+        "authentication": "none",
+        "sendBody": true,
+        "contentType": "json",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "token",
+              "value": "={{ $('Extract Data').item.json.token }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "id": "call-admin-validate",
+      "name": "Call admin.validate",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [850, 500],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const httpResponse = $input.item.json;\nconst responseText = httpResponse.data;\n\nlet parsedData;\nif (typeof responseText === 'string') {\n  try {\n    parsedData = JSON.parse(responseText);\n  } catch (e) {\n    return { json: { success: false, error: 'Failed to parse admin response' } };\n  }\n} else {\n  parsedData = responseText;\n}\n\nif (!parsedData || Object.keys(parsedData).length === 0) {\n  return { json: { success: false, error: 'Empty admin response' } };\n}\n\nif (parsedData.success === undefined) {\n  return { json: { success: false, error: 'Invalid admin response format' } };\n}\n\nreturn { json: parsedData };"
+      },
+      "id": "parse-admin-response",
+      "name": "Parse Admin Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1050, 500]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "success-check",
+              "leftValue": "={{ $('Parse Admin Response').item.json.success }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-admin-success",
+      "name": "IF Admin Success",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1250, 500]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify({ error: 'unauthorized', status: 401, message: 'Invalid or expired admin token' }) }}",
+        "options": {
+          "responseCode": 401
+        }
+      },
+      "id": "response-admin-error",
+      "name": "Respond Admin Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1250, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "const extractData = $('Extract Data').item.json;\nlet filePath = extractData.file_path;\n\n// If backup_id provided, get file_path from DB\nif (extractData.backup_id && !filePath) {\n  // Will be handled by Get Backup Info node\n  return {\n    json: {\n      backup_id: extractData.backup_id,\n      need_db_lookup: true\n    }\n  };\n}\n\nreturn {\n  json: {\n    file_path: filePath,\n    need_db_lookup: false\n  }\n};"
+      },
+      "id": "prepare-restore-data",
+      "name": "Prepare Restore Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1450, 600]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=SELECT file_path\nFROM backups\nWHERE id = CAST('{{ $('Prepare Restore Data').item.json.backup_id }}' AS UUID)\nLIMIT 1;",
+        "options": {}
+      },
+      "id": "get-backup-info",
+      "name": "Get Backup Info",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1650, 600],
+      "credentials": {
+        "postgres": {
+          "id": "supabase_postgres",
+          "name": "Supabase PostgreSQL"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const prepareData = $('Prepare Restore Data').item.json;\nconst backupInfo = $input.item.json;\n\nlet finalFilePath = prepareData.file_path;\n\nif (prepareData.need_db_lookup && backupInfo && backupInfo.file_path) {\n  finalFilePath = backupInfo.file_path;\n}\n\nif (!finalFilePath) {\n  return {\n    json: {\n      error: 'not_found',\n      status: 404,\n      message: 'Backup file not found'\n    }\n  };\n}\n\nreturn {\n  json: {\n    file_path: finalFilePath\n  }\n};"
+      },
+      "id": "merge-file-path",
+      "name": "Merge File Path",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1450, 600]
+    },
+    {
+      "parameters": {
+        "command": "cd /var/www/lumon2/back && bash scripts/restore-backup.sh \"{{ $json.file_path }}\"",
+        "options": {}
+      },
+      "id": "restore-backup",
+      "name": "Restore Backup",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1650, 600],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Manual UUID v4 generator\nfunction generateUUIDv4() {\n  const hex = '0123456789abcdef';\n  let uuid = '';\n  for (let i = 0; i < 36; i++) {\n    if (i === 8 || i === 13 || i === 18 || i === 23) {\n      uuid += '-';\n    } else if (i === 14) {\n      uuid += '4';\n    } else if (i === 19) {\n      uuid += hex[(Math.random() * 4 | 8)];\n    } else {\n      uuid += hex[Math.random() * 16 | 0];\n    }\n  }\n  return uuid;\n}\n\nconst restoreResult = $input.item.json;\nconst filePath = $('Merge File Path').item.json.file_path;\n\nconst success = restoreResult.stdout && restoreResult.stdout.includes('successfully') || restoreResult.stderr === '';\n\nreturn {\n  json: {\n    success: success,\n    data: {\n      file_path: filePath,\n      message: success ? 'Backup restored successfully' : 'Failed to restore backup'\n    },\n    traceId: generateUUIDv4()\n  }\n};"
+      },
+      "id": "format-response",
+      "name": "Build Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1450, 600]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "response-success",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1650, 600]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Handle error\nfunction generateUUIDv4() {\n  const hex = '0123456789abcdef';\n  let uuid = '';\n  for (let i = 0; i < 36; i++) {\n    if (i === 8 || i === 13 || i === 18 || i === 23) {\n      uuid += '-';\n    } else if (i === 14) {\n      uuid += '4';\n    } else if (i === 19) {\n      uuid += hex[(Math.random() * 4 | 8)];\n    } else {\n      uuid += hex[Math.random() * 16 | 0];\n    }\n  }\n  return uuid;\n}\n\nconst error = $input.item.json;\n\nreturn {\n  json: {\n    error: 'internal_error',\n    status: 500,\n    message: error.message || error.stderr || 'Failed to restore backup',\n    traceId: generateUUIDv4()\n  }\n};"
+      },
+      "id": "handle-error",
+      "name": "Handle Error",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1450, 700]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": "={{ $json.status || 500 }}"
+        }
+      },
+      "id": "response-error",
+      "name": "Respond Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1650, 700]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Extract Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Data": {
+      "main": [
+        [
+          {
+            "node": "IF Extract Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Extract Error": {
+      "main": [
+        [
+          {
+            "node": "Respond Extract Error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Call admin.validate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call admin.validate": {
+      "main": [
+        [
+          {
+            "node": "Parse Admin Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Admin Response": {
+      "main": [
+        [
+          {
+            "node": "IF Admin Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Admin Success": {
+      "main": [
+        [
+          {
+            "node": "Respond Admin Error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Restore Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Restore Data": {
+      "main": [
+        [
+          {
+            "node": "Get Backup Info",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge File Path",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Backup Info": {
+      "main": [
+        [
+          {
+            "node": "Merge File Path",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge File Path": {
+      "main": [
+        [
+          {
+            "node": "Restore Backup",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Restore Backup": {
+      "main": [
+        [
+          {
+            "node": "Build Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Handle Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Response": {
+      "main": [
+        [
+          {
+            "node": "Respond Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Handle Error": {
+      "main": [
+        [
+          {
+            "node": "Respond Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2025-11-06T20:40:00.000Z",
+  "versionId": "1"
+}
+
