@@ -80,15 +80,20 @@ const DebugLogger: React.FC = () => {
 
     // Перехватываем fetch запросы
     const originalFetch = window.fetch;
-    window.fetch = async (...args: any[]) => {
-      const [url, options = {}] = args;
+    window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+      const urlString = typeof input === 'string' 
+        ? input 
+        : input instanceof URL 
+          ? input.toString() 
+          : input.url;
+      const options = init || {};
       const method = options.method || 'GET';
       const startTime = Date.now();
       
       // Логируем запрос
       const requestInfo = {
         method,
-        url: typeof url === 'string' ? url : url.toString(),
+        url: urlString,
         headers: options.headers ? (options.headers instanceof Headers ? Object.fromEntries(options.headers.entries()) : options.headers) : {},
         hasBody: !!options.body,
         bodyPreview: options.body ? (typeof options.body === 'string' ? options.body.substring(0, 200) : '[...]') : undefined
@@ -97,7 +102,7 @@ const DebugLogger: React.FC = () => {
       addLog('info', `[FETCH] ${method} ${requestInfo.url}`, requestInfo);
 
       try {
-        const response = await originalFetch(...args);
+        const response = await originalFetch(input, init);
         const endTime = Date.now();
         const duration = endTime - startTime;
         
@@ -127,13 +132,13 @@ const DebugLogger: React.FC = () => {
         };
         
         const logLevel = response.ok ? 'info' : 'error';
-        addLog(logLevel, `[FETCH] ${method} ${requestInfo.url} → ${response.status} (${duration}ms)`, responseInfo);
+        addLog(logLevel, `[FETCH] ${method} ${urlString} → ${response.status} (${duration}ms)`, responseInfo);
 
         return response;
       } catch (error) {
         const endTime = Date.now();
         const duration = endTime - startTime;
-        addLog('error', `[FETCH] ${method} ${requestInfo.url} → ERROR (${duration}ms)`, error);
+        addLog('error', `[FETCH] ${method} ${urlString} → ERROR (${duration}ms)`, error);
         throw error;
       }
     };
