@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { FileText, Upload, Edit, Trash2, Save, X } from 'lucide-react';
 import { useToast } from '../components/Toast';
+import { adminApiRequest, ADMIN_API_CONFIG } from '../config/api';
 
 interface LegalDoc {
   id: string;
@@ -20,15 +21,7 @@ export const LegalDocsTab: React.FC = () => {
   const loadDocs = async () => {
     setIsLoading(true);
     try {
-      const token = localStorage.getItem('admin_token');
-      const response = await fetch('https://n8n.psayha.ru/webhook/admin-legal-docs-list', {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-      const data = await response.json();
+      const data = await adminApiRequest<LegalDoc[]>(ADMIN_API_CONFIG.endpoints.adminLegalDocsList);
       if (data.success && data.data) {
         setDocs(data.data);
       } else {
@@ -63,16 +56,10 @@ export const LegalDocsTab: React.FC = () => {
     }
 
     try {
-      const token = localStorage.getItem('admin_token');
-      const response = await fetch('https://n8n.psayha.ru/webhook/admin-legal-docs-update', {
+      const data = await adminApiRequest(ADMIN_API_CONFIG.endpoints.adminLegalDocsUpdate, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({ id, content: editContent }),
       });
-      const data = await response.json();
       if (data.success) {
         showToast('success', 'Документ обновлен');
         await loadDocs();

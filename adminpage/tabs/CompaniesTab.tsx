@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Building2, Users, Search, ChevronDown, ChevronUp } from 'lucide-react';
 import { useToast } from '../components/Toast';
+import { adminApiRequest, ADMIN_API_CONFIG } from '../config/api';
 
 interface Company {
   id: string;
@@ -25,15 +26,7 @@ export const CompaniesTab: React.FC = () => {
   const loadCompanies = async () => {
     setIsLoading(true);
     try {
-      const token = localStorage.getItem('admin_token');
-      const response = await fetch('https://n8n.psayha.ru/webhook/admin-companies-list', {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-      const data = await response.json();
+      const data = await adminApiRequest<Company[]>(ADMIN_API_CONFIG.endpoints.adminCompaniesList);
       if (data.success && data.data) {
         setCompanies(data.data);
       } else {

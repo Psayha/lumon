@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Download, Trash2, RefreshCw, HardDrive, Clock } from 'lucide-react';
+import { adminApiRequest, ADMIN_API_CONFIG } from '../config/api';
 
 interface Backup {
   id: string;
@@ -18,15 +19,7 @@ export const BackupsTab: React.FC = () => {
   const loadBackups = async () => {
     setIsLoading(true);
     try {
-      const token = localStorage.getItem('admin_token');
-      const response = await fetch('https://n8n.psayha.ru/webhook/backup-list', {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-      const data = await response.json();
+      const data = await adminApiRequest<Backup[]>(ADMIN_API_CONFIG.endpoints.backupList);
       if (data.success && data.data) {
         setBackups(data.data);
       }
@@ -44,15 +37,9 @@ export const BackupsTab: React.FC = () => {
   const handleCreateBackup = async () => {
     setIsCreating(true);
     try {
-      const token = localStorage.getItem('admin_token');
-      const response = await fetch('https://n8n.psayha.ru/webhook/backup-create', {
+      const data = await adminApiRequest(ADMIN_API_CONFIG.endpoints.backupCreate, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
       });
-      const data = await response.json();
       if (data.success) {
         await loadBackups();
         alert('Бэкап создан успешно');
@@ -72,16 +59,10 @@ export const BackupsTab: React.FC = () => {
       return;
     }
     try {
-      const token = localStorage.getItem('admin_token');
-      const response = await fetch('https://n8n.psayha.ru/webhook/backup-restore', {
+      const data = await adminApiRequest(ADMIN_API_CONFIG.endpoints.backupRestore, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({ backup_id: backupId, file_path: filePath }),
       });
-      const data = await response.json();
       if (data.success) {
         alert('Бэкап восстановлен успешно');
       } else {
@@ -98,16 +79,10 @@ export const BackupsTab: React.FC = () => {
       return;
     }
     try {
-      const token = localStorage.getItem('admin_token');
-      const response = await fetch('https://n8n.psayha.ru/webhook/backup-delete', {
+      const data = await adminApiRequest(ADMIN_API_CONFIG.endpoints.backupDelete, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({ backup_id: backupId }),
       });
-      const data = await response.json();
       if (data.success) {
         await loadBackups();
         alert('Бэкап удален');

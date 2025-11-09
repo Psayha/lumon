@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Shield, Lock, AlertCircle } from 'lucide-react';
+import { getAdminApiUrl, ADMIN_API_CONFIG } from '../config/api';
 
 interface AdminLoginProps {
   onLogin: (token: string) => void;
@@ -18,9 +19,7 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
     setIsLoading(true);
 
     try {
-      // API endpoint для админ-логина
-      const apiUrl = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://n8n.psayha.ru' : 'http://localhost:5678');
-      const response = await fetch(`${apiUrl}/webhook/admin-login`, {
+      const response = await fetch(getAdminApiUrl(ADMIN_API_CONFIG.endpoints.adminLogin), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),

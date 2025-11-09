@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { FileText, Search, Filter, Download, RefreshCw } from 'lucide-react';
 import { useToast } from '../components/Toast';
+import { adminApiRequest, ADMIN_API_CONFIG } from '../config/api';
 
 interface LogEntry {
   id: string;
@@ -32,21 +33,14 @@ export const LogsTab: React.FC = () => {
   const loadLogs = async () => {
     setIsLoading(true);
     try {
-      const token = localStorage.getItem('admin_token');
       const params = new URLSearchParams({
         limit: limit.toString(),
         offset: ((currentPage - 1) * limit).toString(),
       });
       if (filterAction) params.append('action', filterAction);
 
-      const response = await fetch(`https://n8n.psayha.ru/webhook/admin-logs-list?${params}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-      const data = await response.json();
+      const endpoint = `${ADMIN_API_CONFIG.endpoints.adminLogsList}?${params}`;
+      const data = await adminApiRequest(endpoint);
       if (data.success && data.data) {
         setLogs(data.data);
         setTotal(data.pagination?.total || 0);

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { FlaskConical, Plus, Edit, ToggleLeft, ToggleRight, Save, X } from 'lucide-react';
 import { useToast } from '../components/Toast';
+import { adminApiRequest, ADMIN_API_CONFIG } from '../config/api';
 
 interface Experiment {
   id: string;
@@ -28,15 +29,7 @@ export const ABTestingTab: React.FC = () => {
   const loadExperiments = async () => {
     setIsLoading(true);
     try {
-      const token = localStorage.getItem('admin_token');
-      const response = await fetch('https://n8n.psayha.ru/webhook/admin-ab-experiments-list', {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-      const data = await response.json();
+      const data = await adminApiRequest<Experiment[]>(ADMIN_API_CONFIG.endpoints.adminAbExperimentsList);
       if (data.success && data.data) {
         setExperiments(data.data);
       } else {
@@ -56,16 +49,10 @@ export const ABTestingTab: React.FC = () => {
 
   const handleToggleEnabled = async (id: string, enabled: boolean) => {
     try {
-      const token = localStorage.getItem('admin_token');
-      const response = await fetch('https://n8n.psayha.ru/webhook/admin-ab-experiment-update', {
+      const data = await adminApiRequest(ADMIN_API_CONFIG.endpoints.adminAbExperimentUpdate, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({ id, enabled: !enabled }),
       });
-      const data = await response.json();
       if (data.success) {
         showToast('success', enabled ? 'Эксперимент отключен' : 'Эксперимент включен');
         await loadExperiments();

@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Database, Upload, FileText, Trash2, Download, CheckCircle } from 'lucide-react';
 import { useToast } from '../components/Toast';
+import { adminApiRequest, ADMIN_API_CONFIG } from '../config/api';
 
 interface AIDocument {
   id: string;
@@ -21,15 +22,7 @@ export const AIDocumentsTab: React.FC = () => {
   const loadDocuments = async () => {
     setIsLoading(true);
     try {
-      const token = localStorage.getItem('admin_token');
-      const response = await fetch('https://n8n.psayha.ru/webhook/admin-ai-docs-list', {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-      const data = await response.json();
+      const data = await adminApiRequest<AIDocument[]>(ADMIN_API_CONFIG.endpoints.adminAiDocsList);
       if (data.success && data.data) {
         setDocuments(data.data);
       } else {
@@ -87,16 +80,10 @@ export const AIDocumentsTab: React.FC = () => {
 
   const handleDelete = async (id: string) => {
     try {
-      const token = localStorage.getItem('admin_token');
-      const response = await fetch('https://n8n.psayha.ru/webhook/admin-ai-docs-delete', {
+      const data = await adminApiRequest(ADMIN_API_CONFIG.endpoints.adminAiDocsDelete, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({ id }),
       });
-      const data = await response.json();
       if (data.success) {
         showToast('success', 'Документ удален');
         await loadDocuments();

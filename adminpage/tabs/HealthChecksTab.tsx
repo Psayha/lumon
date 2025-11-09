@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { RefreshCw, CheckCircle, XCircle, AlertCircle, Server, Cpu, HardDrive, MemoryStick, TrendingUp } from 'lucide-react';
 import { useToast } from '../components/Toast';
+import { adminApiRequest, ADMIN_API_CONFIG } from '../config/api';
 
 interface SystemMetrics {
   cpu_usage_percent: number;
@@ -40,15 +41,7 @@ export const HealthChecksTab: React.FC = () => {
   const loadHealthChecks = async () => {
     setIsLoading(true);
     try {
-      const token = localStorage.getItem('admin_token');
-      const response = await fetch('https://n8n.psayha.ru/webhook/health-check-list', {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-      const data = await response.json();
+      const data = await adminApiRequest(ADMIN_API_CONFIG.endpoints.healthCheckList);
       if (data.success) {
         if (data.data.system_status) {
           setSystemStatus(data.data.system_status);
@@ -71,16 +64,10 @@ export const HealthChecksTab: React.FC = () => {
   const handleCheckAll = async () => {
     setIsChecking(true);
     try {
-      const token = localStorage.getItem('admin_token');
-      const response = await fetch('https://n8n.psayha.ru/webhook/health-check', {
+      const data = await adminApiRequest(ADMIN_API_CONFIG.endpoints.healthCheck, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({ service: 'all' }),
       });
-      const data = await response.json();
       if (data.success) {
         await loadHealthChecks();
         showToast('success', 'Проверка завершена');
@@ -97,16 +84,10 @@ export const HealthChecksTab: React.FC = () => {
 
   const handleCheckService = async (serviceName: string) => {
     try {
-      const token = localStorage.getItem('admin_token');
-      const response = await fetch('https://n8n.psayha.ru/webhook/health-check', {
+      const data = await adminApiRequest(ADMIN_API_CONFIG.endpoints.healthCheck, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({ service: serviceName }),
       });
-      const data = await response.json();
       if (data.success) {
         await loadHealthChecks();
         showToast('success', `Проверка ${serviceName} завершена`);

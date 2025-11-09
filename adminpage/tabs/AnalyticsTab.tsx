@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { BarChart3, Users, Building2, MessageSquare, TrendingUp, Activity } from 'lucide-react';
 import { useToast } from '../components/Toast';
+import { adminApiRequest, ADMIN_API_CONFIG } from '../config/api';
 
 interface PlatformStats {
   totalUsers: number;
@@ -23,15 +24,7 @@ export const AnalyticsTab: React.FC = () => {
   const loadStats = async () => {
     setIsLoading(true);
     try {
-      const token = localStorage.getItem('admin_token');
-      const response = await fetch('https://n8n.psayha.ru/webhook/admin-stats-platform', {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-      const data = await response.json();
+      const data = await adminApiRequest<PlatformStats>(ADMIN_API_CONFIG.endpoints.adminStatsPlatform);
       if (data.success && data.data) {
         setStats(data.data);
       } else {

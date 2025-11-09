@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Users, Search, Settings, Edit, Save, X } from 'lucide-react';
 import { useToast } from '../components/Toast';
+import { adminApiRequest, ADMIN_API_CONFIG } from '../config/api';
 
 interface User {
   id: string;
@@ -46,18 +47,11 @@ export const UsersTab: React.FC = () => {
   const loadUsers = async () => {
     setIsLoading(true);
     try {
-      const token = localStorage.getItem('admin_token');
       const params = new URLSearchParams();
       if (searchQuery) params.append('search', searchQuery);
 
-      const response = await fetch(`https://n8n.psayha.ru/webhook/admin-users-list?${params}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-      const data = await response.json();
+      const endpoint = `${ADMIN_API_CONFIG.endpoints.adminUsersList}?${params}`;
+      const data = await adminApiRequest(endpoint);
       if (data.success && data.data) {
         setUsers(data.data);
       } else {
@@ -73,18 +67,11 @@ export const UsersTab: React.FC = () => {
 
   const loadLimits = async (userId?: string) => {
     try {
-      const token = localStorage.getItem('admin_token');
       const params = new URLSearchParams();
       if (userId) params.append('user_id', userId);
 
-      const response = await fetch(`https://n8n.psayha.ru/webhook/admin-user-limits-list?${params}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-      const data = await response.json();
+      const endpoint = `${ADMIN_API_CONFIG.endpoints.adminUserLimitsList}?${params}`;
+      const data = await adminApiRequest(endpoint);
       if (data.success && data.data) {
         setLimits(data.data);
       }
@@ -105,20 +92,14 @@ export const UsersTab: React.FC = () => {
 
   const handleSaveLimit = async (userId: string, limitType: string) => {
     try {
-      const token = localStorage.getItem('admin_token');
-      const response = await fetch('https://n8n.psayha.ru/webhook/admin-user-limits-update', {
+      const data = await adminApiRequest(ADMIN_API_CONFIG.endpoints.adminUserLimitsUpdate, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({
           user_id: userId,
           limit_type: limitType,
           limit_value: editLimitValue,
         }),
       });
-      const data = await response.json();
       if (data.success) {
         showToast('success', 'Лимит обновлен');
         await loadLimits(userId);
