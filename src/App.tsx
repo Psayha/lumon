@@ -9,6 +9,7 @@ import { PageGuard } from './components/PageGuard';
 import { useTelegram, isTelegramWebApp } from './hooks/useTelegram';
 import { logger } from './lib/logger';
 import TelegramOnlyPage from '../front/TelegramOnlyPage';
+import DebugLogger from './components/DebugLogger';
 
 // Lazy loading компонентов для лучшей производительности
 const MenuPage = lazy(() => import('../front/MenuPage'));
@@ -511,6 +512,8 @@ const App: React.FC = () => {
             </AuthGuard>
           </Router>
         </ErrorBoundary>
+        {/* Debug Logger - показываем всегда для отладки */}
+        <DebugLogger />
       </div>
     </ModernSplashScreen>
   );

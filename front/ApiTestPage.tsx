@@ -11,6 +11,7 @@ import {
   type Message
 } from '../src/utils/api';
 import { API_CONFIG, getApiUrl } from '../src/config/api';
+import DebugLogger from '../src/components/DebugLogger';
 
 interface UserContext {
   userId: string;
@@ -1088,6 +1089,8 @@ ${JSON.stringify(logData.fullResponse, null, 2)}
           </div>
         </div>
       </div>
+      {/* Debug Logger для отладки */}
+      <DebugLogger />
     </div>
   );
 };
