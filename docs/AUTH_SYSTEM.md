@@ -120,14 +120,15 @@ Content-Type: application/json
 
 ## 📊 Статистика
 
-- **База данных**: 14 таблиц (users, companies, user_companies, sessions, chats, messages, audit_events, admin_users, admin_sessions, backups, health_checks, system_status, idempotency_keys, rate_limits)
+- **База данных**: 16 таблиц (users, companies, user_companies, sessions, chats, messages, audit_events, admin_users, admin_sessions, backups, health_checks, system_status, idempotency_keys, rate_limits, legal_documents, ai_documents)
 - **Auth workflows**: 6 (init, validate, refresh, logout, set-viewer-role, switch-company)
 - **Chat workflows**: 4 (create, list, save-message, get-history)
 - **Admin workflows**: 2 (login, validate)
+- **Admin API workflows**: 5 (companies-list, legal-docs-list, legal-docs-update, ai-docs-list, ai-docs-delete)
 - **Backup workflows**: 4 (create, list, restore, delete)
 - **Health-check workflows**: 2 (check, check-list)
-- **Cron workflows**: 1 (cleanup - каждый час)
-- **Всего активных workflows**: 21
+- **Cron workflows**: 2 (cleanup - каждый час, export-workflows - еженедельно)
+- **Всего активных workflows**: 27
 
 ---
 
