@@ -463,43 +463,44 @@ export const createUser = async (user: User): Promise<ApiResponse<User>> => {
 // Create chat (без userId - используется session_token)
 export const createChat = async (title?: string): Promise<ApiResponse<Chat>> => {
   try {
+    // КРИТИЧНО: Проверяем наличие токена перед запросом
+    let token = localStorage.getItem('session_token');
+    
+    // Если токена нет, пытаемся повторно авторизоваться
+    if (!token) {
+      logger.warn('[createChat] No token found, attempting re-auth...');
+      const reAuthSuccess = await reAuth();
+      if (reAuthSuccess) {
+        token = localStorage.getItem('session_token');
+      }
+    }
+    
+    // Если токена все еще нет, возвращаем ошибку
+    if (!token) {
+      const errorMessage = 'Необходима авторизация. Пожалуйста, обновите страницу.';
+      logger.error('[createChat] No token after re-auth attempt');
+      return {
+        success: false,
+        error: errorMessage,
+      };
+    }
+    
     const headers = getDefaultHeaders();
-    const token = localStorage.getItem('session_token');
     
     // Debug: логируем заголовки перед отправкой
     console.log('[createChat] Headers before request:', JSON.stringify(headers, null, 2));
     console.log('[createChat] Token in localStorage:', token ? token.substring(0, 20) + '...' : 'MISSING');
     console.log('[createChat] Full URL:', getApiUrl(API_CONFIG.endpoints.chatCreate));
     
-    if (token) {
-      logger.log('[createChat] Token exists, calling API...');
-    } else {
-      logger.warn('[createChat] No token, calling API anyway (workflow will return 401)');
-    }
-    
     // Временное решение: отправляем токен в body, т.к. заголовок Authorization не приходит в webhook
     // TODO: исправить проблему с передачей Authorization заголовка в n8n webhook
-    const bodyData: Record<string, any> = { title: title || 'New Chat' };
+    const bodyData: Record<string, any> = { 
+      title: title || 'New Chat',
+      session_token: token // КРИТИЧНО: Всегда добавляем токен в body
+    };
     
-    // КРИТИЧНО: Всегда отправляем токен в body (если есть)
-    // Проверяем токен еще раз перед отправкой
-    const finalToken = token || localStorage.getItem('session_token');
-    
-    if (finalToken) {
-      bodyData.session_token = finalToken;
-      console.log('[createChat] ✅ Adding session_token to body:', finalToken.substring(0, 20) + '...');
-    } else {
-      console.error('[createChat] ❌ No token found in localStorage - request will fail');
-      console.error('[createChat] localStorage keys:', Object.keys(localStorage));
-      // Пробуем найти токен под другими ключами
-      const altToken = localStorage.getItem('token') || localStorage.getItem('auth_token');
-      if (altToken) {
-        bodyData.session_token = altToken;
-        console.log('[createChat] ⚠️ Found token under alternative key');
-      }
-    }
-    
-    console.log('[createChat] 📦 Body data:', JSON.stringify(bodyData, null, 2));
+    console.log('[createChat] ✅ Adding session_token to body:', token.substring(0, 20) + '...');
+    console.log('[createChat] 📦 Body data:', JSON.stringify({ ...bodyData, session_token: token.substring(0, 20) + '...' }, null, 2));
     
     const response = await fetchWithRetry(
       getApiUrl(API_CONFIG.endpoints.chatCreate),
