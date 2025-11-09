@@ -12,7 +12,10 @@
       "name": "Webhook Trigger",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [250, 400],
+      "position": [
+        250,
+        400
+      ],
       "webhookId": "admin-login"
     },
     {
@@ -23,7 +26,10 @@
       "name": "Extract Credentials",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [450, 400]
+      "position": [
+        450,
+        400
+      ]
     },
     {
       "parameters": {
@@ -52,7 +58,10 @@
       "name": "IF Extract Error",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [650, 400]
+      "position": [
+        650,
+        400
+      ]
     },
     {
       "parameters": {
@@ -65,8 +74,11 @@
       "id": "response-extract-error",
       "name": "Respond Extract Error",
       "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1,
-      "position": [850, 300]
+      "typeVersion": 1.1,
+      "position": [
+        850,
+        300
+      ]
     },
     {
       "parameters": {
@@ -78,7 +90,10 @@
       "name": "Get Admin User",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.4,
-      "position": [850, 500],
+      "position": [
+        850,
+        500
+      ],
       "credentials": {
         "postgres": {
           "id": "supabase_postgres",
@@ -113,7 +128,10 @@
       "name": "IF User Found",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [1050, 500]
+      "position": [
+        1050,
+        500
+      ]
     },
     {
       "parameters": {
@@ -126,8 +144,11 @@
       "id": "response-unauthorized",
       "name": "Respond Unauthorized",
       "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1,
-      "position": [1050, 400]
+      "typeVersion": 1.1,
+      "position": [
+        1050,
+        400
+      ]
     },
     {
       "parameters": {
@@ -137,7 +158,10 @@
       "name": "Verify Password",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1250, 600]
+      "position": [
+        1250,
+        600
+      ]
     },
     {
       "parameters": {
@@ -166,7 +190,10 @@
       "name": "IF Password Valid",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [1450, 600]
+      "position": [
+        1450,
+        600
+      ]
     },
     {
       "parameters": {
@@ -179,8 +206,11 @@
       "id": "response-password-invalid",
       "name": "Respond Password Invalid",
       "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1,
-      "position": [1450, 500]
+      "typeVersion": 1.1,
+      "position": [
+        1450,
+        500
+      ]
     },
     {
       "parameters": {
@@ -192,7 +222,10 @@
       "name": "Create Session",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.4,
-      "position": [1650, 700],
+      "position": [
+        1650,
+        700
+      ],
       "credentials": {
         "postgres": {
           "id": "supabase_postgres",
@@ -210,7 +243,10 @@
       "name": "Update Last Login",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.4,
-      "position": [1850, 700],
+      "position": [
+        1850,
+        700
+      ],
       "credentials": {
         "postgres": {
           "id": "supabase_postgres",
@@ -226,7 +262,10 @@
       "name": "Build Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2050, 700]
+      "position": [
+        2050,
+        700
+      ]
     },
     {
       "parameters": {
@@ -239,8 +278,11 @@
       "id": "response-success",
       "name": "Respond Success",
       "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1,
-      "position": [2250, 700]
+      "typeVersion": 1.1,
+      "position": [
+        2250,
+        700
+      ]
     }
   ],
   "connections": {
@@ -385,4 +427,3 @@
   "updatedAt": "2025-11-06T00:00:00.000Z",
   "versionId": "1"
 }
-

@@ -12,7 +12,10 @@
       "name": "Webhook Trigger",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [250, 400],
+      "position": [
+        250,
+        400
+      ],
       "webhookId": "admin-validate"
     },
     {
@@ -23,7 +26,10 @@
       "name": "Extract Token",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [450, 400]
+      "position": [
+        450,
+        400
+      ]
     },
     {
       "parameters": {
@@ -52,7 +58,10 @@
       "name": "IF Extract Error",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [650, 400]
+      "position": [
+        650,
+        400
+      ]
     },
     {
       "parameters": {
@@ -65,8 +74,11 @@
       "id": "response-extract-error",
       "name": "Respond Extract Error",
       "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1,
-      "position": [850, 300]
+      "typeVersion": 1.1,
+      "position": [
+        850,
+        300
+      ]
     },
     {
       "parameters": {
@@ -78,7 +90,10 @@
       "name": "Get Session",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.4,
-      "position": [850, 500],
+      "position": [
+        850,
+        500
+      ],
       "credentials": {
         "postgres": {
           "id": "supabase_postgres",
@@ -113,7 +128,10 @@
       "name": "IF Session Found",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [1050, 500]
+      "position": [
+        1050,
+        500
+      ]
     },
     {
       "parameters": {
@@ -126,8 +144,11 @@
       "id": "response-unauthorized",
       "name": "Respond Unauthorized",
       "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1,
-      "position": [1050, 400]
+      "typeVersion": 1.1,
+      "position": [
+        1050,
+        400
+      ]
     },
     {
       "parameters": {
@@ -137,7 +158,10 @@
       "name": "Build Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1250, 600]
+      "position": [
+        1250,
+        600
+      ]
     },
     {
       "parameters": {
@@ -150,8 +174,11 @@
       "id": "response-success",
       "name": "Respond Success",
       "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1,
-      "position": [1450, 600]
+      "typeVersion": 1.1,
+      "position": [
+        1450,
+        600
+      ]
     }
   ],
   "connections": {
@@ -245,4 +272,3 @@
   "updatedAt": "2025-11-06T20:30:00.000Z",
   "versionId": "1"
 }
-

@@ -12,7 +12,10 @@
       "name": "Webhook Trigger",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [250, 400],
+      "position": [
+        250,
+        400
+      ],
       "webhookId": "admin-users-list"
     },
     {
@@ -23,7 +26,10 @@
       "name": "Extract Data",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [450, 400]
+      "position": [
+        450,
+        400
+      ]
     },
     {
       "parameters": {
@@ -52,7 +58,10 @@
       "name": "IF Error",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [650, 400]
+      "position": [
+        650,
+        400
+      ]
     },
     {
       "parameters": {
@@ -65,8 +74,11 @@
       "id": "respond-error",
       "name": "Respond Error",
       "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1,
-      "position": [850, 300]
+      "typeVersion": 1.1,
+      "position": [
+        850,
+        300
+      ]
     },
     {
       "parameters": {
@@ -89,7 +101,10 @@
       "name": "Validate Admin",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [850, 500],
+      "position": [
+        850,
+        500
+      ],
       "continueOnFail": true
     },
     {
@@ -104,7 +119,10 @@
       "name": "Get Users",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.4,
-      "position": [1050, 500],
+      "position": [
+        1050,
+        500
+      ],
       "credentials": {
         "postgres": {
           "id": "supabase-postgres",
@@ -120,7 +138,10 @@
       "name": "Format Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1250, 500]
+      "position": [
+        1250,
+        500
+      ]
     },
     {
       "parameters": {
@@ -133,8 +154,11 @@
       "id": "respond-success",
       "name": "Respond Success",
       "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1,
-      "position": [1450, 500]
+      "typeVersion": 1.1,
+      "position": [
+        1450,
+        500
+      ]
     }
   ],
   "connections": {
@@ -223,4 +247,3 @@
   },
   "tags": []
 }
-
