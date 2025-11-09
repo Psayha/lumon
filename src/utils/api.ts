@@ -337,35 +337,26 @@ const fetchWithRetry = async (
 
 // Auth init function - инициализация сессии
 export const authInit = async (initData: string, appVersion: string = '1.0.0'): Promise<AuthInitResponse> => {
-  const res = await fetch(getApiUrl(API_CONFIG.endpoints.authInit), {
+  const res = await fetch('https://n8n.psayha.ru/webhook/auth-init-v2', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Accept': 'application/json'
     },
-    body: JSON.stringify({ initData, appVersion }),
-    credentials: 'omit'
+    body: JSON.stringify({ initData, appVersion })
   });
 
   try {
-    // Безопасный лог через clone
-    const { logFetchResponse } = await import('./debugLogger').catch(() => ({ logFetchResponse: null }));
+    const { logFetchResponse } = await import('./debugLogger').catch(() => ({ logFetchResponse: null as any }));
     if (logFetchResponse) await logFetchResponse(res);
   } catch {}
 
   let json: any;
   try {
-    // Используем clone для безопасного чтения (оригинальный response остается нетронутым)
-    const clonedRes = res.clone();
-    json = await clonedRes.json();
+    json = await res.clone().json();
   } catch (e) {
-    // Если clone не сработал, пробуем прочитать оригинальный response
-    try {
-      json = await res.json();
-    } catch (parseError) {
-      const text = await res.text().catch(() => 'Unable to read response');
-      throw new Error(`auth-init-v2: failed to parse body: ${text.slice(0, 200)}`);
-    }
+    const text = await res.text();
+    throw new Error(`auth-init-v2: failed to parse body: ${text.slice(0, 200)}`);
   }
 
   if (!res.ok || !json?.success) {
@@ -592,22 +583,20 @@ export const createChat = async (title?: string): Promise<ApiResponse<Chat>> => 
   const token = localStorage.getItem('session_token');
   if (!token) throw new Error('No session token in localStorage');
 
-  const payload = { title: title || 'New Chat', session_token: token }; // дублируем для n8n fallback
+  const payload = { title: title || 'New Chat', session_token: token };
 
-  const res = await fetch(getApiUrl(API_CONFIG.endpoints.chatCreate), {
+  const res = await fetch('https://n8n.psayha.ru/webhook/chat-create', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
       'Authorization': `Bearer ${token}`
     },
-    body: JSON.stringify(payload),
-    credentials: 'omit'
+    body: JSON.stringify(payload)
   });
 
   try {
-    // Безопасный лог через clone
-    const { logFetchResponse } = await import('./debugLogger').catch(() => ({ logFetchResponse: null }));
+    const { logFetchResponse } = await import('./debugLogger').catch(() => ({ logFetchResponse: null as any }));
     if (logFetchResponse) await logFetchResponse(res);
   } catch {}
 
