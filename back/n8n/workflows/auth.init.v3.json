@@ -150,6 +150,16 @@
     },
     {
       "parameters": {
+        "functionCode": "// Debug: гарантируем наличие данных перед Respond\nconst input = $input.item.json;\nconst sessionToken = $('Create Session').item.json?.session_token || null;\n\nreturn {\n  json: {\n    ping: true,\n    at: new Date().toISOString(),\n    session_token: sessionToken,\n    success: input.success || true,\n    data: input.data || {\n      session_token: sessionToken,\n      user: input.data?.user || null\n    }\n  }\n};"
+      },
+      "id": "debug-before-respond",
+      "name": "Debug Before Respond",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1750, 300]
+    },
+    {
+      "parameters": {
         "respondWith": "json",
         "responseBody": "={{ $json }}",
         "options": {
@@ -271,6 +281,17 @@
       ]
     },
     "Build Response": {
+      "main": [
+        [
+          {
+            "node": "Debug Before Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Debug Before Respond": {
       "main": [
         [
           {
