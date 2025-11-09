@@ -150,7 +150,7 @@
     },
     {
       "parameters": {
-        "functionCode": "// Debug: гарантируем наличие данных перед Respond\nconst input = $input.item.json;\nconst sessionToken = $('Create Session').item.json?.session_token || null;\n\nreturn {\n  json: {\n    ping: true,\n    at: new Date().toISOString(),\n    session_token: sessionToken,\n    success: input.success || true,\n    data: input.data || {\n      session_token: sessionToken,\n      user: input.data?.user || null\n    }\n  }\n};"
+        "functionCode": "// Debug: гарантируем наличие данных перед Respond\nconst input = $input.item.json;\nconst sessionToken = $('Create Session').item.json?.session_token || input?.data?.session_token || null;\n\n// Сохраняем оригинальную структуру из Build Response, но гарантируем наличие session_token\nreturn {\n  json: {\n    success: input.success !== undefined ? input.success : true,\n    data: {\n      session_token: sessionToken,\n      user: input.data?.user || null,\n      expires_at: input.data?.expires_at || null\n    }\n  }\n};"
       },
       "id": "debug-before-respond",
       "name": "Debug Before Respond",
