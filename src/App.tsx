@@ -8,7 +8,6 @@ import { AuthGuard } from './components/AuthGuard';
 import { PageGuard } from './components/PageGuard';
 import { useTelegram, isTelegramWebApp } from './hooks/useTelegram';
 import { logger } from './lib/logger';
-import TelegramOnlyPage from '../front/TelegramOnlyPage';
 import DebugLogger from './components/DebugLogger';
 
 // Lazy loading компонентов для лучшей производительности
