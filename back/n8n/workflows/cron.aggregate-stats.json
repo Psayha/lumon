@@ -1,0 +1,85 @@
+{
+  "name": "cron.aggregate-stats",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 1
+            }
+          ]
+        }
+      },
+      "id": "cron-trigger",
+      "name": "Cron Trigger",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [250, 400]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO platform_stats (date, total_users, active_users, total_companies, total_chats, total_messages, new_users, new_companies, metrics)\nSELECT \n  CURRENT_DATE,\n  (SELECT COUNT(*) FROM users) as total_users,\n  (SELECT COUNT(*) FROM users WHERE last_login_at > NOW() - INTERVAL '30 days') as active_users,\n  (SELECT COUNT(*) FROM companies) as total_companies,\n  (SELECT COUNT(*) FROM chats) as total_chats,\n  (SELECT COUNT(*) FROM messages) as total_messages,\n  (SELECT COUNT(*) FROM users WHERE created_at::date = CURRENT_DATE) as new_users,\n  (SELECT COUNT(*) FROM companies WHERE created_at::date = CURRENT_DATE) as new_companies,\n  jsonb_build_object(\n    'active_sessions', (SELECT COUNT(*) FROM sessions WHERE is_active = true),\n    'total_backups', (SELECT COUNT(*) FROM backups),\n    'health_checks_today', (SELECT COUNT(*) FROM health_checks WHERE created_at::date = CURRENT_DATE)\n  ) as metrics\nON CONFLICT (date) DO UPDATE SET\n  total_users = EXCLUDED.total_users,\n  active_users = EXCLUDED.active_users,\n  total_companies = EXCLUDED.total_companies,\n  total_chats = EXCLUDED.total_chats,\n  total_messages = EXCLUDED.total_messages,\n  new_users = EXCLUDED.new_users,\n  new_companies = EXCLUDED.new_companies,\n  metrics = EXCLUDED.metrics,\n  updated_at = NOW();",
+        "options": {}
+      },
+      "id": "aggregate-stats",
+      "name": "Aggregate Stats",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [450, 400],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-postgres",
+          "name": "Supabase PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Format result\nconst result = $input.item.json;\n\nreturn {\n  json: {\n    success: true,\n    message: 'Platform stats aggregated successfully',\n    timestamp: new Date().toISOString()\n  }\n};"
+      },
+      "id": "format-result",
+      "name": "Format Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [650, 400]
+    }
+  ],
+  "connections": {
+    "cron-trigger": {
+      "main": [
+        [
+          {
+            "node": "aggregate-stats",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "aggregate-stats": {
+      "main": [
+        [
+          {
+            "node": "format-result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "id": "cron-aggregate-stats",
+  "meta": {
+    "instanceId": "lumon-n8n"
+  },
+  "tags": []
+}
+

@@ -1,0 +1,262 @@
+{
+  "name": "admin.logs-list",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "admin-logs-list",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 400],
+      "webhookId": "admin-logs-list"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract token and query params\nconst input = $input.item.json;\nconst headers = input.headers || {};\nconst query = input.query || {};\n\nconst authHeader = headers.authorization || headers.Authorization || '';\n\nif (!authHeader || !authHeader.startsWith('Bearer ')) {\n  return {\n    json: {\n      error: 'unauthorized',\n      status: 401,\n      message: 'Missing or invalid Authorization header'\n    }\n  };\n}\n\nconst token = authHeader.replace('Bearer ', '').trim();\nconst limit = parseInt(query.limit) || 100;\nconst offset = parseInt(query.offset) || 0;\nconst action = query.action || null;\nconst userId = query.user_id || null;\n\nreturn {\n  json: {\n    token: token,\n    limit: limit,\n    offset: offset,\n    action: action,\n    userId: userId\n  }\n};"
+      },
+      "id": "extract-data",
+      "name": "Extract Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [450, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "error-check",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-error",
+      "name": "IF Error",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [650, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": "={{ $json.status || 401 }}"
+        }
+      },
+      "id": "respond-error",
+      "name": "Respond Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:5678/webhook/admin-validate",
+        "authentication": "none",
+        "sendBody": true,
+        "contentType": "json",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "token",
+              "value": "={{ $('Extract Data').item.json.token }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "validate-admin",
+      "name": "Validate Admin",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [850, 500],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  ae.id,\n  ae.action,\n  ae.resource_type,\n  ae.resource_id,\n  ae.metadata,\n  ae.ip,\n  ae.user_agent,\n  ae.created_at,\n  u.username,\n  u.first_name,\n  u.last_name\nFROM audit_events ae\nLEFT JOIN users u ON ae.user_id = u.id\nWHERE ($1::text IS NULL OR ae.action = $1)\n  AND ($2::uuid IS NULL OR ae.user_id = $2)\nORDER BY ae.created_at DESC\nLIMIT $3 OFFSET $4;",
+        "options": {
+          "queryReplacement": "={{ [$json.action || null, $json.userId || null, $json.limit, $json.offset] }}"
+        }
+      },
+      "id": "get-logs",
+      "name": "Get Logs",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1050, 500],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-postgres",
+          "name": "Supabase PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT COUNT(*) as total\nFROM audit_events\nWHERE ($1::text IS NULL OR action = $1)\n  AND ($2::uuid IS NULL OR user_id = $2);",
+        "options": {
+          "queryReplacement": "={{ [$json.action || null, $json.userId || null] }}"
+        }
+      },
+      "id": "get-total",
+      "name": "Get Total Count",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1050, 600],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-postgres",
+          "name": "Supabase PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Format response\nconst logs = $('Get Logs').item.json || [];\nconst total = $('Get Total Count').item.json[0]?.total || 0;\n\nconst formatted = logs.map(log => ({\n  id: log.id,\n  action: log.action,\n  resourceType: log.resource_type,\n  resourceId: log.resource_id,\n  metadata: log.metadata,\n  ip: log.ip,\n  userAgent: log.user_agent,\n  createdAt: log.created_at,\n  user: log.username ? {\n    username: log.username,\n    firstName: log.first_name,\n    lastName: log.last_name\n  } : null\n}));\n\nreturn {\n  json: {\n    success: true,\n    data: formatted,\n    pagination: {\n      total: parseInt(total),\n      limit: $('Extract Data').item.json.limit,\n      offset: $('Extract Data').item.json.offset\n    },\n    traceId: require('crypto').randomUUID()\n  }\n};"
+      },
+      "id": "format-response",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1250, 500]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "respond-success",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1450, 500]
+    }
+  ],
+  "connections": {
+    "webhook-trigger": {
+      "main": [
+        [
+          {
+            "node": "extract-data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "extract-data": {
+      "main": [
+        [
+          {
+            "node": "check-error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "check-error": {
+      "main": [
+        [
+          {
+            "node": "respond-error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "validate-admin",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "validate-admin": {
+      "main": [
+        [
+          {
+            "node": "get-logs",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "get-total",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get-logs": {
+      "main": [
+        [
+          {
+            "node": "format-response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get-total": {
+      "main": [
+        [
+          {
+            "node": "format-response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "format-response": {
+      "main": [
+        [
+          {
+            "node": "respond-success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "id": "admin-logs-list",
+  "meta": {
+    "instanceId": "lumon-n8n"
+  },
+  "tags": []
+}
+

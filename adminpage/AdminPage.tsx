@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Building2, FileText, Database, LogOut, Shield, HardDrive, Activity } from 'lucide-react';
+import { Building2, FileText, Database, LogOut, Shield, HardDrive, Activity, FileSearch, Users, BarChart3, FlaskConical } from 'lucide-react';
 import { AdminLogin } from './components/AdminLogin';
 import { ToastProvider } from './components/Toast';
 import { CompaniesTab } from './tabs/CompaniesTab';
@@ -8,10 +8,14 @@ import { LegalDocsTab } from './tabs/LegalDocsTab';
 import { AIDocumentsTab } from './tabs/AIDocumentsTab';
 import { BackupsTab } from './tabs/BackupsTab';
 import { HealthChecksTab } from './tabs/HealthChecksTab';
+import { LogsTab } from './tabs/LogsTab';
+import { UsersTab } from './tabs/UsersTab';
+import { AnalyticsTab } from './tabs/AnalyticsTab';
+import { ABTestingTab } from './tabs/ABTestingTab';
 
 const AdminPage: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [activeTab, setActiveTab] = useState<'companies' | 'legal' | 'ai-docs' | 'backups' | 'health'>('companies');
+  const [activeTab, setActiveTab] = useState<'companies' | 'legal' | 'ai-docs' | 'backups' | 'health' | 'logs' | 'users' | 'analytics' | 'ab-testing'>('companies');
 
   // Проверка авторизации при загрузке
   useEffect(() => {
@@ -52,6 +56,10 @@ const AdminPage: React.FC = () => {
     { id: 'ai-docs' as const, label: 'Документы для ИИ', icon: Database },
     { id: 'backups' as const, label: 'Бэкапы', icon: HardDrive },
     { id: 'health' as const, label: 'Health Checks', icon: Activity },
+    { id: 'logs' as const, label: 'Логи', icon: FileSearch },
+    { id: 'users' as const, label: 'Пользователи', icon: Users },
+    { id: 'analytics' as const, label: 'Аналитика', icon: BarChart3 },
+    { id: 'ab-testing' as const, label: 'A/B Тесты', icon: FlaskConical },
   ];
 
   return (
@@ -173,6 +181,50 @@ const AdminPage: React.FC = () => {
                 transition={{ duration: 0.2 }}
               >
                 <HealthChecksTab />
+              </motion.div>
+            )}
+            {activeTab === 'logs' && (
+              <motion.div
+                key="logs"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.2 }}
+              >
+                <LogsTab />
+              </motion.div>
+            )}
+            {activeTab === 'users' && (
+              <motion.div
+                key="users"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.2 }}
+              >
+                <UsersTab />
+              </motion.div>
+            )}
+            {activeTab === 'analytics' && (
+              <motion.div
+                key="analytics"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.2 }}
+              >
+                <AnalyticsTab />
+              </motion.div>
+            )}
+            {activeTab === 'ab-testing' && (
+              <motion.div
+                key="ab-testing"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.2 }}
+              >
+                <ABTestingTab />
               </motion.div>
             )}
           </AnimatePresence>

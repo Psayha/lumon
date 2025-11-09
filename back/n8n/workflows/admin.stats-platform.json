@@ -1,0 +1,224 @@
+{
+  "name": "admin.stats-platform",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "admin-stats-platform",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 400],
+      "webhookId": "admin-stats-platform"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract token\nconst input = $input.item.json;\nconst headers = input.headers || {};\n\nconst authHeader = headers.authorization || headers.Authorization || '';\n\nif (!authHeader || !authHeader.startsWith('Bearer ')) {\n  return {\n    json: {\n      error: 'unauthorized',\n      status: 401,\n      message: 'Missing or invalid Authorization header'\n    }\n  };\n}\n\nconst token = authHeader.replace('Bearer ', '').trim();\n\nreturn {\n  json: {\n    token: token\n  }\n};"
+      },
+      "id": "extract-token",
+      "name": "Extract Token",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [450, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "error-check",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-error",
+      "name": "IF Error",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [650, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": "={{ $json.status || 401 }}"
+        }
+      },
+      "id": "respond-error",
+      "name": "Respond Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:5678/webhook/admin-validate",
+        "authentication": "none",
+        "sendBody": true,
+        "contentType": "json",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "token",
+              "value": "={{ $('Extract Token').item.json.token }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "validate-admin",
+      "name": "Validate Admin",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [850, 500],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  (SELECT COUNT(*) FROM users) as total_users,\n  (SELECT COUNT(*) FROM users WHERE last_login_at > NOW() - INTERVAL '30 days') as active_users_30d,\n  (SELECT COUNT(*) FROM users WHERE last_login_at > NOW() - INTERVAL '7 days') as active_users_7d,\n  (SELECT COUNT(*) FROM companies) as total_companies,\n  (SELECT COUNT(*) FROM chats) as total_chats,\n  (SELECT COUNT(*) FROM messages) as total_messages,\n  (SELECT COUNT(*) FROM users WHERE created_at > NOW() - INTERVAL '30 days') as new_users_30d,\n  (SELECT COUNT(*) FROM companies WHERE created_at > NOW() - INTERVAL '30 days') as new_companies_30d,\n  (SELECT COUNT(*) FROM sessions WHERE is_active = true) as active_sessions;",
+        "options": {}
+      },
+      "id": "get-stats",
+      "name": "Get Platform Stats",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1050, 500],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-postgres",
+          "name": "Supabase PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Format response\nconst stats = $('Get Platform Stats').item.json[0] || {};\n\nreturn {\n  json: {\n    success: true,\n    data: {\n      totalUsers: parseInt(stats.total_users) || 0,\n      activeUsers30d: parseInt(stats.active_users_30d) || 0,\n      activeUsers7d: parseInt(stats.active_users_7d) || 0,\n      totalCompanies: parseInt(stats.total_companies) || 0,\n      totalChats: parseInt(stats.total_chats) || 0,\n      totalMessages: parseInt(stats.total_messages) || 0,\n      newUsers30d: parseInt(stats.new_users_30d) || 0,\n      newCompanies30d: parseInt(stats.new_companies_30d) || 0,\n      activeSessions: parseInt(stats.active_sessions) || 0\n    },\n    traceId: require('crypto').randomUUID()\n  }\n};"
+      },
+      "id": "format-response",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1250, 500]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "respond-success",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1450, 500]
+    }
+  ],
+  "connections": {
+    "webhook-trigger": {
+      "main": [
+        [
+          {
+            "node": "extract-token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "extract-token": {
+      "main": [
+        [
+          {
+            "node": "check-error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "check-error": {
+      "main": [
+        [
+          {
+            "node": "respond-error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "validate-admin",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "validate-admin": {
+      "main": [
+        [
+          {
+            "node": "get-stats",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get-stats": {
+      "main": [
+        [
+          {
+            "node": "format-response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "format-response": {
+      "main": [
+        [
+          {
+            "node": "respond-success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "id": "admin-stats-platform",
+  "meta": {
+    "instanceId": "lumon-n8n"
+  },
+  "tags": []
+}
+

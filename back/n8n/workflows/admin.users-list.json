@@ -1,0 +1,226 @@
+{
+  "name": "admin.users-list",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "admin-users-list",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 400],
+      "webhookId": "admin-users-list"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract token and query params\nconst input = $input.item.json;\nconst headers = input.headers || {};\nconst query = input.query || {};\n\nconst authHeader = headers.authorization || headers.Authorization || '';\n\nif (!authHeader || !authHeader.startsWith('Bearer ')) {\n  return {\n    json: {\n      error: 'unauthorized',\n      status: 401,\n      message: 'Missing or invalid Authorization header'\n    }\n  };\n}\n\nconst token = authHeader.replace('Bearer ', '').trim();\nconst limit = parseInt(query.limit) || 50;\nconst offset = parseInt(query.offset) || 0;\nconst search = query.search || null;\n\nreturn {\n  json: {\n    token: token,\n    limit: limit,\n    offset: offset,\n    search: search\n  }\n};"
+      },
+      "id": "extract-data",
+      "name": "Extract Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [450, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "error-check",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-error",
+      "name": "IF Error",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [650, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": "={{ $json.status || 401 }}"
+        }
+      },
+      "id": "respond-error",
+      "name": "Respond Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:5678/webhook/admin-validate",
+        "authentication": "none",
+        "sendBody": true,
+        "contentType": "json",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "token",
+              "value": "={{ $('Extract Data').item.json.token }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "validate-admin",
+      "name": "Validate Admin",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [850, 500],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  u.id,\n  u.telegram_id,\n  u.username,\n  u.first_name,\n  u.last_name,\n  u.created_at,\n  u.last_login_at,\n  COUNT(DISTINCT c.id) as chats_count,\n  COUNT(DISTINCT uc.company_id) as companies_count,\n  json_agg(DISTINCT jsonb_build_object('company_id', uc.company_id, 'role', uc.role)) FILTER (WHERE uc.company_id IS NOT NULL) as companies\nFROM users u\nLEFT JOIN chats c ON u.id = c.user_id\nLEFT JOIN user_companies uc ON u.id = uc.user_id\nWHERE ($1::text IS NULL OR u.username ILIKE '%' || $1 || '%' OR u.first_name ILIKE '%' || $1 || '%' OR u.last_name ILIKE '%' || $1 || '%')\nGROUP BY u.id, u.telegram_id, u.username, u.first_name, u.last_name, u.created_at, u.last_login_at\nORDER BY u.created_at DESC\nLIMIT $2 OFFSET $3;",
+        "options": {
+          "queryReplacement": "={{ [$json.search || null, $json.limit, $json.offset] }}"
+        }
+      },
+      "id": "get-users",
+      "name": "Get Users",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1050, 500],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-postgres",
+          "name": "Supabase PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Format response\nconst users = $('Get Users').item.json || [];\n\nconst formatted = users.map(u => ({\n  id: u.id,\n  telegramId: u.telegram_id,\n  username: u.username,\n  firstName: u.first_name,\n  lastName: u.last_name,\n  createdAt: u.created_at,\n  lastLoginAt: u.last_login_at,\n  chatsCount: parseInt(u.chats_count) || 0,\n  companiesCount: parseInt(u.companies_count) || 0,\n  companies: u.companies || []\n}));\n\nreturn {\n  json: {\n    success: true,\n    data: formatted,\n    traceId: require('crypto').randomUUID()\n  }\n};"
+      },
+      "id": "format-response",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1250, 500]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "respond-success",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1450, 500]
+    }
+  ],
+  "connections": {
+    "webhook-trigger": {
+      "main": [
+        [
+          {
+            "node": "extract-data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "extract-data": {
+      "main": [
+        [
+          {
+            "node": "check-error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "check-error": {
+      "main": [
+        [
+          {
+            "node": "respond-error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "validate-admin",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "validate-admin": {
+      "main": [
+        [
+          {
+            "node": "get-users",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get-users": {
+      "main": [
+        [
+          {
+            "node": "format-response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "format-response": {
+      "main": [
+        [
+          {
+            "node": "respond-success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "id": "admin-users-list",
+  "meta": {
+    "instanceId": "lumon-n8n"
+  },
+  "tags": []
+}
+
