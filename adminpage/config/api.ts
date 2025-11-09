@@ -90,26 +90,60 @@ export const adminApiRequest = async <T = any>(
       },
     });
 
-    // Проверяем Content-Type перед парсингом JSON
+    // Получаем текст ответа для проверки
+    const responseText = await response.text();
     const contentType = response.headers.get('content-type');
     let data: any;
 
+    // Если ответ пустой
+    if (!responseText || responseText.trim() === '') {
+      if (!response.ok) {
+        return {
+          success: false,
+          message: `Ошибка сервера: ${response.status} ${response.statusText || 'Internal Server Error'}`,
+        };
+      }
+      // Пустой успешный ответ
+      return {
+        success: true,
+        data: undefined,
+      };
+    }
+
+    // Пытаемся распарсить JSON
     if (contentType && contentType.includes('application/json')) {
       try {
-        data = await response.json();
+        data = JSON.parse(responseText);
       } catch (jsonError) {
-        console.error('Failed to parse JSON response:', jsonError);
-        throw new Error('Неверный формат ответа от сервера');
+        console.error('Failed to parse JSON response:', {
+          url,
+          status: response.status,
+          contentType,
+          responseText: responseText.substring(0, 200),
+        });
+        return {
+          success: false,
+          message: `Ошибка сервера ${response.status}: Неверный формат ответа`,
+        };
       }
     } else {
-      // Если ответ не JSON, возвращаем ошибку
-      const text = await response.text();
-      throw new Error(`Ошибка сервера: ${response.status} ${response.statusText}. ${text.substring(0, 100)}`);
+      // Если не JSON, но есть текст
+      if (!response.ok) {
+        return {
+          success: false,
+          message: `Ошибка сервера ${response.status}: ${responseText.substring(0, 200)}`,
+        };
+      }
+      // Успешный не-JSON ответ
+      return {
+        success: true,
+        data: responseText as any,
+      };
     }
 
     // Если ответ не успешный, но есть данные, возвращаем их
     if (!response.ok) {
-      const errorMessage = data.message || data.error || `HTTP error! status: ${response.status}`;
+      const errorMessage = data?.message || data?.error || `Ошибка сервера: ${response.status} ${response.statusText || 'Internal Server Error'}`;
       console.error('API Error:', {
         url,
         status: response.status,
@@ -119,7 +153,7 @@ export const adminApiRequest = async <T = any>(
       return {
         success: false,
         message: errorMessage,
-        data: data.data,
+        data: data?.data,
       };
     }
 
