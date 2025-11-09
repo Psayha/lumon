@@ -95,6 +95,14 @@ Frontend → API (с Bearer token)
 - `POST /webhook/admin-legal-docs-update` - обновление юридического документа
 - `GET /webhook/admin-ai-docs-list` - список AI документов
 - `POST /webhook/admin-ai-docs-delete` - удаление AI документа
+- `GET /webhook/admin-logs-list` - просмотр логов системы
+- `GET /webhook/admin-users-list` - список пользователей
+- `GET /webhook/admin-stats-platform` - статистика платформы
+- `GET /webhook/admin-user-limits-list` - список лимитов пользователей
+- `POST /webhook/admin-user-limits-update` - обновление лимита пользователя
+- `GET /webhook/admin-ab-experiments-list` - список A/B экспериментов
+- `POST /webhook/admin-ab-experiment-create` - создание A/B эксперимента
+- `POST /webhook/admin-ab-experiment-update` - обновление A/B эксперимента
 
 ### Формат запросов
 ```http
@@ -125,15 +133,15 @@ Content-Type: application/json
 
 ## 📊 Статистика
 
-- **База данных**: 16 таблиц (users, companies, user_companies, sessions, chats, messages, audit_events, admin_users, admin_sessions, backups, health_checks, system_status, idempotency_keys, rate_limits, legal_documents, ai_documents)
+- **База данных**: 21 таблица (users, companies, user_companies, sessions, chats, messages, audit_events, admin_users, admin_sessions, backups, health_checks, system_status, idempotency_keys, rate_limits, legal_documents, ai_documents, user_limits, ab_experiments, ab_assignments, ab_events, platform_stats)
 - **Auth workflows**: 6 (init, validate, refresh, logout, set-viewer-role, switch-company)
 - **Chat workflows**: 4 (create, list, save-message, get-history)
 - **Admin workflows**: 2 (login, validate)
-- **Admin API workflows**: 5 (companies-list, legal-docs-list, legal-docs-update, ai-docs-list, ai-docs-delete)
+- **Admin API workflows**: 13 (companies-list, legal-docs-list, legal-docs-update, ai-docs-list, ai-docs-delete, logs-list, users-list, stats-platform, user-limits-list, user-limits-update, ab-experiments-list, ab-experiment-create, ab-experiment-update)
 - **Backup workflows**: 4 (create, list, restore, delete)
 - **Health-check workflows**: 2 (check, check-list)
-- **Cron workflows**: 2 (cleanup - каждый час, export-workflows - еженедельно)
-- **Всего активных workflows**: 27
+- **Cron workflows**: 3 (cleanup - каждый час, export-workflows - еженедельно, aggregate-stats - каждый час)
+- **Всего активных workflows**: 36
 
 ---
 
@@ -154,6 +162,16 @@ Content-Type: application/json
 - Nginx проксирует домены на соответствующие сервисы
 - Прямой доступ по IP закрыт (Docker-порты привязаны к `127.0.0.1`)
 - CORS настроен для admin.psayha.ru в n8n
+
+---
+
+### ✅ Расширенная аналитика (Завершено: 6 ноября 2025)
+- Просмотр логов системы через таб "Логи" в админке
+- Управление пользователями через таб "Пользователи"
+- Статистика использования платформы через таб "Аналитика"
+- Управление лимитами пользователей
+- A/B тестирование функций через таб "A/B Тесты"
+- Автоматическая агрегация статистики (cron.aggregate-stats)
 
 ---
 
