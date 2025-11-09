@@ -45,11 +45,12 @@ export const LogsTab: React.FC = () => {
         setLogs(data.data);
         setTotal(data.pagination?.total || 0);
       } else {
-        showToast('error', data.message || 'Не удалось загрузить логи');
+        const errorMsg = data.message || 'Ошибка сервера: не удалось загрузить логи';
+        showToast('error', errorMsg);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading logs:', error);
-      showToast('error', 'Ошибка при загрузке логов');
+      showToast('error', error?.message || 'Ошибка при загрузке логов');
     } finally {
       setIsLoading(false);
     }

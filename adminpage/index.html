@@ -4,6 +4,26 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Админ-панель - Lumon Platform</title>
+    <script>
+        // Подавление ошибок от расширений браузера
+        window.addEventListener('error', function(e) {
+            // Игнорируем ошибки от расширений браузера
+            if (e.filename && (
+                e.filename.includes('crossbrowser') ||
+                e.filename.includes('constants.js') ||
+                e.filename.includes('utils.js') ||
+                e.filename.includes('scheduler.js') ||
+                e.filename.includes('webext') ||
+                e.message.includes('browser is not defined') ||
+                e.message.includes('crossbrowserName is not defined') ||
+                e.message.includes('REMOTE_CONFIG_KEYS is not defined') ||
+                e.message.includes('webextApi is not defined')
+            )) {
+                e.preventDefault();
+                return false;
+            }
+        });
+    </script>
     <script type="module" src="/main.tsx"></script>
 </head>
 <body>

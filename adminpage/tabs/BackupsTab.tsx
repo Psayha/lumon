@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Download, Trash2, RefreshCw, HardDrive, Clock } from 'lucide-react';
 import { adminApiRequest, ADMIN_API_CONFIG } from '../config/api';
+import { useToast } from '../components/Toast';
 
 interface Backup {
   id: string;
@@ -15,6 +16,7 @@ export const BackupsTab: React.FC = () => {
   const [backups, setBackups] = useState<Backup[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
+  const { showToast } = useToast();
 
   const loadBackups = async () => {
     setIsLoading(true);
@@ -23,10 +25,13 @@ export const BackupsTab: React.FC = () => {
       if (data.success && data.data) {
         setBackups(data.data);
       } else {
-        console.error('Failed to load backups:', data.message);
+        const errorMsg = data.message || 'Не удалось загрузить бэкапы';
+        console.error('Failed to load backups:', errorMsg);
+        showToast('error', errorMsg);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading backups:', error);
+      showToast('error', error?.message || 'Ошибка при загрузке бэкапов');
     } finally {
       setIsLoading(false);
     }

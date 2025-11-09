@@ -26,11 +26,12 @@ export const AIDocumentsTab: React.FC = () => {
       if (data.success && data.data) {
         setDocuments(data.data);
       } else {
-        showToast('error', data.message || 'Не удалось загрузить документы');
+        const errorMsg = data.message || 'Ошибка сервера: не удалось загрузить документы';
+        showToast('error', errorMsg);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading AI docs:', error);
-      showToast('error', 'Ошибка при загрузке документов');
+      showToast('error', error?.message || 'Ошибка при загрузке документов');
     } finally {
       setIsLoading(false);
     }

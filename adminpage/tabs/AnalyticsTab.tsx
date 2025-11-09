@@ -28,11 +28,12 @@ export const AnalyticsTab: React.FC = () => {
       if (data.success && data.data) {
         setStats(data.data);
       } else {
-        showToast('error', data.message || 'Не удалось загрузить статистику');
+        const errorMsg = data.message || 'Ошибка сервера: не удалось загрузить статистику';
+        showToast('error', errorMsg);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading stats:', error);
-      showToast('error', 'Ошибка при загрузке статистики');
+      showToast('error', error?.message || 'Ошибка при загрузке статистики');
     } finally {
       setIsLoading(false);
     }

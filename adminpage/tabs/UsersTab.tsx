@@ -55,11 +55,12 @@ export const UsersTab: React.FC = () => {
       if (data.success && data.data) {
         setUsers(data.data);
       } else {
-        showToast('error', data.message || 'Не удалось загрузить пользователей');
+        const errorMsg = data.message || 'Ошибка сервера: не удалось загрузить пользователей';
+        showToast('error', errorMsg);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading users:', error);
-      showToast('error', 'Ошибка при загрузке пользователей');
+      showToast('error', error?.message || 'Ошибка при загрузке пользователей');
     } finally {
       setIsLoading(false);
     }

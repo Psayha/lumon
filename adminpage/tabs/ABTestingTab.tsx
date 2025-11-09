@@ -33,11 +33,12 @@ export const ABTestingTab: React.FC = () => {
       if (data.success && data.data) {
         setExperiments(data.data);
       } else {
-        showToast('error', data.message || 'Не удалось загрузить эксперименты');
+        const errorMsg = data.message || 'Ошибка сервера: не удалось загрузить эксперименты';
+        showToast('error', errorMsg);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading experiments:', error);
-      showToast('error', 'Ошибка при загрузке экспериментов');
+      showToast('error', error?.message || 'Ошибка при загрузке экспериментов');
     } finally {
       setIsLoading(false);
     }

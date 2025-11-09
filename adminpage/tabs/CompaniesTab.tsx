@@ -30,11 +30,12 @@ export const CompaniesTab: React.FC = () => {
       if (data.success && data.data) {
         setCompanies(data.data);
       } else {
-        showToast('error', data.message || 'Не удалось загрузить компании');
+        const errorMsg = data.message || 'Ошибка сервера: не удалось загрузить компании';
+        showToast('error', errorMsg);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading companies:', error);
-      showToast('error', 'Ошибка при загрузке компаний');
+      showToast('error', error?.message || 'Ошибка при загрузке компаний');
     } finally {
       setIsLoading(false);
     }
