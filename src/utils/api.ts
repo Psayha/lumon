@@ -223,12 +223,20 @@ const fetchWithRetry = async (
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), API_CONFIG.timeout);
 
-    // Debug: логируем заголовки перед отправкой
+    // Debug: логируем заголовки и body перед отправкой
+    const bodyPreview = options.body 
+      ? (typeof options.body === 'string' 
+          ? options.body.substring(0, 200) 
+          : '[Body is not a string]')
+      : '[No body]';
+    
     console.log('[fetchWithRetry] Request options:', {
       url,
       method: options.method,
       headers: options.headers,
-      hasAuth: !!(options.headers as Record<string, string>)?.Authorization || !!(options.headers as Record<string, string>)?.authorization
+      hasAuth: !!(options.headers as Record<string, string>)?.Authorization || !!(options.headers as Record<string, string>)?.authorization,
+      bodyLength: options.body ? (typeof options.body === 'string' ? options.body.length : 'unknown') : 0,
+      bodyPreview: bodyPreview
     });
 
     const response = await fetch(url, {
@@ -462,6 +470,9 @@ export const createUser = async (user: User): Promise<ApiResponse<User>> => {
 
 // Create chat (без userId - используется session_token)
 export const createChat = async (title?: string): Promise<ApiResponse<Chat>> => {
+  console.log('[createChat] 🚀 FUNCTION CALLED with title:', title || 'undefined');
+  console.log('[createChat] 📍 Call stack:', new Error().stack?.split('\n').slice(1, 4).join('\n'));
+  
   try {
     // Проверяем наличие токена
     let token = localStorage.getItem('session_token');
