@@ -121,14 +121,31 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
         if (data.success && token) {
           // Сохраняем session_token
           console.log('[AuthGuard] 🔑 Token from response:', token ? token.substring(0, 20) + '...' : 'MISSING');
+          console.log('[AuthGuard] 🔑 Full token length:', token ? token.length : 0);
+          
+          // Очищаем старый токен перед сохранением нового
+          localStorage.removeItem('session_token');
+          
+          // Сохраняем новый токен
           localStorage.setItem('session_token', token);
-          console.log('[AuthGuard] ✅ Session token saved to localStorage:', token.substring(0, 20) + '...');
+          console.log('[AuthGuard] ✅ Session token saved to localStorage');
           
           // Проверяем сразу после сохранения
           const savedToken = localStorage.getItem('session_token');
           console.log('[AuthGuard] 🔍 Verifying token in localStorage:', savedToken ? `✅ Found (${savedToken.length} chars)` : '❌ NOT FOUND');
+          console.log('[AuthGuard] 🔍 Token match:', savedToken === token ? '✅ YES' : '❌ NO');
+          
           if (savedToken !== token) {
-            console.error('[AuthGuard] ❌ CRITICAL: Token mismatch! Saved:', savedToken?.substring(0, 20), 'Expected:', token.substring(0, 20));
+            console.error('[AuthGuard] ❌ CRITICAL: Token mismatch!');
+            console.error('[AuthGuard] Saved:', savedToken?.substring(0, 30));
+            console.error('[AuthGuard] Expected:', token.substring(0, 30));
+          }
+          
+          // Дополнительная проверка - пробуем прочитать через getDefaultHeaders
+          const testHeaders = getDefaultHeaders();
+          console.log('[AuthGuard] 🔍 Test getDefaultHeaders():', testHeaders.Authorization ? '✅ Has Authorization' : '❌ No Authorization');
+          if (testHeaders.Authorization) {
+            console.log('[AuthGuard] 🔍 Authorization header:', testHeaders.Authorization.substring(0, 30) + '...');
           }
           
           // Сохраняем user context

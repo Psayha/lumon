@@ -631,6 +631,14 @@ export const createChat = async (title?: string): Promise<ApiResponse<Chat>> => 
       console.error('[createChat] requestBody:', requestBody);
     }
     
+    // Финальная проверка перед отправкой
+    console.log('[createChat] 🔍 FINAL CHECK before fetch:');
+    console.log('[createChat] - finalToken exists:', !!finalToken);
+    console.log('[createChat] - finalToken length:', finalToken ? finalToken.length : 0);
+    console.log('[createChat] - headers.Authorization:', headers.Authorization ? headers.Authorization.substring(0, 30) + '...' : 'MISSING');
+    console.log('[createChat] - bodyData.session_token:', bodyData.session_token ? bodyData.session_token.substring(0, 30) + '...' : 'MISSING');
+    console.log('[createChat] - requestBody includes session_token:', requestBody.includes('session_token'));
+    
     const response = await fetchWithRetry(
       getApiUrl(API_CONFIG.endpoints.chatCreate),
       {
