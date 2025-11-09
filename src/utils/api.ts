@@ -344,8 +344,27 @@ export const saveMessage = async (message: Message): Promise<ApiResponse<Message
 // Get chat list
 export const getChatList = async (): Promise<ApiResponse<Chat[]>> => {
   try {
+    // Проверяем наличие токена
+    let token = localStorage.getItem('session_token');
+    
+    // Если токена нет, пытаемся повторно авторизоваться
+    if (!token) {
+      logger.warn('[getChatList] No token found, attempting re-auth...');
+      const reAuthSuccess = await reAuth();
+      if (reAuthSuccess) {
+        token = localStorage.getItem('session_token');
+      }
+    }
+    
+    // Формируем URL с токеном в query параметрах (fallback для случаев, когда заголовок не передается)
+    let url = getApiUrl(API_CONFIG.endpoints.chatList);
+    if (token) {
+      const separator = url.includes('?') ? '&' : '?';
+      url = `${url}${separator}session_token=${encodeURIComponent(token)}`;
+    }
+    
     const response = await fetchWithRetry(
-      getApiUrl(API_CONFIG.endpoints.chatList),
+      url,
       {
         method: 'GET',
         headers: getDefaultHeaders(),

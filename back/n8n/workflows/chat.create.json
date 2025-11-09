@@ -18,7 +18,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Extract token from Authorization header, body, or query (fallback)\n// Проблема: заголовок Authorization не приходит в webhook, используем fallback\nconst input = $input.item.json;\n\n// В n8n webhook body может быть в разных форматах:\n// 1. input.body (если это объект)\n// 2. input (если body уже распарсен)\n// 3. JSON.parse(input.body) если body это строка\nlet body = input.body || input;\n\n// Если body это строка, пытаемся распарсить\nif (typeof body === 'string') {\n  try {\n    body = JSON.parse(body);\n  } catch (e) {\n    // Если не JSON, оставляем как есть\n  }\n}\n\n// Если body все еще не объект, используем весь input\nif (typeof body !== 'object' || body === null) {\n  body = input;\n}\n\nconst headers = input.headers || {};\nconst query = input.query || {};\n\n// Пробуем получить токен из заголовка\nlet authHeader = headers.authorization || headers.Authorization || '';\n\n// Fallback 1: если заголовка нет, пробуем получить токен из body\nif (!authHeader || !authHeader.startsWith('Bearer ')) {\n  // Проверяем body на наличие токена в разных вариантах\n  if (body && typeof body === 'object') {\n    if (body.session_token && typeof body.session_token === 'string' && body.session_token.trim().length > 0) {\n      authHeader = `Bearer ${body.session_token.trim()}`;\n    } else if (body.token && typeof body.token === 'string' && body.token.trim().length > 0) {\n      authHeader = `Bearer ${body.token.trim()}`;\n    } else if (body.authorization && typeof body.authorization === 'string' && body.authorization.trim().length > 0) {\n      const authValue = body.authorization.trim();\n      authHeader = authValue.startsWith('Bearer ') ? authValue : `Bearer ${authValue}`;\n    }\n  }\n}\n\n// Fallback 2: если токена нет в body, пробуем из query параметров\nif (!authHeader || !authHeader.startsWith('Bearer ')) {\n  if (query.token && typeof query.token === 'string' && query.token.trim().length > 0) {\n    authHeader = `Bearer ${query.token.trim()}`;\n  } else if (query.session_token && typeof query.session_token === 'string' && query.session_token.trim().length > 0) {\n    authHeader = `Bearer ${query.session_token.trim()}`;\n  }\n}\n\nif (!authHeader || !authHeader.startsWith('Bearer ')) {\n  return {\n    json: {\n      error: 'unauthorized',\n      status: 401,\n      message: 'Missing or invalid Authorization header or token. Please ensure you are logged in.',\n      debug: {\n        headersKeys: Object.keys(headers),\n        hasAuth: !!authHeader,\n        authHeaderStart: authHeader ? authHeader.substring(0, 20) : 'null',\n        bodyType: typeof body,\n        bodyIsObject: typeof body === 'object' && body !== null,\n        bodyKeys: body && typeof body === 'object' ? Object.keys(body) : [],\n        bodyContent: body && typeof body === 'object' ? JSON.stringify(body).substring(0, 500) : String(body).substring(0, 200),\n        queryKeys: Object.keys(query),\n        hasSessionToken: !!(body && typeof body === 'object' && body.session_token),\n        hasToken: !!(body && typeof body === 'object' && body.token),\n        hasAuthorization: !!(body && typeof body === 'object' && body.authorization),\n        inputKeys: Object.keys(input)\n      }\n    }\n  };\n}\n\nconst token = authHeader.replace('Bearer ', '').trim();\nconst title = (body && typeof body === 'object' && body.title) ? body.title : 'New Chat';\n\nreturn {\n  json: {\n    token: token,\n    title: title,\n    ip: headers['x-forwarded-for'] || headers['x-real-ip'] || 'unknown',\n    user_agent: headers['user-agent'] || 'unknown'\n  }\n};"
+        "jsCode": "// Extract token from Authorization header, body, or query (fallback)\n// Проблема: заголовок Authorization может не прийти в webhook, используем fallback\nconst input = $input.item.json;\n\n// В n8n webhook body может быть в разных форматах:\n// 1. input.body (если это объект)\n// 2. input (если body уже распарсен)\n// 3. JSON.parse(input.body) если body это строка\nlet body = input.body || input;\n\n// Если body это строка, пытаемся распарсить\nif (typeof body === 'string') {\n  try {\n    body = JSON.parse(body);\n  } catch (e) {\n    // Если не JSON, оставляем как есть\n  }\n}\n\n// Если body все еще не объект, используем весь input\nif (typeof body !== 'object' || body === null) {\n  body = input;\n}\n\nconst headers = input.headers || {};\nconst query = input.query || {};\n\n// Пробуем получить токен из заголовка\nlet authHeader = headers.authorization || headers.Authorization || headers['authorization'] || headers['Authorization'] || '';\n\n// Fallback 1: если заголовка нет, пробуем получить токен из body (для POST запросов)\nif (!authHeader || !authHeader.startsWith('Bearer ')) {\n  // Проверяем body на наличие токена в разных вариантах\n  if (body && typeof body === 'object') {\n    if (body.session_token && typeof body.session_token === 'string' && body.session_token.trim().length > 0) {\n      authHeader = `Bearer ${body.session_token.trim()}`;\n    } else if (body.token && typeof body.token === 'string' && body.token.trim().length > 0) {\n      authHeader = `Bearer ${body.token.trim()}`;\n    } else if (body.authorization && typeof body.authorization === 'string' && body.authorization.trim().length > 0) {\n      const authValue = body.authorization.trim();\n      authHeader = authValue.startsWith('Bearer ') ? authValue : `Bearer ${authValue}`;\n    }\n  }\n}\n\n// Fallback 2: если токена нет в body, пробуем из query параметров\nif (!authHeader || !authHeader.startsWith('Bearer ')) {\n  if (query.token && typeof query.token === 'string' && query.token.trim().length > 0) {\n    authHeader = `Bearer ${query.token.trim()}`;\n  } else if (query.session_token && typeof query.session_token === 'string' && query.session_token.trim().length > 0) {\n    authHeader = `Bearer ${query.session_token.trim()}`;\n  } else if (query.authorization && typeof query.authorization === 'string' && query.authorization.trim().length > 0) {\n    const authValue = query.authorization.trim();\n    authHeader = authValue.startsWith('Bearer ') ? authValue : `Bearer ${authValue}`;\n  }\n}\n\nif (!authHeader || !authHeader.startsWith('Bearer ')) {\n  return {\n    json: {\n      error: 'unauthorized',\n      status: 401,\n      message: 'Missing or invalid Authorization header or token. Please ensure you are logged in.',\n      debug: {\n        headersKeys: Object.keys(headers),\n        hasAuth: !!authHeader,\n        authHeaderStart: authHeader ? authHeader.substring(0, 20) : 'null',\n        bodyType: typeof body,\n        bodyIsObject: typeof body === 'object' && body !== null,\n        bodyKeys: body && typeof body === 'object' ? Object.keys(body) : [],\n        bodyContent: body && typeof body === 'object' ? JSON.stringify(body).substring(0, 500) : String(body).substring(0, 200),\n        queryKeys: Object.keys(query),\n        hasSessionToken: !!(body && typeof body === 'object' && body.session_token),\n        hasToken: !!(body && typeof body === 'object' && body.token),\n        hasAuthorization: !!(body && typeof body === 'object' && body.authorization),\n        inputKeys: Object.keys(input)\n      }\n    }\n  };\n}\n\nconst token = authHeader.replace('Bearer ', '').trim();\nconst title = (body && typeof body === 'object' && body.title) ? body.title : 'New Chat';\n\nreturn {\n  json: {\n    token: token,\n    title: title,\n    ip: headers['x-forwarded-for'] || headers['x-real-ip'] || 'unknown',\n    user_agent: headers['user-agent'] || 'unknown'\n  }\n};"
       },
       "id": "extract-token",
       "name": "Extract Token",
@@ -101,42 +101,13 @@
     },
     {
       "parameters": {
-        "method": "POST",
-        "url": "https://n8n.psayha.ru/webhook/auth-validate-v2",
-        "authentication": "none",
-        "sendBody": true,
-        "contentType": "json",
-        "bodyParameters": {
-          "parameters": [
-            {
-              "name": "token",
-              "value": "={{ $('Extract Token').item.json.token }}"
-            }
-          ]
-        },
-        "options": {
-          "response": {
-            "response": {
-              "responseFormat": "text"
-            }
-          }
-        }
-      },
-      "id": "validate-token-http",
-      "name": "Validate Token",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [1050, 500]
-    },
-    {
-      "parameters": {
         "jsCode": "const httpResponse = $input.item.json;\nconst responseText = httpResponse.data;\n\nlet parsedData;\nif (typeof responseText === 'string') {\n  try {\n    parsedData = JSON.parse(responseText);\n  } catch (e) {\n    return { json: { success: false, error: 'Failed to parse auth response' } };\n  }\n} else {\n  parsedData = responseText;\n}\n\n// Check if parsedData is empty or missing required fields\nif (!parsedData || Object.keys(parsedData).length === 0) {\n  return { json: { success: false, error: 'Empty auth response' } };\n}\n\n// Check if response has success field\nif (parsedData.success === undefined) {\n  return { json: { success: false, error: 'Invalid auth response format' } };\n}\n\nreturn { json: parsedData };"
       },
       "id": "parse-auth-response",
       "name": "Parse Auth Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1250, 500]
+      "position": [1050, 500]
     },
     {
       "parameters": {
@@ -158,7 +129,7 @@
       "name": "Call Rate Limit",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1,
-      "position": [1450, 500]
+      "position": [1250, 500]
     },
     {
       "parameters": {
@@ -187,7 +158,7 @@
       "name": "IF Rate Limit OK",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [1650, 500]
+      "position": [1450, 500]
     },
     {
       "parameters": {
@@ -201,7 +172,7 @@
       "name": "Respond Rate Limit",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [1850, 300]
+      "position": [1650, 300]
     },
     {
       "parameters": {
@@ -230,7 +201,7 @@
       "name": "IF Auth Success",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [1850, 500]
+      "position": [1650, 500]
     },
     {
       "parameters": {
@@ -244,7 +215,7 @@
       "name": "Respond Auth Error",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [1850, 400]
+      "position": [1650, 400]
     },
     {
       "parameters": {
@@ -254,7 +225,7 @@
       "name": "Prepare Chat Data",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2050, 600]
+      "position": [1850, 600]
     },
     {
       "parameters": {
@@ -266,7 +237,7 @@
       "name": "Create Chat",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.4,
-      "position": [2250, 600],
+      "position": [2050, 600],
       "credentials": {
         "postgres": {
           "id": "supabase_postgres",
@@ -282,7 +253,7 @@
       "name": "Prepare Audit Data",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2450, 600]
+      "position": [2250, 600]
     },
     {
       "parameters": {
@@ -296,7 +267,7 @@
       "name": "Log Audit Event",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.4,
-      "position": [2650, 600],
+      "position": [2450, 600],
       "continueOnFail": true,
       "credentials": {
         "postgres": {
@@ -313,7 +284,7 @@
       "name": "Check Audit Log",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2850, 600]
+      "position": [2650, 600]
     },
     {
       "parameters": {
@@ -323,7 +294,7 @@
       "name": "Build Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2850, 600]
+      "position": [2650, 600]
     },
     {
       "parameters": {
@@ -337,7 +308,7 @@
       "name": "Respond Success",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [3050, 600]
+      "position": [2850, 600]
     },
     {
       "parameters": {
@@ -347,7 +318,7 @@
       "name": "Handle DB Error",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2050, 700]
+      "position": [1850, 700]
     },
     {
       "parameters": {
@@ -361,7 +332,7 @@
       "name": "Respond DB Error",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [3050, 700]
+      "position": [2850, 700]
     }
   ],
   "connections": {
@@ -406,17 +377,6 @@
       ]
     },
     "Call auth.validate": {
-      "main": [
-        [
-          {
-            "node": "Validate Token",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Validate Token": {
       "main": [
         [
           {
