@@ -606,6 +606,11 @@ const ApiTestPage: React.FC = () => {
         const protectedEndpoints = ['auth-validate', 'auth-refresh', 'auth-logout', 'auth-set-viewer-role', 'auth-switch-company', 'chat-create', 'chat-save-message', 'chat-get-history', 'analytics-log-event'];
         if (protectedEndpoints.includes(endpoint) && currentToken) {
           (requestOptions.headers as Record<string, string>)['Authorization'] = `Bearer ${currentToken}`;
+          
+          // Для chat-create добавляем session_token в body (для n8n webhooks)
+          if (endpoint === 'chat-create' && info.method === 'POST') {
+            testDataForEndpoint.session_token = currentToken;
+          }
         }
 
         if (info.method === 'POST') {
