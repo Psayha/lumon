@@ -110,20 +110,25 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
           return;
         }
         
-        // Извлекаем токен из ответа (как в ApiTestPage - прямой доступ)
-        if (data.success && data.data?.session_token) {
-          const token = data.data.session_token;
+        // Извлекаем токен из ответа (с fallback для разных структур)
+        let token: string | undefined = 
+          data?.data?.session_token || 
+          data?.data?.token || 
+          data?.token || 
+          data?.session_token;
+        
+        if (data.success && token) {
           // Сохраняем session_token
           localStorage.setItem('session_token', token);
           
           // Сохраняем user context
-          if (data.data.user) {
+          if (data.data?.user) {
             const userContext = {
               userId: data.data.user.id,
-              role: data.data.role || null,
-              companyId: data.data.companyId || null,
-              username: data.data.user.username,
-              firstName: data.data.user.first_name,
+              role: data.data.role || data.data.user.role || null,
+              companyId: data.data.company_id || data.data.companyId || null,
+              username: data.data.user.username || '',
+              firstName: data.data.user.first_name || '',
             };
             localStorage.setItem('user_context', JSON.stringify(userContext));
             logger.log('[AuthGuard] Авторизация успешна:', userContext);

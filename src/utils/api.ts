@@ -195,17 +195,22 @@ const reAuth = async (): Promise<boolean> => {
       return false;
     }
     
-    // Извлекаем токен из ответа (прямой доступ как в ApiTestPage)
-    if (data.success && data.data?.session_token) {
-      const token = data.data.session_token;
+    // Извлекаем токен из ответа (с fallback для разных структур)
+    let token: string | undefined = 
+      data?.data?.session_token || 
+      data?.data?.token || 
+      data?.token || 
+      data?.session_token;
+    
+    if (data.success && token) {
       // Сохраняем новый токен и context
       localStorage.setItem('session_token', token);
       
       if (data.data?.user) {
         localStorage.setItem('user_context', JSON.stringify({
           userId: data.data.user.id,
-          role: data.data.role,
-          companyId: data.data.companyId,
+          role: data.data.role || data.data.user.role || null,
+          companyId: data.data.company_id || data.data.companyId || null,
         }));
       }
       
@@ -543,9 +548,11 @@ export const createChat = async (title?: string): Promise<ApiResponse<Chat>> => 
     }
     
     const headers = getDefaultHeaders();
+    
+    // ВСЕГДА добавляем токен в body (для n8n webhooks это надежнее)
     const bodyData: Record<string, any> = { 
       title: title || 'New Chat',
-      session_token: token.trim() // ВСЕГДА добавляем токен в body
+      session_token: token.trim()
     };
     
     const requestBody = JSON.stringify(bodyData);
