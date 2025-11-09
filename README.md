@@ -123,20 +123,21 @@
 - **Инструменты**: ESLint и Prettier настроены для проверки и форматирования кода
 
 **Backend:**
-- **База данных**: 14 таблиц (users, companies, user_companies, sessions, chats, messages, audit_events, admin_users, admin_sessions, backups, health_checks, system_status, idempotency_keys, rate_limits)
-- **n8n workflows**: 21 активный workflow
+- **База данных**: 16 таблиц (users, companies, user_companies, sessions, chats, messages, audit_events, admin_users, admin_sessions, backups, health_checks, system_status, idempotency_keys, rate_limits, legal_documents, ai_documents)
+- **n8n workflows**: 27 активных workflows
   - **6 auth workflows**: init, validate, refresh, logout, set-viewer-role, switch-company
   - **4 chat workflows**: create, list, save-message, get-history
-  - **1 cron workflow**: cleanup
+  - **2 cron workflows**: cleanup, export-workflows
   - **2 admin workflows**: login, validate
+  - **5 admin API workflows**: companies-list, legal-docs-list, legal-docs-update, ai-docs-list, ai-docs-delete
   - **4 backup workflows**: create, list, restore, delete
   - **2 health-check workflows**: check, check-list
   - **1 analytics workflow**: log-event
   - **1 rate-limit subworkflow**: check
-- **API endpoints**: 18+ защищенных endpoints
+- **API endpoints**: 23+ защищенных endpoints
   - **11 user endpoints**: auth-init, auth-validate, auth-refresh, auth-logout, auth-set-viewer-role, auth-switch-company, chat-create, chat-list, chat-save-message, chat-get-history, analytics-log-event
-  - **8 admin endpoints**: admin-login, admin-validate, backup-create, backup-list, backup-restore, backup-delete, health-check, health-check-list
-- **Миграции**: 5 файлов (drop old tables + auth system + admin users + backups/health_checks + system metrics)
+  - **12 admin endpoints**: admin-login, admin-validate, backup-create, backup-list, backup-restore, backup-delete, health-check, health-check-list, admin-companies-list, admin-legal-docs-list, admin-legal-docs-update, admin-ai-docs-list, admin-ai-docs-delete
+- **Миграции**: 6 файлов (drop old tables + auth system + admin users + backups/health_checks + system metrics + legal_ai_documents)
 - **Auth coverage**: 100% (все endpoints защищены auth.validate или admin.validate)
 - **Frontend интеграция**: 100% (AuthGuard, re-auth, автопродление сессии)
 - **Cron jobs**: автоматическая очистка устаревших данных (каждый час)
