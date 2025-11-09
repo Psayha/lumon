@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { API_CONFIG, getApiUrl } from '../config/api';
+import { API_CONFIG, getApiUrl, getDefaultHeaders } from '../config/api';
 import { ModernSplashScreen } from './ModernSplashScreen';
 
 interface AuthGuardProps {
@@ -17,9 +17,47 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
         const existingToken = localStorage.getItem('session_token');
         
         if (existingToken) {
-          console.log('[AuthGuard] Найден существующий токен, используем его');
-          setIsAuthReady(true);
-          return;
+          console.log('[AuthGuard] Найден существующий токен, проверяем валидность...');
+          
+          // Проверяем валидность токена через auth-validate
+          try {
+            const validateResponse = await fetch(getApiUrl(API_CONFIG.endpoints.authValidate), {
+              method: 'POST',
+              headers: getDefaultHeaders(),
+            });
+            
+            if (validateResponse.ok) {
+              const validateData = await validateResponse.json();
+              
+              // Токен валиден, обновляем user context из ответа
+              if (validateData.success && validateData.data?.user) {
+                const userContext = {
+                  userId: validateData.data.user.id,
+                  role: validateData.data.role || null,
+                  companyId: validateData.data.companyId || null,
+                  username: validateData.data.user.username,
+                  firstName: validateData.data.user.first_name,
+                };
+                localStorage.setItem('user_context', JSON.stringify(userContext));
+                console.log('[AuthGuard] Токен валиден, user context обновлен:', userContext);
+              }
+              
+              setIsAuthReady(true);
+              return;
+            } else {
+              // Токен невалиден (401/403), удаляем его и продолжаем с auth-init
+              console.warn('[AuthGuard] Токен невалиден, удаляем и продолжаем с auth-init');
+              localStorage.removeItem('session_token');
+              localStorage.removeItem('user_context');
+              // Продолжаем выполнение - переходим к auth-init
+            }
+          } catch (error) {
+            // Ошибка при проверке токена (network error), удаляем токен и продолжаем с auth-init
+            console.warn('[AuthGuard] Ошибка при проверке токена, удаляем и продолжаем с auth-init:', error);
+            localStorage.removeItem('session_token');
+            localStorage.removeItem('user_context');
+            // Продолжаем выполнение - переходим к auth-init
+          }
         }
 
         // Проверяем наличие Telegram initData
