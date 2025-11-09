@@ -134,6 +134,9 @@ Content-Type: application/json
 ## 📊 Статистика
 
 - **База данных**: 21 таблица (users, companies, user_companies, sessions, chats, messages, audit_events, admin_users, admin_sessions, backups, health_checks, system_status, idempotency_keys, rate_limits, legal_documents, ai_documents, user_limits, ab_experiments, ab_assignments, ab_events, platform_stats)
+  - ✅ `user_limits` - создана и настроена (индексы, триггеры)
+  - ✅ `ab_experiments` - создана и настроена (индексы, триггеры)
+  - ✅ `ab_assignments` - создана и настроена (индексы)
 - **Auth workflows**: 6 (init, validate, refresh, logout, set-viewer-role, switch-company)
 - **Chat workflows**: 4 (create, list, save-message, get-history)
 - **Admin workflows**: 2 (login, validate)
@@ -143,12 +146,23 @@ Content-Type: application/json
 - **Cron workflows**: 3 (cleanup - каждый час, export-workflows - еженедельно, aggregate-stats - каждый час)
 - **Всего активных workflows**: 36
 
-### ✅ Обработка ошибок в workflows (Обновлено: 6 ноября 2025)
+### ✅ Обработка ошибок в workflows (Обновлено: 9 ноября 2025)
 - **Все admin workflows** имеют полную обработку ошибок:
   - Узлы с `continueOnFail: true` обрабатываются через `Handle DB Result` и `IF DB Error`
   - HTTP запросы обрабатываются через `Parse Admin Response` и `IF Admin Success`
   - Все пути выполнения гарантированно ведут к `respondToWebhook`
   - Исправлены `connections` - используются имена узлов вместо id
+  - **Улучшенная обработка ошибок PostgreSQL:**
+    - Детальные сообщения с кодами ошибок (code, message, detail, hint, where)
+    - Обработка формата NodeOperationError от n8n
+    - Правильное извлечение сообщений из вложенных объектов
+    - Сбор всех строк из PostgreSQL результатов (обработка множественных items)
+- **Исправленные workflows:**
+  - `admin.users-list.json` - исправлены credentials, добавлен поиск по telegram_id, улучшена обработка ошибок
+  - `admin.stats-platform.json` - исправлены credentials, улучшена обработка ошибок
+  - `admin.user-limits-list.json` - исправлены credentials, улучшена обработка ошибок, сбор всех строк
+  - `admin.ab-experiments-list.json` - улучшена обработка ошибок PostgreSQL
+  - `admin.validate.json` - активирован (active: true)
 - **Дополнительные workflows** также имеют обработку ошибок:
   - `health-check-list.json` - обработка ошибок для Parse Admin Response и Handle System Status Result
   - `backup.list.json` - обработка ошибок для Parse Admin Response и Get Backups List
@@ -186,5 +200,5 @@ Content-Type: application/json
 
 ---
 
-**Последнее обновление:** 6 ноября 2025
+**Последнее обновление:** 9 ноября 2025
 
