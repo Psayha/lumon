@@ -71,7 +71,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "http://lumon-n8n:5678/webhook/auth-validate-v2",
+        "url": "https://n8n.psayha.ru/webhook/auth-validate-v2",
         "authentication": "none",
         "sendBody": true,
         "contentType": "json",

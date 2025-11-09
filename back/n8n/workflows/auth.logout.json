@@ -17,7 +17,7 @@
     },
     {
       "parameters": {
-        "functionCode": "// Extract token from webhook body\nconst body = $input.item.json.body || $input.item.json;\nconst token = body.token;\n\nif (!token) {\n  throw new Error('Session token is required');\n}\n\nreturn {\n  json: {\n    token: token\n  }\n};"
+        "functionCode": "// Extract token from webhook body\nconst input = $input.item.json;\nconst body = input.body || input;\nconst headers = input.headers || {};\nconst token = body.token;\n\nif (!token) {\n  throw new Error('Session token is required');\n}\n\nreturn {\n  json: {\n    token: token,\n    ip: headers['x-forwarded-for'] || headers['x-real-ip'] || 'unknown',\n    user_agent: headers['user-agent'] || 'unknown'\n  }\n};"
       },
       "id": "extract-token",
       "name": "Extract Token",
@@ -45,13 +45,86 @@
     },
     {
       "parameters": {
-        "functionCode": "// Check if session was found and deactivated\nconst result = $input.item.json;\n\nif (!result.id) {\n  return {\n    json: {\n      success: false,\n      message: 'Session not found or already logged out'\n    }\n  };\n}\n\nreturn {\n  json: {\n    success: true,\n    message: 'Successfully logged out'\n  }\n};"
+        "functionCode": "// Check if session was found and deactivated\nconst result = $input.item.json;\n\nif (!result.id) {\n  return {\n    json: {\n      success: false,\n      message: 'Session not found or already logged out'\n    }\n  };\n}\n\nreturn {\n  json: {\n    success: true,\n    message: 'Successfully logged out',\n    session_id: result.id,\n    user_id: result.user_id\n  }\n};"
       },
       "id": "build-response",
       "name": "Build Response",
       "type": "n8n-nodes-base.function",
       "typeVersion": 1,
       "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "success-check",
+              "leftValue": "={{ $json.success }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-logout-success",
+      "name": "IF Logout Success",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "schema": {
+          "__rl": true,
+          "value": "public",
+          "mode": "list",
+          "cachedResultName": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "audit_events",
+          "mode": "list",
+          "cachedResultName": "audit_events"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "user_id": "={{ $('Build Response').item.json.user_id }}",
+            "action": "auth.logout",
+            "resource_type": "session",
+            "resource_id": "={{ $('Build Response').item.json.session_id }}",
+            "metadata": "={{ JSON.stringify({ session_token: $('Extract Token').item.json.token }) }}",
+            "ip": "={{ $('Extract Token').item.json.ip }}",
+            "user_agent": "={{ $('Extract Token').item.json.user_agent }}"
+          },
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "log-audit-event",
+      "name": "Log Audit Event",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1250, 200],
+      "continueOnFail": true,
+      "credentials": {
+        "postgres": {
+          "id": "OPy15M2cOLEss5yi",
+          "name": "Postgres account"
+        }
+      }
     },
     {
       "parameters": {
@@ -72,7 +145,7 @@
       "name": "Respond to Webhook",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [1050, 300]
+      "position": [1450, 300]
     },
     {
       "parameters": {
@@ -132,6 +205,35 @@
       ]
     },
     "Build Response": {
+      "main": [
+        [
+          {
+            "node": "IF Logout Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Logout Success": {
+      "main": [
+        [
+          {
+            "node": "Log Audit Event",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Audit Event": {
       "main": [
         [
           {

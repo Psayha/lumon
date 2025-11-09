@@ -20,7 +20,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Extract token and data\nconst input = $input.item.json;\nconst headers = input.headers || {};\nconst body = input.body || input;\n\nconst authHeader = headers.authorization || headers.Authorization || '';\n\nif (!authHeader || !authHeader.startsWith('Bearer ')) {\n  return {\n    json: {\n      error: 'unauthorized',\n      status: 401,\n      message: 'Missing or invalid Authorization header'\n    }\n  };\n}\n\nconst token = authHeader.replace('Bearer ', '').trim();\n\nif (!body.id) {\n  return {\n    json: {\n      error: 'bad_request',\n      status: 400,\n      message: 'Missing required field: id'\n    }\n  };\n}\n\nreturn {\n  json: {\n    token: token,\n    id: body.id,\n    enabled: body.enabled,\n    trafficPercentage: body.traffic_percentage !== undefined ? parseInt(body.traffic_percentage) : null,\n    variantAConfig: body.variant_a_config,\n    variantBConfig: body.variant_b_config\n  }\n};"
+        "jsCode": "// Extract token and data\nconst input = $input.item.json;\nconst headers = input.headers || {};\nconst body = input.body || input;\n\nconst authHeader = headers.authorization || headers.Authorization || '';\n\nif (!authHeader || !authHeader.startsWith('Bearer ')) {\n  return {\n    json: {\n      error: 'unauthorized',\n      status: 401,\n      message: 'Missing or invalid Authorization header'\n    }\n  };\n}\n\nconst token = authHeader.replace('Bearer ', '').trim();\n\nif (!body.id) {\n  return {\n    json: {\n      error: 'bad_request',\n      status: 400,\n      message: 'Missing required field: id'\n    }\n  };\n}\n\nreturn {\n  json: {\n    token: token,\n    id: body.id,\n    enabled: body.enabled,\n    trafficPercentage: body.traffic_percentage !== undefined ? parseInt(body.traffic_percentage) : null,\n    variantAConfig: body.variant_a_config,\n    variantBConfig: body.variant_b_config,\n    ip: headers['x-forwarded-for'] || headers['x-real-ip'] || 'unknown',\n    user_agent: headers['user-agent'] || 'unknown'\n  }\n};"
       },
       "id": "extract-data",
       "name": "Extract Data",
@@ -257,6 +257,52 @@
     },
     {
       "parameters": {
+        "operation": "insert",
+        "schema": {
+          "__rl": true,
+          "value": "public",
+          "mode": "list",
+          "cachedResultName": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "audit_events",
+          "mode": "list",
+          "cachedResultName": "audit_events"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "action": "admin.ab_experiment_updated",
+            "resource_type": "ab_experiment",
+            "resource_id": "={{ $('Extract Data').item.json.id }}",
+            "metadata": "={{ JSON.stringify({ experiment_id: $('Extract Data').item.json.id, enabled: $('Extract Data').item.json.enabled, traffic_percentage: $('Extract Data').item.json.trafficPercentage, changes: { enabled: $('Extract Data').item.json.enabled !== undefined, traffic_percentage: $('Extract Data').item.json.trafficPercentage !== null, variant_a_config: $('Extract Data').item.json.variantAConfig !== undefined, variant_b_config: $('Extract Data').item.json.variantBConfig !== undefined } }) }}",
+            "ip": "={{ $('Extract Data').item.json.ip }}",
+            "user_agent": "={{ $('Extract Data').item.json.user_agent }}"
+          },
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "log-audit-event",
+      "name": "Log Audit Event",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        2050,
+        800
+      ],
+      "continueOnFail": true,
+      "credentials": {
+        "postgres": {
+          "id": "OPy15M2cOLEss5yi",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
         "jsCode": "// Manual UUID v4 generator\nfunction generateUUIDv4() {\n  const hex = '0123456789abcdef';\n  let uuid = '';\n  for (let i = 0; i < 36; i++) {\n    if (i === 8 || i === 13 || i === 18 || i === 23) {\n      uuid += '-';\n    } else if (i === 14) {\n      uuid += '4';\n    } else if (i === 19) {\n      uuid += hex[(Math.random() * 4 | 8)];\n    } else {\n      uuid += hex[Math.random() * 16 | 0];\n    }\n  }\n  return uuid;\n}\n\n// Format response\nconst dbData = $('Handle DB Result').item.json;\nconst exp = dbData.result && dbData.result[0] ? dbData.result[0] : {};\n\nreturn {\n  json: {\n    success: true,\n    data: {\n      id: exp.id || null,\n      name: exp.name || '',\n      enabled: exp.enabled || false,\n      trafficPercentage: exp.traffic_percentage || 0,\n      variantAConfig: exp.variant_a_config || {},\n      variantBConfig: exp.variant_b_config || {},\n      updatedAt: exp.updated_at || null\n    },\n    traceId: generateUUIDv4()\n  }\n};"
       },
       "id": "format-response",
@@ -264,7 +310,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2050,
+        2250,
         700
       ]
     },
@@ -281,7 +327,7 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        2250,
+        2450,
         700
       ]
     }
@@ -398,6 +444,17 @@
             "index": 0
           }
         ],
+        [
+          {
+            "node": "Log Audit Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Audit Event": {
+      "main": [
         [
           {
             "node": "Format Response",

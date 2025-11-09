@@ -20,7 +20,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Extract username and password from body\nconst input = $input.item.json;\nconst body = input.body || input;\n\nconst username = body.username || '';\nconst password = body.password || '';\n\nif (!username || !password) {\n  return {\n    json: {\n      error: 'bad_request',\n      status: 400,\n      message: 'Username and password are required'\n    }\n  };\n}\n\nreturn {\n  json: {\n    username: username.trim(),\n    password: password\n  }\n};"
+        "jsCode": "// Extract username and password from body\nconst input = $input.item.json;\nconst body = input.body || input;\nconst headers = input.headers || {};\n\nconst username = body.username || '';\nconst password = body.password || '';\n\nif (!username || !password) {\n  return {\n    json: {\n      error: 'bad_request',\n      status: 400,\n      message: 'Username and password are required'\n    }\n  };\n}\n\nreturn {\n  json: {\n    username: username.trim(),\n    password: password,\n    ip: headers['x-forwarded-for'] || headers['x-real-ip'] || 'unknown',\n    user_agent: headers['user-agent'] || 'unknown'\n  }\n};"
       },
       "id": "extract-credentials",
       "name": "Extract Credentials",
@@ -256,6 +256,52 @@
     },
     {
       "parameters": {
+        "operation": "insert",
+        "schema": {
+          "__rl": true,
+          "value": "public",
+          "mode": "list",
+          "cachedResultName": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "audit_events",
+          "mode": "list",
+          "cachedResultName": "audit_events"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "action": "admin.login",
+            "resource_type": "admin_session",
+            "resource_id": "={{ $('Create Session').item.json.id }}",
+            "metadata": "={{ JSON.stringify({ admin_user_id: $('Verify Password').item.json.admin_user_id, username: $('Verify Password').item.json.username }) }}",
+            "ip": "={{ $('Extract Credentials').item.json.ip }}",
+            "user_agent": "={{ $('Extract Credentials').item.json.user_agent }}"
+          },
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "log-audit-event",
+      "name": "Log Audit Event",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        2050,
+        800
+      ],
+      "continueOnFail": true,
+      "credentials": {
+        "postgres": {
+          "id": "OPy15M2cOLEss5yi",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
         "jsCode": "// Manual UUID v4 generator\nfunction generateUUIDv4() {\n  const hex = '0123456789abcdef';\n  let uuid = '';\n  for (let i = 0; i < 36; i++) {\n    if (i === 8 || i === 13 || i === 18 || i === 23) {\n      uuid += '-';\n    } else if (i === 14) {\n      uuid += '4';\n    } else if (i === 19) {\n      uuid += hex[(Math.random() * 4 | 8)];\n    } else {\n      uuid += hex[Math.random() * 16 | 0];\n    }\n  }\n  return uuid;\n}\n\nconst session = $('Create Session').item.json;\nconst username = $('Verify Password').item.json.username;\n\nreturn {\n  json: {\n    success: true,\n    data: {\n      token: session.token.toString(),\n      expires_at: session.expires_at,\n      username: username\n    },\n    traceId: generateUUIDv4()\n  }\n};"
       },
       "id": "build-response",
@@ -263,7 +309,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2050,
+        2250,
         700
       ]
     },
@@ -280,7 +326,7 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        2250,
+        2450,
         700
       ]
     }
@@ -396,6 +442,17 @@
       ]
     },
     "Update Last Login": {
+      "main": [
+        [
+          {
+            "node": "Log Audit Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Audit Event": {
       "main": [
         [
           {

@@ -20,7 +20,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Extract token and data\nconst input = $input.item.json;\nconst headers = input.headers || {};\nconst body = input.body || input;\n\nconst authHeader = headers.authorization || headers.Authorization || '';\n\nif (!authHeader || !authHeader.startsWith('Bearer ')) {\n  return {\n    json: {\n      error: 'unauthorized',\n      status: 401,\n      message: 'Missing or invalid Authorization header'\n    }\n  };\n}\n\nconst token = authHeader.replace('Bearer ', '').trim();\n\nif (!body.user_id || !body.limit_type || body.limit_value === undefined) {\n  return {\n    json: {\n      error: 'bad_request',\n      status: 400,\n      message: 'Missing required fields: user_id, limit_type, limit_value'\n    }\n  };\n}\n\nreturn {\n  json: {\n    token: token,\n    userId: body.user_id,\n    limitType: body.limit_type,\n    limitValue: parseInt(body.limit_value),\n    resetAt: body.reset_at || null\n  }\n};"
+        "jsCode": "// Extract token and data\nconst input = $input.item.json;\nconst headers = input.headers || {};\nconst body = input.body || input;\n\nconst authHeader = headers.authorization || headers.Authorization || '';\n\nif (!authHeader || !authHeader.startsWith('Bearer ')) {\n  return {\n    json: {\n      error: 'unauthorized',\n      status: 401,\n      message: 'Missing or invalid Authorization header'\n    }\n  };\n}\n\nconst token = authHeader.replace('Bearer ', '').trim();\n\nif (!body.user_id || !body.limit_type || body.limit_value === undefined) {\n  return {\n    json: {\n      error: 'bad_request',\n      status: 400,\n      message: 'Missing required fields: user_id, limit_type, limit_value'\n    }\n  };\n}\n\nreturn {\n  json: {\n    token: token,\n    userId: body.user_id,\n    limitType: body.limit_type,\n    limitValue: parseInt(body.limit_value),\n    resetAt: body.reset_at || null,\n    ip: headers['x-forwarded-for'] || headers['x-real-ip'] || 'unknown',\n    user_agent: headers['user-agent'] || 'unknown'\n  }\n};"
       },
       "id": "extract-data",
       "name": "Extract Data",
@@ -257,6 +257,53 @@
     },
     {
       "parameters": {
+        "operation": "insert",
+        "schema": {
+          "__rl": true,
+          "value": "public",
+          "mode": "list",
+          "cachedResultName": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "audit_events",
+          "mode": "list",
+          "cachedResultName": "audit_events"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "user_id": "={{ $('Extract Data').item.json.userId }}",
+            "action": "admin.user_limits_updated",
+            "resource_type": "user_limits",
+            "resource_id": "={{ $('Handle DB Result').item.json.result && $('Handle DB Result').item.json.result[0] ? $('Handle DB Result').item.json.result[0].id : null }}",
+            "metadata": "={{ JSON.stringify({ user_id: $('Extract Data').item.json.userId, limit_type: $('Extract Data').item.json.limitType, new_value: $('Extract Data').item.json.limitValue, reset_at: $('Extract Data').item.json.resetAt }) }}",
+            "ip": "={{ $('Extract Data').item.json.ip }}",
+            "user_agent": "={{ $('Extract Data').item.json.user_agent }}"
+          },
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "log-audit-event",
+      "name": "Log Audit Event",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        2050,
+        800
+      ],
+      "continueOnFail": true,
+      "credentials": {
+        "postgres": {
+          "id": "OPy15M2cOLEss5yi",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
         "jsCode": "// Manual UUID v4 generator\nfunction generateUUIDv4() {\n  const hex = '0123456789abcdef';\n  let uuid = '';\n  for (let i = 0; i < 36; i++) {\n    if (i === 8 || i === 13 || i === 18 || i === 23) {\n      uuid += '-';\n    } else if (i === 14) {\n      uuid += '4';\n    } else if (i === 19) {\n      uuid += hex[(Math.random() * 4 | 8)];\n    } else {\n      uuid += hex[Math.random() * 16 | 0];\n    }\n  }\n  return uuid;\n}\n\n// Format response\nconst dbData = $('Handle DB Result').item.json;\nconst limit = dbData.result && dbData.result[0] ? dbData.result[0] : {};\n\nreturn {\n  json: {\n    success: true,\n    data: {\n      id: limit.id || null,\n      userId: limit.user_id || null,\n      limitType: limit.limit_type || '',\n      limitValue: limit.limit_value || 0,\n      resetAt: limit.reset_at || null\n    },\n    traceId: generateUUIDv4()\n  }\n};"
       },
       "id": "format-response",
@@ -264,7 +311,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2050,
+        2250,
         700
       ]
     },
@@ -281,7 +328,7 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        2250,
+        2450,
         700
       ]
     }
@@ -398,6 +445,17 @@
             "index": 0
           }
         ],
+        [
+          {
+            "node": "Log Audit Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Audit Event": {
+      "main": [
         [
           {
             "node": "Format Response",

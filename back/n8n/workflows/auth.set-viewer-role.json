@@ -27,7 +27,7 @@
     },
     {
       "parameters": {
-        "url": "http://localhost:5678/webhook/auth-validate-v2",
+        "url": "https://n8n.psayha.ru/webhook/auth-validate-v2",
         "method": "POST",
         "sendBody": true,
         "bodyParameters": {

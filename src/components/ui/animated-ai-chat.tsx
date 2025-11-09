@@ -260,6 +260,13 @@ export function AnimatedAIChat({
                 adjustHeight(true);
             }, 0);
 
+            // Сохраняем пользовательское сообщение (создаст чат если нет)
+            if (onMessageSave) {
+                await onMessageSave(userMessage.text, 'user').catch(error => {
+                    console.error('[AnimatedAIChat] Error saving user message:', error);
+                });
+            }
+
             startTransition(() => {
                 setIsTyping(true);
                 onTypingChange?.(true);

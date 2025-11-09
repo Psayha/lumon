@@ -17,7 +17,7 @@
     },
     {
       "parameters": {
-        "functionCode": "// Parse Telegram initData from webhook body\ntry {\n  const body = $input.item.json.body || $input.item.json;\n  const initData = body.initData || '';\n  const appVersion = body.appVersion || '1.0.0';\n\n  // Manual parse query string (URLSearchParams not available in n8n)\n  const params = {};\n  initData.split('&').forEach(pair => {\n    const [key, value] = pair.split('=');\n    params[key] = value;\n  });\n\n  // Parse user data\n  const userStr = decodeURIComponent(params.user || '');\n  const user = JSON.parse(userStr);\n\n  return {\n    json: {\n      telegram_id: user.id.toString(),\n      first_name: user.first_name,\n      last_name: user.last_name || '',\n      username: user.username || '',\n      language_code: user.language_code || 'ru',\n      app_version: appVersion,\n      auth_date: params.auth_date\n    }\n  };\n} catch (error) {\n  // If parsing fails, return error that will stop workflow\n  throw new Error('Invalid Telegram initData: ' + error.message);\n}"
+        "functionCode": "// Parse Telegram initData from webhook body\ntry {\n  const input = $input.item.json;\n  const body = input.body || input;\n  const headers = input.headers || {};\n  const initData = body.initData || '';\n  const appVersion = body.appVersion || '1.0.0';\n\n  // Manual parse query string (URLSearchParams not available in n8n)\n  const params = {};\n  initData.split('&').forEach(pair => {\n    const [key, value] = pair.split('=');\n    params[key] = value;\n  });\n\n  // Parse user data\n  const userStr = decodeURIComponent(params.user || '');\n  const user = JSON.parse(userStr);\n\n  return {\n    json: {\n      telegram_id: user.id.toString(),\n      first_name: user.first_name,\n      last_name: user.last_name || '',\n      username: user.username || '',\n      language_code: user.language_code || 'ru',\n      app_version: appVersion,\n      auth_date: params.auth_date,\n      ip: headers['x-forwarded-for'] || headers['x-real-ip'] || 'unknown',\n      user_agent: headers['user-agent'] || 'unknown'\n    }\n  };\n} catch (error) {\n  // If parsing fails, return error that will stop workflow\n  throw new Error('Invalid Telegram initData: ' + error.message);\n}"
       },
       "id": "parse-init-data",
       "name": "Parse Telegram initData",
@@ -96,13 +96,57 @@
     },
     {
       "parameters": {
+        "operation": "insert",
+        "schema": {
+          "__rl": true,
+          "value": "public",
+          "mode": "list",
+          "cachedResultName": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "audit_events",
+          "mode": "list",
+          "cachedResultName": "audit_events"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "user_id": "={{ $('Create Session').item.json.user_id }}",
+            "action": "auth.login",
+            "resource_type": "session",
+            "resource_id": "={{ $('Create Session').item.json.id }}",
+            "metadata": "={{ JSON.stringify({ telegram_id: $('Parse Telegram initData').item.json.telegram_id, username: $('Parse Telegram initData').item.json.username, role: $('Create Session').item.json.role }) }}",
+            "ip": "={{ $('Parse Telegram initData').item.json.ip }}",
+            "user_agent": "={{ $('Parse Telegram initData').item.json.user_agent }}"
+          },
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "log-audit-event",
+      "name": "Log Audit Event",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1450, 400],
+      "continueOnFail": true,
+      "credentials": {
+        "postgres": {
+          "id": "OPy15M2cOLEss5yi",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
         "functionCode": "// Build response from session data\nconst session = $input.item.json;\n\nreturn {\n  json: {\n    success: true,\n    data: {\n      session_token: session.session_token,\n      user: {\n        id: session.user_id,\n        role: session.role,\n        company_id: session.company_id\n      },\n      expires_at: session.expires_at\n    }\n  }\n};"
       },
       "id": "build-response",
       "name": "Build Response",
       "type": "n8n-nodes-base.function",
       "typeVersion": 1,
-      "position": [1450, 300]
+      "position": [1650, 300]
     },
     {
       "parameters": {
@@ -123,7 +167,7 @@
       "name": "Respond to Webhook",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [1650, 300]
+      "position": [1850, 300]
     },
     {
       "parameters": {
@@ -205,6 +249,17 @@
       ]
     },
     "Create Session": {
+      "main": [
+        [
+          {
+            "node": "Log Audit Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Audit Event": {
       "main": [
         [
           {

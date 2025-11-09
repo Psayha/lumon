@@ -1,5 +1,6 @@
 {
   "name": "chat.create",
+  "active": true,
   "nodes": [
     {
       "parameters": {
@@ -17,7 +18,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Extract token from Authorization header\nconst input = $input.item.json;\nconst body = input.body || input;\nconst headers = input.headers || {};\n\nconst authHeader = headers.authorization || headers.Authorization || '';\n\nif (!authHeader || !authHeader.startsWith('Bearer ')) {\n  return {\n    json: {\n      error: 'unauthorized',\n      status: 401,\n      message: 'Missing or invalid Authorization header'\n    }\n  };\n}\n\nconst token = authHeader.replace('Bearer ', '').trim();\nconst title = body.title || 'New Chat';\n\nreturn {\n  json: {\n    token: token,\n    title: title\n  }\n};"
+        "jsCode": "// Extract token from Authorization header\nconst input = $input.item.json;\nconst body = input.body || input;\nconst headers = input.headers || {};\n\nconst authHeader = headers.authorization || headers.Authorization || '';\n\nif (!authHeader || !authHeader.startsWith('Bearer ')) {\n  return {\n    json: {\n      error: 'unauthorized',\n      status: 401,\n      message: 'Missing or invalid Authorization header'\n    }\n  };\n}\n\nconst token = authHeader.replace('Bearer ', '').trim();\nconst title = body.title || 'New Chat';\n\nreturn {\n  json: {\n    token: token,\n    title: title,\n    ip: headers['x-forwarded-for'] || headers['x-real-ip'] || 'unknown',\n    user_agent: headers['user-agent'] || 'unknown'\n  }\n};"
       },
       "id": "extract-token",
       "name": "Extract Token",
@@ -71,7 +72,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "http://lumon-n8n:5678/webhook/auth-validate-v2",
+        "url": "https://n8n.psayha.ru/webhook/auth-validate-v2",
         "authentication": "none",
         "sendBody": true,
         "contentType": "json",
@@ -101,7 +102,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "http://91.229.10.47:5678/webhook/auth-validate-v2",
+        "url": "https://n8n.psayha.ru/webhook/auth-validate-v2",
         "authentication": "none",
         "sendBody": true,
         "contentType": "json",
@@ -275,13 +276,54 @@
     },
     {
       "parameters": {
+        "jsCode": "// Prepare audit event data\nconst authData = $('Parse Auth Response').item.json;\nconst chatData = $('Create Chat').item.json;\nconst extractData = $('Extract Token').item.json;\n\n// Debug: проверяем наличие данных\nif (!authData || !authData.data || !authData.data.user) {\n  throw new Error('Auth data missing: ' + JSON.stringify(authData));\n}\n\nif (!chatData || !chatData.id) {\n  throw new Error('Chat data missing: ' + JSON.stringify(chatData));\n}\n\nconst userId = authData.data.user.id;\nconst chatId = chatData.id;\nconst title = extractData?.title || 'New Chat';\nconst ip = extractData?.ip || 'unknown';\nconst userAgent = extractData?.user_agent || 'unknown';\n\nreturn {\n  json: {\n    user_id: userId,\n    action: 'chat.created',\n    resource_type: 'chat',\n    resource_id: chatId,\n    metadata: JSON.stringify({ title: title }),\n    ip: ip,\n    user_agent: userAgent\n  }\n};"
+      },
+      "id": "prepare-audit-data",
+      "name": "Prepare Audit Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2450, 600]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO audit_events (user_id, action, resource_type, resource_id, metadata, ip, user_agent)\nVALUES (\n  $1::uuid,\n  $2,\n  $3,\n  $4::uuid,\n  $5::jsonb,\n  $6,\n  $7\n)\nRETURNING id;",
+        "options": {
+          "queryReplacement": "={{ [$('Prepare Audit Data').item.json.user_id, $('Prepare Audit Data').item.json.action, $('Prepare Audit Data').item.json.resource_type, $('Prepare Audit Data').item.json.resource_id, $('Prepare Audit Data').item.json.metadata, $('Prepare Audit Data').item.json.ip, $('Prepare Audit Data').item.json.user_agent] }}"
+        }
+      },
+      "id": "log-audit-event",
+      "name": "Log Audit Event",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [2650, 600],
+      "continueOnFail": true,
+      "credentials": {
+        "postgres": {
+          "id": "OPy15M2cOLEss5yi",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Check if audit logging failed\nconst input = $input.item.json;\n\n// If this is an error response, log it but don't fail\nif (input.error || input.message) {\n  // Return error info for debugging, but don't throw\n  return {\n    json: {\n      audit_log_error: true,\n      error_message: input.error?.message || input.message || 'Unknown audit logging error',\n      error_data: input\n    }\n  };\n}\n\n// Success case - audit event was logged\nreturn {\n  json: {\n    audit_logged: true,\n    audit_event_id: input.id || null\n  }\n};"
+      },
+      "id": "check-audit-log",
+      "name": "Check Audit Log",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2850, 600]
+    },
+    {
+      "parameters": {
         "jsCode": "// Manual UUID v4 generator\nfunction generateUUIDv4() {\n  const hex = '0123456789abcdef';\n  let uuid = '';\n  for (let i = 0; i < 36; i++) {\n    if (i === 8 || i === 13 || i === 18 || i === 23) {\n      uuid += '-';\n    } else if (i === 14) {\n      uuid += '4';\n    } else if (i === 19) {\n      uuid += hex[(Math.random() * 4 | 8)];\n    } else {\n      uuid += hex[Math.random() * 16 | 0];\n    }\n  }\n  return uuid;\n}\n\nconst chatData = $input.item.json;\n\nreturn {\n  json: {\n    success: true,\n    data: {\n      id: chatData.id,\n      user_id: chatData.user_id,\n      company_id: chatData.company_id,\n      title: chatData.title,\n      created_at: chatData.created_at\n    },\n    traceId: generateUUIDv4()\n  }\n};"
       },
       "id": "format-response",
       "name": "Build Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2050, 600]
+      "position": [2850, 600]
     },
     {
       "parameters": {
@@ -295,7 +337,7 @@
       "name": "Respond Success",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [2250, 600]
+      "position": [3050, 600]
     },
     {
       "parameters": {
@@ -319,7 +361,7 @@
       "name": "Respond DB Error",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [2250, 700]
+      "position": [3050, 700]
     }
   ],
   "connections": {
@@ -458,7 +500,7 @@
       "main": [
         [
           {
-            "node": "Build Response",
+            "node": "Prepare Audit Data",
             "type": "main",
             "index": 0
           }
@@ -466,6 +508,39 @@
         [
           {
             "node": "Handle DB Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Audit Data": {
+      "main": [
+        [
+          {
+            "node": "Log Audit Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Audit Event": {
+      "main": [
+        [
+          {
+            "node": "Check Audit Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Audit Log": {
+      "main": [
+        [
+          {
+            "node": "Build Response",
             "type": "main",
             "index": 0
           }
