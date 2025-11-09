@@ -93,6 +93,10 @@ const VoiceAssistantPage: React.FC = () => {
                 
                 // Создаем чат если нет
                 if (!chatId) {
+                  console.log('[Before chat-create]', { 
+                    hasToken: !!localStorage.getItem('session_token'), 
+                    tokenStart: (localStorage.getItem('session_token')||'').slice(0,8) 
+                  });
                   console.log('[VoiceAssistantPage] No chatId, calling createChat...');
                   const chatResponse = await createChat('Voice Assistant Chat');
                   console.log('[VoiceAssistantPage] createChat response:', chatResponse);
