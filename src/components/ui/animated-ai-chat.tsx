@@ -225,6 +225,7 @@ export function AnimatedAIChat({
     };
 
     const handleSendMessage = async () => {
+        console.log('[AnimatedAIChat] handleSendMessage called', { value, chatId, hasOnMessageSave: !!onMessageSave });
         if (isListening || isRecognizing) {
             return;
         }
@@ -261,10 +262,19 @@ export function AnimatedAIChat({
             }, 0);
 
             // Сохраняем пользовательское сообщение (создаст чат если нет)
+            console.log('[AnimatedAIChat] Before onMessageSave:', { 
+                hasOnMessageSave: !!onMessageSave, 
+                message: userMessage.text, 
+                chatId 
+            });
             if (onMessageSave) {
+                console.log('[AnimatedAIChat] Calling onMessageSave...');
                 await onMessageSave(userMessage.text, 'user').catch(error => {
                     console.error('[AnimatedAIChat] Error saving user message:', error);
                 });
+                console.log('[AnimatedAIChat] onMessageSave completed');
+            } else {
+                console.warn('[AnimatedAIChat] onMessageSave is not provided!');
             }
 
             startTransition(() => {
