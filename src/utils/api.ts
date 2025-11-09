@@ -458,8 +458,13 @@ export const createChat = async (title?: string): Promise<ApiResponse<Chat>> => 
     const headers = getDefaultHeaders();
     const token = localStorage.getItem('session_token');
     
+    // Debug: логируем заголовки перед отправкой
+    console.log('[createChat] Headers before request:', JSON.stringify(headers, null, 2));
+    console.log('[createChat] Token in localStorage:', token ? token.substring(0, 20) + '...' : 'MISSING');
+    console.log('[createChat] Full URL:', getApiUrl(API_CONFIG.endpoints.chatCreate));
+    
     if (token) {
-      logger.log('[createChat] Calling API with token...');
+      logger.log('[createChat] Token exists, calling API...');
     } else {
       logger.warn('[createChat] No token, calling API anyway (workflow will return 401)');
     }
