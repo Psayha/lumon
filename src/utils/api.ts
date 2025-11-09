@@ -583,14 +583,16 @@ export const createChat = async (title?: string): Promise<ApiResponse<Chat>> => 
   const token = localStorage.getItem('session_token');
   if (!token) throw new Error('No session token in localStorage');
 
+  const url = 'https://n8n.psayha.ru/webhook/chat-create?token=' + encodeURIComponent(token);
   const payload = { title: title || 'New Chat', session_token: token };
 
-  const res = await fetch('https://n8n.psayha.ru/webhook/chat-create', {
+  const res = await fetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      'Authorization': `Bearer ${token}`
+      'Accept': 'application/json'
+      // ВАЖНО: не полагаемся на Authorization, так как он может отваливаться в WebView
+      // 'Authorization': `Bearer ${token}`
     },
     body: JSON.stringify(payload)
   });

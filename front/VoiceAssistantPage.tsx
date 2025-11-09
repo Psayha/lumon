@@ -20,13 +20,15 @@ const VoiceAssistantPage: React.FC = () => {
     const token = localStorage.getItem('session_token');
     if (!token) throw new Error('No session token in localStorage');
 
+    const url = 'https://n8n.psayha.ru/webhook/chat-create?token=' + encodeURIComponent(token);
     const payload = { title, session_token: token };
-    const res = await fetch('https://n8n.psayha.ru/webhook/chat-create', {
+    const res = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Authorization': `Bearer ${token}`
+        'Accept': 'application/json'
+        // ВАЖНО: не полагаемся на Authorization, так как он может отваливаться в WebView
+        // 'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify(payload)
     });
@@ -88,14 +90,8 @@ const VoiceAssistantPage: React.FC = () => {
             onMessageSave={async (message, role) => {
               try {
                 console.log('[VoiceAssistantPage] onMessageSave called', { message, role, chatId });
-                
-                // Проверяем наличие токена перед созданием чата
-                const token = localStorage.getItem('session_token');
-                const tokenPreview = (token || '').slice(0, 8);
-                console.log('[VoiceAssistantPage] 🔍 Token check before chat-create:', { 
-                  hasToken: !!token, 
-                  tokenStart: tokenPreview 
-                });
+                const token = localStorage.getItem('session_token') || '';
+                console.log('[Before chat-create]', { hasToken: !!token, tokenStart: token.slice(0, 8) });
                 
                 if (!token) {
                   console.error('[VoiceAssistantPage] ❌ No session_token found in localStorage');
@@ -104,10 +100,6 @@ const VoiceAssistantPage: React.FC = () => {
                 
                 // Создаем чат если нет
                 if (!chatId) {
-                  console.log('[Before chat-create]', { 
-                    hasToken: !!localStorage.getItem('session_token'), 
-                    tokenStart: (localStorage.getItem('session_token')||'').slice(0,8) 
-                  });
                   const chatResponse = await createChatDirect('Voice Assistant Chat');
                   console.log('[VoiceAssistantPage] createChat response:', chatResponse);
                   
