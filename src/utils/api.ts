@@ -178,7 +178,7 @@ const reAuth = async (): Promise<boolean> => {
         initData: window.Telegram.WebApp.initData,
         appVersion: '1.0.0',
       }),
-      credentials: 'include', // Важно: для поддержки cookie-авторизации
+      credentials: 'omit', // Не используем cookie, только Bearer token
     });
 
     if (!response.ok) {
@@ -244,12 +244,13 @@ const fetchWithRetry = async (
       bodyPreview: bodyPreview
     });
 
-    // Убеждаемся, что credentials включен для поддержки cookie
+    // Не используем credentials: 'include' так как cookie не используются
+    // Это поможет избежать CORS проблем
     let response: Response;
     try {
       response = await fetch(url, {
         ...options,
-        credentials: 'include', // Важно: для поддержки cookie-авторизации
+        credentials: 'omit', // Не используем cookie, только Bearer token
         signal: controller.signal,
       });
     } catch (fetchError) {
@@ -260,23 +261,9 @@ const fetchWithRetry = async (
         error: fetchError instanceof Error ? fetchError.message : String(fetchError),
         url,
         method: options.method,
+        hasAuthHeader: !!(options.headers as Record<string, string>)?.Authorization,
       });
-      
-      // Если это CORS ошибка и мы используем credentials, пробуем без credentials
-      if (errorType === 'cors' && retries > 0) {
-        console.warn('[fetchWithRetry] ⚠️ CORS error detected, retrying without credentials...');
-        try {
-          response = await fetch(url, {
-            ...options,
-            credentials: 'omit', // Пробуем без credentials
-            signal: controller.signal,
-          });
-        } catch (retryError) {
-          throw fetchError; // Бросаем оригинальную ошибку
-        }
-      } else {
-        throw fetchError;
-      }
+      throw fetchError;
     }
 
     clearTimeout(timeoutId);

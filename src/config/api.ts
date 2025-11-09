@@ -60,8 +60,12 @@ export const getDefaultHeaders = (): Record<string, string> => {
 
   // Добавляем Authorization токен если есть
   const token = localStorage.getItem('session_token');
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+  if (token && token.trim().length > 0) {
+    headers['Authorization'] = `Bearer ${token.trim()}`;
+    // Логируем для отладки (только первые 20 символов)
+    console.log('[getDefaultHeaders] ✅ Authorization header added:', `Bearer ${token.substring(0, 20)}...`);
+  } else {
+    console.warn('[getDefaultHeaders] ⚠️ No token in localStorage, Authorization header not added');
   }
 
   return headers;

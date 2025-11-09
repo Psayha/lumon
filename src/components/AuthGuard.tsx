@@ -25,7 +25,7 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
             const validateResponse = await fetch(getApiUrl(API_CONFIG.endpoints.authValidate), {
               method: 'POST',
               headers: getDefaultHeaders(),
-              credentials: 'include', // Важно: для поддержки cookie-авторизации
+              credentials: 'omit', // Не используем cookie, только Bearer token
             });
             
             if (validateResponse.ok) {
@@ -83,7 +83,7 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
             initData: window.Telegram.WebApp.initData,
             appVersion: '1.0.0',
           }),
-          credentials: 'include', // Важно: для поддержки cookie-авторизации
+          credentials: 'omit', // Не используем cookie, только Bearer token
         });
 
         if (!response.ok) {
