@@ -200,29 +200,105 @@ const ApiTestPage: React.FC = () => {
         (requestOptions.headers as Record<string, string>)['Authorization'] = `Bearer ${sessionToken}`;
       }
 
-      // Делаем прямой fetch для детального логирования
-      fullUrl = selectedEndpoint === 'get-chat-history' || selectedEndpoint === 'chat-get-history'
-        ? `${endpoint}?chat_id=${chatIdForHistory}`
-        : endpoint;
-
-      console.log('[API Test] Request:', {
-        url: fullUrl,
-        method,
-        headers: requestOptions.headers,
-        body: method === 'POST' ? requestBody : undefined,
-        timestamp
-      });
+      // Для legacy endpoints используем функции API вместо прямого fetch
+      // Это гарантирует использование правильных endpoints и обработку ошибок
+      const legacyEndpoints = ['create-chat', 'create-user', 'save-message', 'get-chat-history', 'analytics'];
+      const useApiFunction = legacyEndpoints.includes(selectedEndpoint);
 
       let response: Response;
       let responseText: string;
       
-      try {
-        response = await fetch(fullUrl, requestOptions);
-        responseText = await response.text();
-      } catch (fetchError) {
-        // Детальная информация об ошибке подключения
-        console.error('[API Test] Fetch failed:', fetchError);
-        throw new Error(`Failed to connect to ${fullUrl}. Error: ${fetchError instanceof Error ? fetchError.message : String(fetchError)}. Проверь: 1) Доступен ли ${fullUrl}? 2) CORS настроен? 3) nginx проксирует запросы?`);
+      if (useApiFunction) {
+        // Используем функции API для legacy endpoints
+        console.log('[API Test] Using API function for legacy endpoint:', selectedEndpoint);
+        
+        let apiResult: any;
+        try {
+          switch (selectedEndpoint) {
+            case 'create-user': {
+              const userData = JSON.parse(requestBody) as User;
+              apiResult = await createUser(userData);
+              break;
+            }
+            case 'create-chat': {
+              const chatData = JSON.parse(requestBody) as { title?: string };
+              apiResult = await createChat(chatData.title);
+              break;
+            }
+            case 'save-message': {
+              const messageData = JSON.parse(requestBody) as Message;
+              apiResult = await saveMessage(messageData);
+              break;
+            }
+            case 'get-chat-history': {
+              if (!chatIdForHistory) {
+                throw new Error('Требуется chat_id');
+              }
+              apiResult = await getChatHistory(chatIdForHistory);
+              break;
+            }
+            case 'analytics': {
+              const analyticsData = JSON.parse(requestBody);
+              apiResult = await trackEvent(analyticsData);
+              break;
+            }
+          }
+          
+          // Преобразуем результат API функции в формат ответа
+          if (apiResult.success) {
+            responseText = JSON.stringify({
+              success: true,
+              data: apiResult.data
+            }, null, 2);
+            // Создаем mock Response объект
+            response = {
+              ok: true,
+              status: 200,
+              statusText: 'OK',
+              text: async () => responseText,
+              json: async () => JSON.parse(responseText),
+              headers: new Headers(),
+            } as Response;
+          } else {
+            responseText = JSON.stringify({
+              success: false,
+              error: apiResult.error
+            }, null, 2);
+            response = {
+              ok: false,
+              status: 400,
+              statusText: 'Bad Request',
+              text: async () => responseText,
+              json: async () => JSON.parse(responseText),
+              headers: new Headers(),
+            } as Response;
+          }
+        } catch (apiError) {
+          console.error('[API Test] API function error:', apiError);
+          throw apiError;
+        }
+      } else {
+        // Делаем прямой fetch для новых endpoints
+        fullUrl = selectedEndpoint === 'get-chat-history' || selectedEndpoint === 'chat-get-history'
+          ? `${endpoint}?chat_id=${chatIdForHistory}`
+          : endpoint;
+
+        console.log('[API Test] Request:', {
+          url: fullUrl,
+          method,
+          headers: requestOptions.headers,
+          body: method === 'POST' ? requestBody : undefined,
+          timestamp
+        });
+        
+        try {
+          response = await fetch(fullUrl, requestOptions);
+          responseText = await response.text();
+        } catch (fetchError) {
+          // Детальная информация об ошибке подключения
+          console.error('[API Test] Fetch failed:', fetchError);
+          throw new Error(`Failed to connect to ${fullUrl}. Error: ${fetchError instanceof Error ? fetchError.message : String(fetchError)}. Проверь: 1) Доступен ли ${fullUrl}? 2) CORS настроен? 3) nginx проксирует запросы?`);
+        }
       }
       
       console.log('[API Test] Response:', {
@@ -249,7 +325,7 @@ const ApiTestPage: React.FC = () => {
         error: !response.ok ? (responseData.message || responseData.error || responseText || `HTTP ${response.status}`) : undefined,
         fullResponse: responseData,
         request: {
-          url: fullUrl,
+          url: fullUrl || endpoint,
           method,
           headers: requestOptions.headers,
           body: method === 'POST' ? JSON.parse(requestBody) : undefined
@@ -299,51 +375,11 @@ const ApiTestPage: React.FC = () => {
         console.log('[API Test] User context updated:', context);
       }
 
-      // Сохраняем chat_id из chat-create
-      if (selectedEndpoint === 'chat-create' && response.ok && responseData?.data?.id) {
+      // Сохраняем chat_id из chat-create или create-chat
+      if ((selectedEndpoint === 'chat-create' || selectedEndpoint === 'create-chat') && response.ok && responseData?.data?.id) {
         const newChatId = responseData.data.id;
         setChatIdForHistory(newChatId);
         console.log('[API Test] Chat ID saved:', newChatId);
-      }
-
-      // Также пробуем через обычные функции API для сравнения
-      let apiResult: any;
-      try {
-        switch (selectedEndpoint) {
-          case 'create-user': {
-            const userData = JSON.parse(requestBody) as User;
-            apiResult = await createUser(userData);
-            break;
-          }
-          case 'create-chat': {
-            const chatData = JSON.parse(requestBody) as { title?: string };
-            apiResult = await createChat(chatData.title);
-            break;
-          }
-          case 'save-message': {
-            const messageData = JSON.parse(requestBody) as Message;
-            apiResult = await saveMessage(messageData);
-            break;
-          }
-          case 'get-chat-history': {
-            if (!chatIdForHistory) {
-              break;
-            }
-            apiResult = await getChatHistory(chatIdForHistory);
-            break;
-          }
-          case 'analytics': {
-            const analyticsData = JSON.parse(requestBody);
-            apiResult = await trackEvent(analyticsData);
-            break;
-          }
-        }
-        
-        if (apiResult) {
-          console.log('[API Test] API Function Result:', apiResult);
-        }
-      } catch (apiError) {
-        console.error('[API Test] API Function Error:', apiError);
       }
 
     } catch (error) {
