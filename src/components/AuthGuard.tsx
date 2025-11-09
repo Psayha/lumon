@@ -92,14 +92,34 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
           return;
         }
 
-        const data = await response.json();
+        const responseText = await response.text();
+        console.log('[AuthGuard] 📥 Raw response text:', responseText.substring(0, 200));
+        
+        let data;
+        try {
+          data = JSON.parse(responseText);
+        } catch (e) {
+          logger.error('[AuthGuard] Failed to parse response as JSON:', e);
+          setAuthError('Invalid JSON response');
+          setIsAuthReady(true);
+          return;
+        }
+        
+        console.log('[AuthGuard] 📦 Parsed response:', JSON.stringify(data, null, 2));
         
         if (data.success && data.data?.session_token) {
           // Сохраняем session_token
           const token = data.data.session_token;
+          console.log('[AuthGuard] 🔑 Token from response:', token ? token.substring(0, 20) + '...' : 'MISSING');
           localStorage.setItem('session_token', token);
           console.log('[AuthGuard] ✅ Session token saved to localStorage:', token.substring(0, 20) + '...');
-          console.log('[AuthGuard] 🔍 Verifying token in localStorage:', localStorage.getItem('session_token') ? '✅ Found' : '❌ NOT FOUND');
+          
+          // Проверяем сразу после сохранения
+          const savedToken = localStorage.getItem('session_token');
+          console.log('[AuthGuard] 🔍 Verifying token in localStorage:', savedToken ? `✅ Found (${savedToken.length} chars)` : '❌ NOT FOUND');
+          if (savedToken !== token) {
+            console.error('[AuthGuard] ❌ CRITICAL: Token mismatch! Saved:', savedToken?.substring(0, 20), 'Expected:', token.substring(0, 20));
+          }
           
           // Сохраняем user context
           if (data.data.user) {

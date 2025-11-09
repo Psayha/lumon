@@ -564,18 +564,22 @@ export const createChat = async (title?: string): Promise<ApiResponse<Chat>> => 
     console.log('[createChat] 🔑 Token in body:', finalToken ? `✅ Present (${finalToken.length} chars)` : '❌ MISSING');
     console.log('[createChat] 📤 Sending request to:', getApiUrl(API_CONFIG.endpoints.chatCreate));
     
+    // КРИТИЧНО: Проверяем что токен действительно в bodyData перед stringify
+    console.log('[createChat] 🔍 BodyData before stringify:', JSON.stringify(bodyData));
+    console.log('[createChat] 🔍 BodyData.session_token exists:', 'session_token' in bodyData);
+    console.log('[createChat] 🔍 BodyData.session_token value:', bodyData.session_token ? bodyData.session_token.substring(0, 30) + '...' : 'UNDEFINED');
+    
     const requestBody = JSON.stringify(bodyData);
     console.log('[createChat] 📝 Request body length:', requestBody.length, 'bytes');
-    console.log('[createChat] 📋 Request body preview:', requestBody.substring(0, 150) + '...');
+    console.log('[createChat] 📋 Request body preview:', requestBody.substring(0, 200));
     console.log('[createChat] 🔍 BodyData object keys:', Object.keys(bodyData));
-    console.log('[createChat] 🔍 BodyData has session_token:', 'session_token' in bodyData);
-    console.log('[createChat] 🔍 BodyData.session_token value:', bodyData.session_token ? bodyData.session_token.substring(0, 20) + '...' : 'UNDEFINED');
     
     // КРИТИЧНО: Проверяем что токен действительно в строке
     const bodyStringCheck = requestBody.includes('session_token');
     console.log('[createChat] ✅ Token in JSON string:', bodyStringCheck ? 'YES' : 'NO');
     if (!bodyStringCheck && finalToken) {
       console.error('[createChat] ❌ CRITICAL BUG: Token exists but not in JSON string!');
+      console.error('[createChat] finalToken:', finalToken.substring(0, 30));
       console.error('[createChat] bodyData:', JSON.stringify(bodyData));
       console.error('[createChat] requestBody:', requestBody);
     }
