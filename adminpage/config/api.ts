@@ -77,7 +77,6 @@ export const adminApiRequest = async <T = any>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<{ success: boolean; data?: T; message?: string; pagination?: any }> => {
-  // Если endpoint уже содержит полный URL (начинается с http), используем его напрямую
   const url = endpoint.startsWith('http') ? endpoint : getAdminApiUrl(endpoint);
   const headers = getAdminHeaders();
 
@@ -90,12 +89,10 @@ export const adminApiRequest = async <T = any>(
       },
     });
 
-    // Получаем текст ответа для проверки
     const responseText = await response.text();
     const contentType = response.headers.get('content-type');
     let data: any;
 
-    // Если ответ пустой
     if (!responseText || responseText.trim() === '') {
       if (!response.ok) {
         return {
@@ -103,60 +100,36 @@ export const adminApiRequest = async <T = any>(
           message: `Ошибка сервера: ${response.status} ${response.statusText || 'Internal Server Error'}`,
         };
       }
-      // Пустой успешный ответ
       return {
         success: true,
         data: undefined,
       };
     }
 
-    // Пытаемся распарсить JSON
     if (contentType && contentType.includes('application/json')) {
       try {
         data = JSON.parse(responseText);
       } catch (jsonError) {
-        console.error('Failed to parse JSON response:', {
-          url,
-          status: response.status,
-          contentType,
-          responseText: responseText.substring(0, 200),
-        });
         return {
           success: false,
           message: `Ошибка сервера ${response.status}: Неверный формат ответа`,
         };
       }
     } else {
-      // Если не JSON, но есть текст
       if (!response.ok) {
         return {
           success: false,
           message: `Ошибка сервера ${response.status}: ${responseText.substring(0, 200)}`,
         };
       }
-      // Успешный не-JSON ответ
       return {
         success: true,
         data: responseText as any,
       };
     }
 
-    // Если ответ не успешный, но есть данные, возвращаем их
     if (!response.ok) {
       const errorMessage = data?.message || data?.error || `Ошибка сервера: ${response.status} ${response.statusText || 'Internal Server Error'}`;
-      
-      // Для ошибок 500 уменьшаем детальность логов
-      if (response.status === 500) {
-        console.warn(`API 500 Error: ${url.split('/').pop() || url}`);
-      } else {
-        console.error('API Error:', {
-          url,
-          status: response.status,
-          statusText: response.statusText,
-          data,
-        });
-      }
-      
       return {
         success: false,
         message: errorMessage,
@@ -166,13 +139,6 @@ export const adminApiRequest = async <T = any>(
 
     return data;
   } catch (error: any) {
-    console.error('Admin API request error:', {
-      url,
-      error: error.message,
-      stack: error.stack,
-    });
-    
-    // Возвращаем структурированную ошибку вместо throw
     return {
       success: false,
       message: error.message || 'Ошибка подключения к серверу',

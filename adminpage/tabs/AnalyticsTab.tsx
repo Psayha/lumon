@@ -32,7 +32,6 @@ export const AnalyticsTab: React.FC = () => {
         showToast('error', errorMsg);
       }
     } catch (error: any) {
-      console.error('Error loading stats:', error);
       showToast('error', error?.message || 'Ошибка при загрузке статистики');
     } finally {
       setIsLoading(false);

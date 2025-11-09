@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Building2, Users, Search, ChevronDown, ChevronUp } from 'lucide-react';
+import { Building2, Users, Search, ChevronDown, ChevronUp, AlertCircle, RefreshCw } from 'lucide-react';
 import { useToast } from '../components/Toast';
 import { adminApiRequest, ADMIN_API_CONFIG } from '../config/api';
 
@@ -21,21 +21,25 @@ export const CompaniesTab: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedCompany, setExpandedCompany] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { showToast } = useToast();
 
   const loadCompanies = async () => {
     setIsLoading(true);
+    setError(null);
     try {
       const data = await adminApiRequest<Company[]>(ADMIN_API_CONFIG.endpoints.adminCompaniesList);
       if (data.success && data.data) {
         setCompanies(data.data);
       } else {
         const errorMsg = data.message || 'Ошибка сервера: не удалось загрузить компании';
+        setError(errorMsg);
         showToast('error', errorMsg);
       }
     } catch (error: any) {
-      console.error('Error loading companies:', error);
-      showToast('error', error?.message || 'Ошибка при загрузке компаний');
+      const errorMsg = error?.message || 'Ошибка при загрузке компаний';
+      setError(errorMsg);
+      showToast('error', errorMsg);
     } finally {
       setIsLoading(false);
     }
@@ -62,6 +66,31 @@ export const CompaniesTab: React.FC = () => {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-6">
+          <div className="flex items-start space-x-3">
+            <AlertCircle className="w-6 h-6 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-red-900 dark:text-red-200 mb-2">
+                Ошибка загрузки данных
+              </h3>
+              <p className="text-red-700 dark:text-red-300 mb-4">{error}</p>
+              <button
+                onClick={loadCompanies}
+                className="flex items-center space-x-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+              >
+                <RefreshCw className="w-4 h-4" />
+                <span>Повторить попытку</span>
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }

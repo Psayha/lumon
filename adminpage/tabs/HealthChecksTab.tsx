@@ -53,7 +53,6 @@ export const HealthChecksTab: React.FC = () => {
         showToast('error', data.message || 'Не удалось загрузить health checks');
       }
     } catch (error) {
-      console.error('Error loading health checks:', error);
       showToast('error', 'Ошибка при загрузке health checks');
     } finally {
       setIsLoading(false);
@@ -78,7 +77,6 @@ export const HealthChecksTab: React.FC = () => {
         showToast('error', data.message || 'Не удалось выполнить проверку');
       }
     } catch (error) {
-      console.error('Error checking health:', error);
       showToast('error', 'Ошибка при проверке здоровья системы');
     } finally {
       setIsChecking(false);
@@ -98,7 +96,6 @@ export const HealthChecksTab: React.FC = () => {
         showToast('error', data.message || 'Не удалось выполнить проверку');
       }
     } catch (error) {
-      console.error('Error checking service:', error);
       showToast('error', 'Ошибка при проверке сервиса');
     }
   };

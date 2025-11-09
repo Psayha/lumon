@@ -100,7 +100,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const httpResponse = $input.item.json;\nconst responseText = httpResponse.data;\n\nlet parsedData;\nif (typeof responseText === 'string') {\n  try {\n    parsedData = JSON.parse(responseText);\n  } catch (e) {\n    return { json: { success: false, error: 'Failed to parse auth response' } };\n  }\n} else {\n  parsedData = responseText;\n}\n\nif (!parsedData || Object.keys(parsedData).length === 0) {\n  return { json: { success: false, error: 'Empty auth response' } };\n}\n\nif (parsedData.success === undefined) {\n  return { json: { success: false, error: 'Invalid auth response format' } };\n}\n\nreturn { json: parsedData };"
+        "jsCode": "// Handle both success and error cases from HTTP request\nconst httpResponse = $input.item.json;\n\n// Check if this is an error response\nif (httpResponse.error || httpResponse.statusCode >= 400) {\n  return { json: { success: false, error: httpResponse.error?.message || 'Auth validation request failed' } };\n}\n\nconst responseText = httpResponse.data;\n\nlet parsedData;\nif (typeof responseText === 'string') {\n  try {\n    parsedData = JSON.parse(responseText);\n  } catch (e) {\n    return { json: { success: false, error: 'Failed to parse auth response' } };\n  }\n} else {\n  parsedData = responseText;\n}\n\nif (!parsedData || Object.keys(parsedData).length === 0) {\n  return { json: { success: false, error: 'Empty auth response' } };\n}\n\nif (parsedData.success === undefined) {\n  return { json: { success: false, error: 'Invalid auth response format' } };\n}\n\nreturn { json: parsedData };"
       },
       "id": "parse-auth-response",
       "name": "Parse Auth Response",

@@ -29,7 +29,6 @@ export const LegalDocsTab: React.FC = () => {
         showToast('error', errorMsg);
       }
     } catch (error: any) {
-      console.error('Error loading legal docs:', error);
       showToast('error', error?.message || 'Ошибка при загрузке документов');
     } finally {
       setIsLoading(false);
@@ -70,7 +69,6 @@ export const LegalDocsTab: React.FC = () => {
         showToast('error', data.message || 'Не удалось обновить документ');
       }
     } catch (error) {
-      console.error('Error updating doc:', error);
       showToast('error', 'Ошибка при обновлении документа');
     }
   };

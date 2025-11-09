@@ -100,7 +100,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const httpResponse = $input.item.json;\nconst responseText = httpResponse.data;\n\nlet parsedData;\nif (typeof responseText === 'string') {\n  try {\n    parsedData = JSON.parse(responseText);\n  } catch (e) {\n    return { json: { success: false, error: 'Failed to parse admin response' } };\n  }\n} else {\n  parsedData = responseText;\n}\n\nif (!parsedData || Object.keys(parsedData).length === 0) {\n  return { json: { success: false, error: 'Empty admin response' } };\n}\n\nif (parsedData.success === undefined) {\n  return { json: { success: false, error: 'Invalid admin response format' } };\n}\n\nreturn { json: parsedData };"
+        "jsCode": "// Handle both success and error cases from HTTP request\nconst httpResponse = $input.item.json;\n\n// Check if this is an error response\nif (httpResponse.error || httpResponse.statusCode >= 400) {\n  return { json: { success: false, error: httpResponse.error?.message || 'Admin validation request failed' } };\n}\n\nconst responseText = httpResponse.data;\n\nlet parsedData;\nif (typeof responseText === 'string') {\n  try {\n    parsedData = JSON.parse(responseText);\n  } catch (e) {\n    return { json: { success: false, error: 'Failed to parse admin response' } };\n  }\n} else {\n  parsedData = responseText;\n}\n\nif (!parsedData || Object.keys(parsedData).length === 0) {\n  return { json: { success: false, error: 'Empty admin response' } };\n}\n\nif (parsedData.success === undefined) {\n  return { json: { success: false, error: 'Invalid admin response format' } };\n}\n\nreturn { json: parsedData };"
       },
       "id": "parse-admin-response",
       "name": "Parse Admin Response",
@@ -190,7 +190,17 @@
     },
     {
       "parameters": {
-        "jsCode": "// Manual UUID v4 generator\nfunction generateUUIDv4() {\n  const hex = '0123456789abcdef';\n  let uuid = '';\n  for (let i = 0; i < 36; i++) {\n    if (i === 8 || i === 13 || i === 18 || i === 23) {\n      uuid += '-';\n    } else if (i === 14) {\n      uuid += '4';\n    } else if (i === 19) {\n      uuid += hex[(Math.random() * 4 | 8)];\n    } else {\n      uuid += hex[Math.random() * 16 | 0];\n    }\n  }\n  return uuid;\n}\n\nconst healthChecks = $('Get Health Checks').all();\nconst systemStatus = $('Get System Status').first()?.json || null;\n\nconst formattedChecks = healthChecks.map(item => {\n  const check = item.json;\n  return {\n    id: check.id,\n    service_name: check.service_name,\n    status: check.status,\n    response_time_ms: check.response_time_ms,\n    error_message: check.error_message,\n    checked_at: check.checked_at,\n    metrics: typeof check.metrics === 'string' ? JSON.parse(check.metrics) : check.metrics\n  };\n});\n\nreturn {\n  json: {\n    success: true,\n    data: {\n      health_checks: formattedChecks,\n      system_status: systemStatus ? {\n        overall_status: systemStatus.overall_status,\n        services_status: typeof systemStatus.services_status === 'string' ? JSON.parse(systemStatus.services_status) : systemStatus.services_status,\n        system_metrics: typeof systemStatus.system_metrics === 'string' ? JSON.parse(systemStatus.system_metrics) : systemStatus.system_metrics,\n        last_checked_at: systemStatus.last_checked_at\n      } : null\n    },\n    traceId: generateUUIDv4()\n  }\n};"
+        "jsCode": "// Handle database errors for Get System Status\nconst systemStatusResult = $input.item.json;\n\n// Check if this is an error response (n8n error format)\nif (systemStatusResult.error) {\n  // Return null to indicate system status is unavailable\n  return { json: null };\n}\n\n// Check if result is null or undefined\nif (systemStatusResult === null || systemStatusResult === undefined) {\n  return { json: null };\n}\n\n// PostgreSQL node returns array directly when successful\nif (!Array.isArray(systemStatusResult)) {\n  // Check if it's an error object\n  if (systemStatusResult.message || systemStatusResult.code) {\n    return { json: null };\n  }\n  // If it's an object but not an array, wrap it\n  return { json: systemStatusResult };\n}\n\n// Success case - return first item or null\nreturn { json: systemStatusResult.length > 0 ? systemStatusResult[0] : null };"
+      },
+      "id": "handle-system-status-result",
+      "name": "Handle System Status Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1650, 700]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Manual UUID v4 generator\nfunction generateUUIDv4() {\n  const hex = '0123456789abcdef';\n  let uuid = '';\n  for (let i = 0; i < 36; i++) {\n    if (i === 8 || i === 13 || i === 18 || i === 23) {\n      uuid += '-';\n    } else if (i === 14) {\n      uuid += '4';\n    } else if (i === 19) {\n      uuid += hex[(Math.random() * 4 | 8)];\n    } else {\n      uuid += hex[Math.random() * 16 | 0];\n    }\n  }\n  return uuid;\n}\n\nconst healthChecks = $('Get Health Checks').all();\nconst systemStatus = $('Handle System Status Result').first()?.json || null;\n\nconst formattedChecks = healthChecks.map(item => {\n  const check = item.json;\n  return {\n    id: check.id,\n    service_name: check.service_name,\n    status: check.status,\n    response_time_ms: check.response_time_ms,\n    error_message: check.error_message,\n    checked_at: check.checked_at,\n    metrics: typeof check.metrics === 'string' ? JSON.parse(check.metrics) : check.metrics\n  };\n});\n\nreturn {\n  json: {\n    success: true,\n    data: {\n      health_checks: formattedChecks,\n      system_status: systemStatus ? {\n        overall_status: systemStatus.overall_status,\n        services_status: typeof systemStatus.services_status === 'string' ? JSON.parse(systemStatus.services_status) : systemStatus.services_status,\n        system_metrics: typeof systemStatus.system_metrics === 'string' ? JSON.parse(systemStatus.system_metrics) : systemStatus.system_metrics,\n        last_checked_at: systemStatus.last_checked_at\n      } : null\n    },\n    traceId: generateUUIDv4()\n  }\n};"
       },
       "id": "format-response",
       "name": "Build Response",
@@ -311,6 +321,17 @@
       ]
     },
     "Get System Status": {
+      "main": [
+        [
+          {
+            "node": "Handle System Status Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Handle System Status Result": {
       "main": [
         [
           {

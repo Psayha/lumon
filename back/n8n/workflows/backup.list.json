@@ -100,7 +100,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const httpResponse = $input.item.json;\nconst responseText = httpResponse.data;\n\nlet parsedData;\nif (typeof responseText === 'string') {\n  try {\n    parsedData = JSON.parse(responseText);\n  } catch (e) {\n    return { json: { success: false, error: 'Failed to parse admin response' } };\n  }\n} else {\n  parsedData = responseText;\n}\n\nif (!parsedData || Object.keys(parsedData).length === 0) {\n  return { json: { success: false, error: 'Empty admin response' } };\n}\n\nif (parsedData.success === undefined) {\n  return { json: { success: false, error: 'Invalid admin response format' } };\n}\n\nreturn { json: parsedData };"
+        "jsCode": "// Handle both success and error cases from HTTP request\nconst httpResponse = $input.item.json;\n\n// Check if this is an error response\nif (httpResponse.error || httpResponse.statusCode >= 400) {\n  return { json: { success: false, error: httpResponse.error?.message || 'Admin validation request failed' } };\n}\n\nconst responseText = httpResponse.data;\n\nlet parsedData;\nif (typeof responseText === 'string') {\n  try {\n    parsedData = JSON.parse(responseText);\n  } catch (e) {\n    return { json: { success: false, error: 'Failed to parse admin response' } };\n  }\n} else {\n  parsedData = responseText;\n}\n\nif (!parsedData || Object.keys(parsedData).length === 0) {\n  return { json: { success: false, error: 'Empty admin response' } };\n}\n\nif (parsedData.success === undefined) {\n  return { json: { success: false, error: 'Invalid admin response format' } };\n}\n\nreturn { json: parsedData };"
       },
       "id": "parse-admin-response",
       "name": "Parse Admin Response",
@@ -167,11 +167,65 @@
           "id": "supabase_postgres",
           "name": "Supabase PostgreSQL"
         }
-      }
+      },
+      "continueOnFail": true
     },
     {
       "parameters": {
-        "jsCode": "// Manual UUID v4 generator\nfunction generateUUIDv4() {\n  const hex = '0123456789abcdef';\n  let uuid = '';\n  for (let i = 0; i < 36; i++) {\n    if (i === 8 || i === 13 || i === 18 || i === 23) {\n      uuid += '-';\n    } else if (i === 14) {\n      uuid += '4';\n    } else if (i === 19) {\n      uuid += hex[(Math.random() * 4 | 8)];\n    } else {\n      uuid += hex[Math.random() * 16 | 0];\n    }\n  }\n  return uuid;\n}\n\nconst backups = $input.all();\n\nconst formattedBackups = backups.map(item => {\n  const backup = item.json;\n  return {\n    id: backup.id,\n    filename: backup.filename,\n    file_path: backup.file_path,\n    file_size: backup.file_size || 0,\n    created_at: backup.created_at,\n    status: backup.status || 'completed',\n    notes: backup.notes || null\n  };\n});\n\nreturn {\n  json: {\n    success: true,\n    data: formattedBackups,\n    count: formattedBackups.length,\n    traceId: generateUUIDv4()\n  }\n};"
+        "jsCode": "// Handle database errors\nconst dbResult = $input.item.json;\n\n// Check if this is an error response (n8n error format)\nif (dbResult.error) {\n  return {\n    json: {\n      error: 'database_error',\n      status: 500,\n      message: dbResult.error.message || dbResult.error.toString() || 'Failed to fetch backups'\n    }\n  };\n}\n\n// Check if result is null or undefined\nif (dbResult === null || dbResult === undefined) {\n  return {\n    json: {\n      error: 'database_error',\n      status: 500,\n      message: 'Database returned null result'\n    }\n  };\n}\n\n// PostgreSQL node returns array directly when successful\nif (!Array.isArray(dbResult)) {\n  // Check if it's an error object\n  if (dbResult.message || dbResult.code) {\n    return {\n      json: {\n        error: 'database_error',\n        status: 500,\n        message: dbResult.message || 'Database query failed'\n      }\n    };\n  }\n  // If it's an object but not an array, wrap it\n  return {\n    json: {\n      backups: [dbResult]\n    }\n  };\n}\n\n// Success case - return array\nreturn {\n  json: {\n    backups: dbResult\n  }\n};"
+      },
+      "id": "handle-db-result",
+      "name": "Handle DB Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1650, 600]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "error-field-check",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-db-error",
+      "name": "IF DB Error",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1850, 600]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": "={{ $json.status || 500 }}"
+        }
+      },
+      "id": "respond-db-error",
+      "name": "Respond DB Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1850, 500]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Manual UUID v4 generator\nfunction generateUUIDv4() {\n  const hex = '0123456789abcdef';\n  let uuid = '';\n  for (let i = 0; i < 36; i++) {\n    if (i === 8 || i === 13 || i === 18 || i === 23) {\n      uuid += '-';\n    } else if (i === 14) {\n      uuid += '4';\n    } else if (i === 19) {\n      uuid += hex[(Math.random() * 4 | 8)];\n    } else {\n      uuid += hex[Math.random() * 16 | 0];\n    }\n  }\n  return uuid;\n}\n\nconst dbData = $('Handle DB Result').item.json;\nconst backups = dbData.backups || [];\n\nconst formattedBackups = backups.map(item => {\n  const backup = item.json || item;\n  return {\n    id: backup.id,\n    filename: backup.filename,\n    file_path: backup.file_path,\n    file_size: backup.file_size || 0,\n    created_at: backup.created_at,\n    status: backup.status || 'completed',\n    notes: backup.notes || null\n  };\n});\n\nreturn {\n  json: {\n    success: true,\n    data: formattedBackups,\n    count: formattedBackups.length,\n    traceId: generateUUIDv4()\n  }\n};"
       },
       "id": "format-response",
       "name": "Build Response",
@@ -277,6 +331,35 @@
     },
     "Get Backups List": {
       "main": [
+        [
+          {
+            "node": "Handle DB Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Handle DB Result": {
+      "main": [
+        [
+          {
+            "node": "IF DB Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF DB Error": {
+      "main": [
+        [
+          {
+            "node": "Respond DB Error",
+            "type": "main",
+            "index": 0
+          }
+        ],
         [
           {
             "node": "Build Response",

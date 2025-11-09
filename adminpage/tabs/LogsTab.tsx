@@ -49,7 +49,6 @@ export const LogsTab: React.FC = () => {
         showToast('error', errorMsg);
       }
     } catch (error: any) {
-      console.error('Error loading logs:', error);
       showToast('error', error?.message || 'Ошибка при загрузке логов');
     } finally {
       setIsLoading(false);

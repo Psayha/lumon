@@ -30,7 +30,6 @@ export const AIDocumentsTab: React.FC = () => {
         showToast('error', errorMsg);
       }
     } catch (error: any) {
-      console.error('Error loading AI docs:', error);
       showToast('error', error?.message || 'Ошибка при загрузке документов');
     } finally {
       setIsLoading(false);
@@ -92,7 +91,6 @@ export const AIDocumentsTab: React.FC = () => {
         showToast('error', data.message || 'Не удалось удалить документ');
       }
     } catch (error) {
-      console.error('Error deleting doc:', error);
       showToast('error', 'Ошибка при удалении документа');
     }
   };

@@ -37,7 +37,6 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
         setError(errorData.message || 'Неверный логин или пароль');
       }
     } catch (err) {
-      console.error('Login error:', err);
       setError('Ошибка подключения к серверу');
     } finally {
       setIsLoading(false);

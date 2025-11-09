@@ -109,6 +109,68 @@
     },
     {
       "parameters": {
+        "jsCode": "// Handle both success and error cases from HTTP request\nconst httpResponse = $input.item.json;\n\n// Check if this is an error response\nif (httpResponse.error || httpResponse.statusCode >= 400) {\n  return { json: { success: false, error: httpResponse.error?.message || 'Admin validation request failed' } };\n}\n\nconst responseText = httpResponse.data;\n\nlet parsedData;\nif (typeof responseText === 'string') {\n  try {\n    parsedData = JSON.parse(responseText);\n  } catch (e) {\n    return { json: { success: false, error: 'Failed to parse admin response' } };\n  }\n} else {\n  parsedData = responseText;\n}\n\nif (!parsedData || Object.keys(parsedData).length === 0) {\n  return { json: { success: false, error: 'Empty admin response' } };\n}\n\nif (parsedData.success === undefined) {\n  return { json: { success: false, error: 'Invalid admin response format' } };\n}\n\nreturn { json: parsedData };"
+      },
+      "id": "parse-admin-response",
+      "name": "Parse Admin Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1050,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "success-check",
+              "leftValue": "={{ $json.success }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-admin-success",
+      "name": "IF Admin Success",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1250,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify({ error: 'unauthorized', status: 401, message: 'Invalid or expired admin token' }) }}",
+        "options": {
+          "responseCode": 401
+        }
+      },
+      "id": "respond-admin-error",
+      "name": "Respond Admin Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1250,
+        400
+      ]
+    },
+    {
+      "parameters": {
         "operation": "executeQuery",
         "query": "SELECT \n  (SELECT COUNT(*) FROM users) as total_users,\n  (SELECT COUNT(*) FROM users WHERE last_login_at > NOW() - INTERVAL '30 days') as active_users_30d,\n  (SELECT COUNT(*) FROM users WHERE last_login_at > NOW() - INTERVAL '7 days') as active_users_7d,\n  (SELECT COUNT(*) FROM companies) as total_companies,\n  (SELECT COUNT(*) FROM chats) as total_chats,\n  (SELECT COUNT(*) FROM messages) as total_messages,\n  (SELECT COUNT(*) FROM users WHERE created_at > NOW() - INTERVAL '30 days') as new_users_30d,\n  (SELECT COUNT(*) FROM companies WHERE created_at > NOW() - INTERVAL '30 days') as new_companies_30d,\n  (SELECT COUNT(*) FROM sessions WHERE is_active = true) as active_sessions;",
         "options": {}
@@ -118,27 +180,90 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.4,
       "position": [
-        1050,
-        500
+        1450,
+        600
       ],
       "credentials": {
         "postgres": {
           "id": "supabase-postgres",
           "name": "Supabase PostgreSQL"
         }
-      }
+      },
+      "continueOnFail": true
     },
     {
       "parameters": {
-        "jsCode": "// Format response\nconst stats = $('Get Platform Stats').item.json[0] || {};\n\nreturn {\n  json: {\n    success: true,\n    data: {\n      totalUsers: parseInt(stats.total_users) || 0,\n      activeUsers30d: parseInt(stats.active_users_30d) || 0,\n      activeUsers7d: parseInt(stats.active_users_7d) || 0,\n      totalCompanies: parseInt(stats.total_companies) || 0,\n      totalChats: parseInt(stats.total_chats) || 0,\n      totalMessages: parseInt(stats.total_messages) || 0,\n      newUsers30d: parseInt(stats.new_users_30d) || 0,\n      newCompanies30d: parseInt(stats.new_companies_30d) || 0,\n      activeSessions: parseInt(stats.active_sessions) || 0\n    },\n    traceId: require('crypto').randomUUID()\n  }\n};"
+        "jsCode": "// Handle database errors\nconst dbResult = $input.item.json;\n\n// Check if this is an error response (n8n error format)\nif (dbResult.error) {\n  return {\n    json: {\n      error: 'database_error',\n      status: 500,\n      message: dbResult.error.message || dbResult.error.toString() || 'Failed to fetch stats'\n    }\n  };\n}\n\n// Check if result is null or undefined\nif (dbResult === null || dbResult === undefined) {\n  return {\n    json: {\n      error: 'database_error',\n      status: 500,\n      message: 'Database returned null result'\n    }\n  };\n}\n\n// PostgreSQL node returns array directly when successful\nif (!Array.isArray(dbResult)) {\n  // Check if it's an error object\n  if (dbResult.message || dbResult.code) {\n    return {\n      json: {\n        error: 'database_error',\n        status: 500,\n        message: dbResult.message || 'Database query failed'\n      }\n    };\n  }\n  // If it's an object but not an array, wrap it\n  return {\n    json: {\n      stats: [dbResult]\n    }\n  };\n}\n\n// Success case - return array\nreturn {\n  json: {\n    stats: dbResult\n  }\n};"
+      },
+      "id": "handle-db-result",
+      "name": "Handle DB Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1650,
+        600
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "error-field-check",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-db-error",
+      "name": "IF DB Error",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1850,
+        600
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": "={{ $json.status || 500 }}"
+        }
+      },
+      "id": "respond-db-error",
+      "name": "Respond DB Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1850,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Manual UUID v4 generator\nfunction generateUUIDv4() {\n  const hex = '0123456789abcdef';\n  let uuid = '';\n  for (let i = 0; i < 36; i++) {\n    if (i === 8 || i === 13 || i === 18 || i === 23) {\n      uuid += '-';\n    } else if (i === 14) {\n      uuid += '4';\n    } else if (i === 19) {\n      uuid += hex[(Math.random() * 4 | 8)];\n    } else {\n      uuid += hex[Math.random() * 16 | 0];\n    }\n  }\n  return uuid;\n}\n\n// Format response\nconst dbData = $('Handle DB Result').item.json;\nconst stats = dbData.stats && dbData.stats[0] ? dbData.stats[0] : {};\n\nreturn {\n  json: {\n    success: true,\n    data: {\n      totalUsers: parseInt(stats.total_users) || 0,\n      activeUsers30d: parseInt(stats.active_users_30d) || 0,\n      activeUsers7d: parseInt(stats.active_users_7d) || 0,\n      totalCompanies: parseInt(stats.total_companies) || 0,\n      totalChats: parseInt(stats.total_chats) || 0,\n      totalMessages: parseInt(stats.total_messages) || 0,\n      newUsers30d: parseInt(stats.new_users_30d) || 0,\n      newCompanies30d: parseInt(stats.new_companies_30d) || 0,\n      activeSessions: parseInt(stats.active_sessions) || 0\n    },\n    traceId: generateUUIDv4()\n  }\n};"
       },
       "id": "format-response",
       "name": "Format Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1250,
-        500
+        2050,
+        700
       ]
     },
     {
@@ -154,79 +279,137 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        1450,
-        500
+        2250,
+        700
       ]
     }
   ],
   "connections": {
-    "webhook-trigger": {
+    "Webhook Trigger": {
       "main": [
         [
           {
-            "node": "extract-token",
+            "node": "Extract Token",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "extract-token": {
+    "Extract Token": {
       "main": [
         [
           {
-            "node": "check-error",
+            "node": "IF Error",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "check-error": {
+    "IF Error": {
       "main": [
         [
           {
-            "node": "respond-error",
+            "node": "Respond Error",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "validate-admin",
+            "node": "Validate Admin",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "validate-admin": {
+    "Validate Admin": {
       "main": [
         [
           {
-            "node": "get-stats",
+            "node": "Parse Admin Response",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "get-stats": {
+    "Parse Admin Response": {
       "main": [
         [
           {
-            "node": "format-response",
+            "node": "IF Admin Success",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "format-response": {
+    "IF Admin Success": {
       "main": [
         [
           {
-            "node": "respond-success",
+            "node": "Respond Admin Error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Platform Stats",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Platform Stats": {
+      "main": [
+        [
+          {
+            "node": "Handle DB Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Handle DB Result": {
+      "main": [
+        [
+          {
+            "node": "IF DB Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF DB Error": {
+      "main": [
+        [
+          {
+            "node": "Respond DB Error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Response": {
+      "main": [
+        [
+          {
+            "node": "Respond Success",
             "type": "main",
             "index": 0
           }

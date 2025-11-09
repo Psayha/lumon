@@ -59,7 +59,6 @@ export const UsersTab: React.FC = () => {
         showToast('error', errorMsg);
       }
     } catch (error: any) {
-      console.error('Error loading users:', error);
       showToast('error', error?.message || 'Ошибка при загрузке пользователей');
     } finally {
       setIsLoading(false);
@@ -77,7 +76,6 @@ export const UsersTab: React.FC = () => {
         setLimits(data.data);
       }
     } catch (error) {
-      console.error('Error loading limits:', error);
     }
   };
 
@@ -109,7 +107,6 @@ export const UsersTab: React.FC = () => {
         showToast('error', data.message || 'Не удалось обновить лимит');
       }
     } catch (error) {
-      console.error('Error updating limit:', error);
       showToast('error', 'Ошибка при обновлении лимита');
     }
   };

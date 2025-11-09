@@ -37,7 +37,6 @@ export const ABTestingTab: React.FC = () => {
         showToast('error', errorMsg);
       }
     } catch (error: any) {
-      console.error('Error loading experiments:', error);
       showToast('error', error?.message || 'Ошибка при загрузке экспериментов');
     } finally {
       setIsLoading(false);
@@ -61,7 +60,6 @@ export const ABTestingTab: React.FC = () => {
         showToast('error', data.message || 'Не удалось обновить эксперимент');
       }
     } catch (error) {
-      console.error('Error updating experiment:', error);
       showToast('error', 'Ошибка при обновлении эксперимента');
     }
   };

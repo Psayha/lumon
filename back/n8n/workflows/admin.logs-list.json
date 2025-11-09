@@ -109,10 +109,72 @@
     },
     {
       "parameters": {
+        "jsCode": "// Handle both success and error cases from HTTP request\nconst httpResponse = $input.item.json;\n\n// Check if this is an error response\nif (httpResponse.error || httpResponse.statusCode >= 400) {\n  return { json: { success: false, error: httpResponse.error?.message || 'Admin validation request failed' } };\n}\n\nconst responseText = httpResponse.data;\n\nlet parsedData;\nif (typeof responseText === 'string') {\n  try {\n    parsedData = JSON.parse(responseText);\n  } catch (e) {\n    return { json: { success: false, error: 'Failed to parse admin response' } };\n  }\n} else {\n  parsedData = responseText;\n}\n\nif (!parsedData || Object.keys(parsedData).length === 0) {\n  return { json: { success: false, error: 'Empty admin response' } };\n}\n\nif (parsedData.success === undefined) {\n  return { json: { success: false, error: 'Invalid admin response format' } };\n}\n\nreturn { json: parsedData };"
+      },
+      "id": "parse-admin-response",
+      "name": "Parse Admin Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1050,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "success-check",
+              "leftValue": "={{ $json.success }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-admin-success",
+      "name": "IF Admin Success",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1250,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify({ error: 'unauthorized', status: 401, message: 'Invalid or expired admin token' }) }}",
+        "options": {
+          "responseCode": 401
+        }
+      },
+      "id": "respond-admin-error",
+      "name": "Respond Admin Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1250,
+        400
+      ]
+    },
+    {
+      "parameters": {
         "operation": "executeQuery",
         "query": "SELECT \n  ae.id,\n  ae.action,\n  ae.resource_type,\n  ae.resource_id,\n  ae.metadata,\n  ae.ip,\n  ae.user_agent,\n  ae.created_at,\n  u.username,\n  u.first_name,\n  u.last_name\nFROM audit_events ae\nLEFT JOIN users u ON ae.user_id = u.id\nWHERE ($1::text IS NULL OR ae.action = $1)\n  AND ($2::uuid IS NULL OR ae.user_id = $2)\nORDER BY ae.created_at DESC\nLIMIT $3 OFFSET $4;",
         "options": {
-          "queryReplacement": "={{ [$json.action || null, $json.userId || null, $json.limit, $json.offset] }}"
+          "queryReplacement": "={{ [$('Extract Data').item.json.action || null, $('Extract Data').item.json.userId || null, $('Extract Data').item.json.limit, $('Extract Data').item.json.offset] }}"
         }
       },
       "id": "get-logs",
@@ -120,7 +182,7 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.4,
       "position": [
-        1050,
+        1450,
         500
       ],
       "credentials": {
@@ -128,14 +190,15 @@
           "id": "supabase-postgres",
           "name": "Supabase PostgreSQL"
         }
-      }
+      },
+      "continueOnFail": true
     },
     {
       "parameters": {
         "operation": "executeQuery",
         "query": "SELECT COUNT(*) as total\nFROM audit_events\nWHERE ($1::text IS NULL OR action = $1)\n  AND ($2::uuid IS NULL OR user_id = $2);",
         "options": {
-          "queryReplacement": "={{ [$json.action || null, $json.userId || null] }}"
+          "queryReplacement": "={{ [$('Extract Data').item.json.action || null, $('Extract Data').item.json.userId || null] }}"
         }
       },
       "id": "get-total",
@@ -143,7 +206,7 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.4,
       "position": [
-        1050,
+        1450,
         600
       ],
       "credentials": {
@@ -151,19 +214,108 @@
           "id": "supabase-postgres",
           "name": "Supabase PostgreSQL"
         }
-      }
+      },
+      "continueOnFail": true
     },
     {
       "parameters": {
-        "jsCode": "// Format response\nconst logs = $('Get Logs').item.json || [];\nconst total = $('Get Total Count').item.json[0]?.total || 0;\n\nconst formatted = logs.map(log => ({\n  id: log.id,\n  action: log.action,\n  resourceType: log.resource_type,\n  resourceId: log.resource_id,\n  metadata: log.metadata,\n  ip: log.ip,\n  userAgent: log.user_agent,\n  createdAt: log.created_at,\n  user: log.username ? {\n    username: log.username,\n    firstName: log.first_name,\n    lastName: log.last_name\n  } : null\n}));\n\nreturn {\n  json: {\n    success: true,\n    data: formatted,\n    pagination: {\n      total: parseInt(total),\n      limit: $('Extract Data').item.json.limit,\n      offset: $('Extract Data').item.json.offset\n    },\n    traceId: require('crypto').randomUUID()\n  }\n};"
+        "jsCode": "// Handle database errors for Get Logs\nconst logsResult = $input.item.json;\n\n// Check if this is an error response (n8n error format)\nif (logsResult.error) {\n  return {\n    json: {\n      error: 'database_error',\n      status: 500,\n      message: logsResult.error.message || logsResult.error.toString() || 'Failed to fetch logs'\n    }\n  };\n}\n\n// Check if result is null or undefined\nif (logsResult === null || logsResult === undefined) {\n  return {\n    json: {\n      error: 'database_error',\n      status: 500,\n      message: 'Database returned null result'\n    }\n  };\n}\n\n// PostgreSQL node returns array directly when successful\nif (!Array.isArray(logsResult)) {\n  // Check if it's an error object\n  if (logsResult.message || logsResult.code) {\n    return {\n      json: {\n        error: 'database_error',\n        status: 500,\n        message: logsResult.message || 'Database query failed'\n      }\n    };\n  }\n  // If it's an object but not an array, wrap it\n  return {\n    json: {\n      logs: [logsResult]\n    }\n  };\n}\n\n// Success case - return array\nreturn {\n  json: {\n    logs: logsResult\n  }\n};"
+      },
+      "id": "handle-logs-result",
+      "name": "Handle Logs Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1650,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Handle database errors for Get Total Count\nconst totalResult = $input.item.json;\n\n// Check if this is an error response (n8n error format)\nif (totalResult.error) {\n  return {\n    json: {\n      error: 'database_error',\n      status: 500,\n      message: totalResult.error.message || totalResult.error.toString() || 'Failed to fetch total count'\n    }\n  };\n}\n\n// Check if result is null or undefined\nif (totalResult === null || totalResult === undefined) {\n  return {\n    json: {\n      error: 'database_error',\n      status: 500,\n      message: 'Database returned null result'\n    }\n  };\n}\n\n// PostgreSQL COUNT returns array with one row\nif (!Array.isArray(totalResult)) {\n  // Check if it's an error object\n  if (totalResult.message || totalResult.code) {\n    return {\n      json: {\n        error: 'database_error',\n        status: 500,\n        message: totalResult.message || 'Database query failed'\n      }\n    };\n  }\n  // If it's an object but not an array, wrap it\n  return {\n    json: {\n      total: [totalResult]\n    }\n  };\n}\n\n// Success case - return array\nreturn {\n  json: {\n    total: totalResult\n  }\n};"
+      },
+      "id": "handle-total-result",
+      "name": "Handle Total Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1650,
+        600
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Merge results from both queries\nconst logsData = $('Handle Logs Result').item.json;\nconst totalData = $('Handle Total Result').item.json;\n\n// Check for errors\nif (logsData.error) {\n  return { json: logsData };\n}\n\nif (totalData.error) {\n  return { json: totalData };\n}\n\n// Both queries succeeded, merge results\nreturn {\n  json: {\n    logs: logsData.logs || [],\n    total: totalData.total || []\n  }\n};"
+      },
+      "id": "merge-results",
+      "name": "Merge Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1850,
+        550
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "error-field-check",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-db-error",
+      "name": "IF DB Error",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2050,
+        550
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": "={{ $json.status || 500 }}"
+        }
+      },
+      "id": "respond-db-error",
+      "name": "Respond DB Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2050,
+        450
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Manual UUID v4 generator\nfunction generateUUIDv4() {\n  const hex = '0123456789abcdef';\n  let uuid = '';\n  for (let i = 0; i < 36; i++) {\n    if (i === 8 || i === 13 || i === 18 || i === 23) {\n      uuid += '-';\n    } else if (i === 14) {\n      uuid += '4';\n    } else if (i === 19) {\n      uuid += hex[(Math.random() * 4 | 8)];\n    } else {\n      uuid += hex[Math.random() * 16 | 0];\n    }\n  }\n  return uuid;\n}\n\n// Format response\nconst mergedData = $('Merge Results').item.json;\nconst logs = mergedData.logs || [];\nconst total = mergedData.total && mergedData.total[0] ? mergedData.total[0].total : 0;\n\nconst formatted = logs.map(log => ({\n  id: log.id,\n  action: log.action || '',\n  resourceType: log.resource_type || '',\n  resourceId: log.resource_id || null,\n  metadata: log.metadata || {},\n  ip: log.ip || '',\n  userAgent: log.user_agent || '',\n  createdAt: log.created_at || null,\n  user: log.username ? {\n    username: log.username || '',\n    firstName: log.first_name || '',\n    lastName: log.last_name || ''\n  } : null\n}));\n\nreturn {\n  json: {\n    success: true,\n    data: formatted,\n    pagination: {\n      total: parseInt(total) || 0,\n      limit: $('Extract Data').item.json.limit,\n      offset: $('Extract Data').item.json.offset\n    },\n    traceId: generateUUIDv4()\n  }\n};"
       },
       "id": "format-response",
       "name": "Format Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1250,
-        500
+        2250,
+        650
       ]
     },
     {
@@ -179,95 +331,175 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        1450,
-        500
+        2450,
+        650
       ]
     }
   ],
   "connections": {
-    "webhook-trigger": {
+    "Webhook Trigger": {
       "main": [
         [
           {
-            "node": "extract-data",
+            "node": "Extract Data",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "extract-data": {
+    "Extract Data": {
       "main": [
         [
           {
-            "node": "check-error",
+            "node": "IF Error",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "check-error": {
+    "IF Error": {
       "main": [
         [
           {
-            "node": "respond-error",
+            "node": "Respond Error",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "validate-admin",
+            "node": "Validate Admin",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "validate-admin": {
+    "Validate Admin": {
       "main": [
         [
           {
-            "node": "get-logs",
+            "node": "Parse Admin Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Admin Response": {
+      "main": [
+        [
+          {
+            "node": "IF Admin Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Admin Success": {
+      "main": [
+        [
+          {
+            "node": "Respond Admin Error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Logs",
             "type": "main",
             "index": 0
           },
           {
-            "node": "get-total",
+            "node": "Get Total Count",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "get-logs": {
+    "Get Logs": {
       "main": [
         [
           {
-            "node": "format-response",
+            "node": "Handle Logs Result",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "get-total": {
+    "Get Total Count": {
       "main": [
         [
           {
-            "node": "format-response",
+            "node": "Handle Total Result",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "format-response": {
+    "Handle Logs Result": {
       "main": [
         [
           {
-            "node": "respond-success",
+            "node": "Merge Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Handle Total Result": {
+      "main": [
+        [
+          {
+            "node": "Merge Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Results": {
+      "main": [
+        [
+          {
+            "node": "IF DB Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF DB Error": {
+      "main": [
+        [
+          {
+            "node": "Respond DB Error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Response": {
+      "main": [
+        [
+          {
+            "node": "Respond Success",
             "type": "main",
             "index": 0
           }

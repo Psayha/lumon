@@ -26,11 +26,9 @@ export const BackupsTab: React.FC = () => {
         setBackups(data.data);
       } else {
         const errorMsg = data.message || 'Не удалось загрузить бэкапы';
-        console.error('Failed to load backups:', errorMsg);
         showToast('error', errorMsg);
       }
     } catch (error: any) {
-      console.error('Error loading backups:', error);
       showToast('error', error?.message || 'Ошибка при загрузке бэкапов');
     } finally {
       setIsLoading(false);
@@ -54,7 +52,6 @@ export const BackupsTab: React.FC = () => {
         alert(`Ошибка: ${data.message || 'Не удалось создать бэкап'}`);
       }
     } catch (error) {
-      console.error('Error creating backup:', error);
       alert('Ошибка при создании бэкапа');
     } finally {
       setIsCreating(false);
@@ -76,7 +73,6 @@ export const BackupsTab: React.FC = () => {
         alert(`Ошибка: ${data.message || 'Не удалось восстановить бэкап'}`);
       }
     } catch (error) {
-      console.error('Error restoring backup:', error);
       alert('Ошибка при восстановлении бэкапа');
     }
   };
@@ -97,7 +93,6 @@ export const BackupsTab: React.FC = () => {
         alert(`Ошибка: ${data.message || 'Не удалось удалить бэкап'}`);
       }
     } catch (error) {
-      console.error('Error deleting backup:', error);
       alert('Ошибка при удалении бэкапа');
     }
   };
