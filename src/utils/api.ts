@@ -477,12 +477,19 @@ export const createChat = async (title?: string): Promise<ApiResponse<Chat>> => 
       logger.warn('[createChat] No token, calling API anyway (workflow will return 401)');
     }
     
+    // Временное решение: отправляем токен в body, т.к. заголовок Authorization не приходит в webhook
+    // TODO: исправить проблему с передачей Authorization заголовка в n8n webhook
+    const bodyData: Record<string, any> = { title };
+    if (token) {
+      bodyData.session_token = token;
+    }
+    
     const response = await fetchWithRetry(
       getApiUrl(API_CONFIG.endpoints.chatCreate),
       {
         method: 'POST',
         headers,
-        body: JSON.stringify({ title }),
+        body: JSON.stringify(bodyData),
       }
     );
 

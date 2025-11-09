@@ -140,7 +140,7 @@
     },
     {
       "parameters": {
-        "functionCode": "// Build response from session data\nconst session = $input.item.json;\n\nreturn {\n  json: {\n    success: true,\n    data: {\n      session_token: session.session_token,\n      user: {\n        id: session.user_id,\n        role: session.role,\n        company_id: session.company_id\n      },\n      expires_at: session.expires_at\n    }\n  }\n};"
+        "functionCode": "// Build response from session data\n// Get session data from Create Session node (not from Log Audit Event)\nconst session = $('Create Session').item.json;\n\nreturn {\n  json: {\n    success: true,\n    data: {\n      session_token: session.session_token,\n      user: {\n        id: session.user_id,\n        role: session.role,\n        company_id: session.company_id\n      },\n      expires_at: session.expires_at\n    }\n  }\n};"
       },
       "id": "build-response",
       "name": "Build Response",
