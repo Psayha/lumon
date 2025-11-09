@@ -258,9 +258,10 @@ const App: React.FC = () => {
   }, []);
 
   // Если не Telegram и проверка завершена - показываем страницу "Только для Telegram"
-  if (isTelegram === false) {
-    return <TelegramOnlyPage />;
-  }
+  // ЗАКОММЕНТИРОВАНО: разрешаем открывать приложение через браузер
+  // if (isTelegram === false) {
+  //   return <TelegramOnlyPage />;
+  // }
 
   // Если проверка ещё не завершена - показываем только ModernSplashScreen (без дублирования экранов)
   if (isTelegram === null) {
