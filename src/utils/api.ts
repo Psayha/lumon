@@ -548,6 +548,18 @@ export const createChat = async (title?: string): Promise<ApiResponse<Chat>> => 
     const requestBody = JSON.stringify(bodyData);
     console.log('[createChat] 📝 Request body length:', requestBody.length, 'bytes');
     console.log('[createChat] 📋 Request body preview:', requestBody.substring(0, 150) + '...');
+    console.log('[createChat] 🔍 BodyData object keys:', Object.keys(bodyData));
+    console.log('[createChat] 🔍 BodyData has session_token:', 'session_token' in bodyData);
+    console.log('[createChat] 🔍 BodyData.session_token value:', bodyData.session_token ? bodyData.session_token.substring(0, 20) + '...' : 'UNDEFINED');
+    
+    // КРИТИЧНО: Проверяем что токен действительно в строке
+    const bodyStringCheck = requestBody.includes('session_token');
+    console.log('[createChat] ✅ Token in JSON string:', bodyStringCheck ? 'YES' : 'NO');
+    if (!bodyStringCheck && finalToken) {
+      console.error('[createChat] ❌ CRITICAL BUG: Token exists but not in JSON string!');
+      console.error('[createChat] bodyData:', JSON.stringify(bodyData));
+      console.error('[createChat] requestBody:', requestBody);
+    }
     
     const response = await fetchWithRetry(
       getApiUrl(API_CONFIG.endpoints.chatCreate),
