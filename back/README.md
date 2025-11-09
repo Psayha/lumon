@@ -96,11 +96,22 @@ back/
 - `audit_events` - аудит действий (опционально)
 - `idempotency_keys` - идемпотентность запросов (опционально)
 - `rate_limits` - ограничение частоты запросов (опционально)
+- `ab_experiments` - A/B тесты (name, feature_name, enabled, traffic_percentage, variant configs)
+- `ab_assignments` - назначения пользователей к вариантам экспериментов
 
 **Применение миграций:**
 ```bash
 ./apply-migration.sh
 ```
+
+**Миграции AB Testing:**
+Таблицы `ab_experiments` и `ab_assignments` создаются через SQL скрипты в `n8n/workflows/`:
+```bash
+# Безопасное создание (проверяет существование)
+docker exec -i lumon-supabase-db psql -U postgres -d lumon < n8n/workflows/create-ab-tables-safe.sql
+```
+
+Подробнее: [AB Testing Documentation](../docs/AB_TESTING.md)
 
 ## 📝 Следующие шаги
 
@@ -121,6 +132,9 @@ back/
 
 #### Analytics (⏳ В разработке)
 - `/webhook/analytics` - логирование событий
+
+#### Admin / AB Testing (✅ Реализовано)
+- `/webhook/admin-ab-experiments-list` - список всех A/B экспериментов (требует admin token)
 
 ### 2. Архитектура Workflows
 
