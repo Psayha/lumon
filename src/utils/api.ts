@@ -245,11 +245,39 @@ const fetchWithRetry = async (
     });
 
     // Убеждаемся, что credentials включен для поддержки cookie
-    const response = await fetch(url, {
-      ...options,
-      credentials: 'include', // Важно: для поддержки cookie-авторизации
-      signal: controller.signal,
-    });
+    let response: Response;
+    try {
+      response = await fetch(url, {
+        ...options,
+        credentials: 'include', // Важно: для поддержки cookie-авторизации
+        signal: controller.signal,
+      });
+    } catch (fetchError) {
+      clearTimeout(timeoutId);
+      const errorType = getNetworkErrorType(fetchError);
+      console.error('[fetchWithRetry] ❌ Fetch error:', {
+        errorType,
+        error: fetchError instanceof Error ? fetchError.message : String(fetchError),
+        url,
+        method: options.method,
+      });
+      
+      // Если это CORS ошибка и мы используем credentials, пробуем без credentials
+      if (errorType === 'cors' && retries > 0) {
+        console.warn('[fetchWithRetry] ⚠️ CORS error detected, retrying without credentials...');
+        try {
+          response = await fetch(url, {
+            ...options,
+            credentials: 'omit', // Пробуем без credentials
+            signal: controller.signal,
+          });
+        } catch (retryError) {
+          throw fetchError; // Бросаем оригинальную ошибку
+        }
+      } else {
+        throw fetchError;
+      }
+    }
 
     clearTimeout(timeoutId);
 
@@ -291,6 +319,14 @@ const fetchWithRetry = async (
 
     return response;
   } catch (error) {
+    const errorType = getNetworkErrorType(error);
+    console.error('[fetchWithRetry] ❌ Request failed:', {
+      errorType,
+      error: error instanceof Error ? error.message : String(error),
+      url,
+      retriesLeft: retries,
+    });
+    
     // Retry только для network errors, не для auth errors
     if (retries > 0 && !(error instanceof Error && error.message.includes('Unauthorized'))) {
       await new Promise(resolve => setTimeout(resolve, delay));
