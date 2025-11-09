@@ -87,27 +87,29 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
         });
 
         if (!response.ok) {
-          const errorText = await response.text();
+          let errorText = '';
+          try {
+            errorText = await response.text();
+          } catch (e) {
+            errorText = `HTTP ${response.status}`;
+          }
           logger.error('[AuthGuard] Auth init failed:', response.status, errorText);
           setAuthError(`Auth failed: ${response.status}`);
           setIsAuthReady(true);
           return;
         }
 
-        const responseText = await response.text();
-        console.log('[AuthGuard] 📥 Raw response text:', responseText.substring(0, 200));
-        
+        // Читаем JSON напрямую (response.json() можно вызвать только один раз)
         let data: any;
         try {
-          data = JSON.parse(responseText);
+          data = await response.json();
+          console.log('[AuthGuard] 📦 Parsed response:', JSON.stringify(data, null, 2));
         } catch (e) {
           logger.error('[AuthGuard] Failed to parse response as JSON:', e);
           setAuthError('Invalid JSON response');
           setIsAuthReady(true);
           return;
         }
-        
-        console.log('[AuthGuard] 📦 Parsed response:', JSON.stringify(data, null, 2));
         
         // Извлекаем токен из разных возможных мест в ответе (через any для гибкости)
         let token: string | undefined = 

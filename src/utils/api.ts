@@ -186,17 +186,33 @@ const reAuth = async (): Promise<boolean> => {
       return false;
     }
 
-    const data = await response.json() as AuthInitResponse;
+    // Читаем JSON напрямую
+    let data: any;
+    try {
+      data = await response.json();
+      console.log('[reAuth] 📦 Parsed response:', JSON.stringify(data, null, 2));
+    } catch (e) {
+      logger.error('[reAuth] Failed to parse response as JSON:', e);
+      return false;
+    }
     
     // Извлекаем токен из ответа (проверяем разные возможные варианты через any для гибкости)
-    const responseData = data as any;
-    const token = responseData?.token || responseData?.access_token || data.data?.session_token || responseData?.data?.token;
+    const token = data?.token || data?.access_token || data.data?.session_token || data.data?.token;
+    console.log('[reAuth] 🔑 Extracted token:', token ? token.substring(0, 20) + '...' : 'MISSING');
     
     if (data.success && token) {
       // Сохраняем новый токен и context
       localStorage.setItem('session_token', token);
+      console.log('[reAuth] ✅ Token saved to localStorage');
       
-      if (data.data.user) {
+      // Проверяем что токен сохранился
+      const savedToken = localStorage.getItem('session_token');
+      if (savedToken !== token) {
+        console.error('[reAuth] ❌ Token mismatch after save!');
+        return false;
+      }
+      
+      if (data.data?.user) {
         localStorage.setItem('user_context', JSON.stringify({
           userId: data.data.user.id,
           role: data.data.role,
@@ -208,6 +224,7 @@ const reAuth = async (): Promise<boolean> => {
       return true;
     }
 
+    console.error('[reAuth] ❌ No token in response or success=false');
     return false;
   } catch (error) {
     const errorMessage = getErrorMessage(error, 'Re-auth failed');
