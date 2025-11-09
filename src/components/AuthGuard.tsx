@@ -94,16 +94,10 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
           return;
         }
 
-        // Проверяем заголовки ответа (для cookie)
-        const setCookieHeader = response.headers.get('Set-Cookie');
-        if (setCookieHeader) {
-          console.log('[AuthGuard] 🍪 Set-Cookie header received:', setCookieHeader.substring(0, 100));
-        }
-        
         const responseText = await response.text();
         console.log('[AuthGuard] 📥 Raw response text:', responseText.substring(0, 200));
         
-        let data;
+        let data: any;
         try {
           data = JSON.parse(responseText);
         } catch (e) {
@@ -115,7 +109,7 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
         
         console.log('[AuthGuard] 📦 Parsed response:', JSON.stringify(data, null, 2));
         
-        // Извлекаем токен из разных возможных мест в ответе
+        // Извлекаем токен из разных возможных мест в ответе (через any для гибкости)
         let token: string | undefined = 
           data?.token || 
           data?.access_token || 
@@ -151,15 +145,9 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
           
           setIsAuthReady(true);
         } else {
-          // Если токен не найден в JSON, но есть cookie - это тоже ок
-          if (setCookieHeader) {
-            console.log('[AuthGuard] ⚠️ No token in JSON, but Set-Cookie present - using cookie auth');
-            setIsAuthReady(true);
-          } else {
-            logger.error('[AuthGuard] Invalid auth response - no token and no cookie:', data);
-            setAuthError('Invalid auth response: no token found');
-            setIsAuthReady(true);
-          }
+          logger.error('[AuthGuard] Invalid auth response - no token found:', data);
+          setAuthError('Invalid auth response: no token found');
+          setIsAuthReady(true);
         }
       } catch (error) {
         logger.error('[AuthGuard] Auth init error:', error);

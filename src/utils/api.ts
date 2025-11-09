@@ -186,9 +186,11 @@ const reAuth = async (): Promise<boolean> => {
       return false;
     }
 
-    // Извлекаем токен из разных возможных мест в ответе
     const data = await response.json() as AuthInitResponse;
-    const token = data?.token || data?.access_token || data.data?.session_token || data.data?.token;
+    
+    // Извлекаем токен из ответа (проверяем разные возможные варианты через any для гибкости)
+    const responseData = data as any;
+    const token = responseData?.token || responseData?.access_token || data.data?.session_token || responseData?.data?.token;
     
     if (data.success && token) {
       // Сохраняем новый токен и context
