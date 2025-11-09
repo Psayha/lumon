@@ -120,6 +120,7 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
         if (data.success && token) {
           // Сохраняем session_token
           localStorage.setItem('session_token', token);
+          console.log('[AuthGuard] ✅ Token saved to localStorage:', token.substring(0, 20) + '...');
           
           // Сохраняем user context
           if (data.data?.user) {
@@ -137,6 +138,12 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
           
           setIsAuthReady(true);
         } else {
+          console.error('[AuthGuard] ❌ Invalid auth response - no token found:', {
+            success: data.success,
+            hasToken: !!token,
+            dataKeys: Object.keys(data || {}),
+            dataDataKeys: data?.data ? Object.keys(data.data) : []
+          });
           logger.error('[AuthGuard] Invalid auth response - no token found:', data);
           setAuthError('Invalid auth response: no token found');
           setIsAuthReady(true);

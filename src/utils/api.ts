@@ -529,21 +529,28 @@ export const createUser = async (user: User): Promise<ApiResponse<User>> => {
 
 // Create chat (без userId - используется session_token)
 export const createChat = async (title?: string): Promise<ApiResponse<Chat>> => {
+  console.log('[createChat] Function called with title:', title);
   try {
     // Получаем токен из localStorage
     let token = localStorage.getItem('session_token');
+    console.log('[createChat] Token from localStorage:', token ? token.substring(0, 20) + '...' : 'NOT FOUND');
     
     // Если токена нет, пытаемся повторно авторизоваться
     if (!token) {
+      console.warn('[createChat] No token found, attempting re-auth...');
       logger.warn('[createChat] No token found, attempting re-auth...');
       const reAuthSuccess = await reAuth();
       if (reAuthSuccess) {
         token = localStorage.getItem('session_token');
+        console.log('[createChat] Re-auth successful, token:', token ? token.substring(0, 20) + '...' : 'STILL NOT FOUND');
+      } else {
+        console.error('[createChat] Re-auth failed');
       }
     }
     
     // Если токена все еще нет - ошибка
     if (!token || token.trim().length === 0) {
+      console.error('[createChat] ❌ No token available, throwing error');
       throw new Error('Session token is required. Please log in again.');
     }
     
