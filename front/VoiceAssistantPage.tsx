@@ -3,7 +3,6 @@ import { AppHeader } from '../src/components/AppHeader';
 // import { AppFooter } from '../src/components/AppFooter';
 import { AnimatedAIChat } from '../src/components/ui/animated-ai-chat';
 import { 
-  createChat, 
   saveMessage, 
   trackEvent,
   authInit
@@ -16,6 +15,27 @@ const VoiceAssistantPage: React.FC = () => {
   
   // Backend state
   const [chatId, setChatId] = useState<string | null>(null);
+
+  async function createChatDirect(title: string) {
+    const token = localStorage.getItem('session_token');
+    if (!token) throw new Error('No session token in localStorage');
+
+    const payload = { title, session_token: token };
+    const res = await fetch('https://n8n.psayha.ru/webhook/chat-create', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const text = await res.text();
+    const json = text ? JSON.parse(text) : null;
+    if (!res.ok) throw new Error(json?.message || `chat-create HTTP ${res.status}`);
+    return json;
+  }
 
   // Фиксируем страницу - предотвращаем скролл body
   useEffect(() => {
@@ -30,23 +50,14 @@ const VoiceAssistantPage: React.FC = () => {
 
   // Инициализируем сессию один раз (если токена нет)
   useEffect(() => {
-    const existing = localStorage.getItem('session_token');
-    if (existing) {
-      console.log('[VoiceAssistantPage] ✅ Session token already exists');
-      return;
-    }
-    
+    if (localStorage.getItem('session_token')) return;
     try {
       const initData = (window as any)?.Telegram?.WebApp?.initData || '';
-      if (initData) {
-        authInit(initData, '1.0.0')
-          .then(() => console.log('[VoiceAssistantPage] ✅ Session initialized'))
-          .catch(err => console.error('[VoiceAssistantPage] ❌ Auth init failed:', err));
-      } else {
-        console.warn('[VoiceAssistantPage] ⚠️ No Telegram initData available');
-      }
-    } catch (e) {
-      console.error('[VoiceAssistantPage] ❌ Auth init exception:', e);
+      authInit(initData, '1.0.0')
+        .then(() => console.log('[VoiceAssistantPage] session initialized'))
+        .catch(err => console.error('[VoiceAssistantPage] authInit failed', err));
+    } catch (e) { 
+      console.error('[VoiceAssistantPage] authInit exception', e); 
     }
   }, []);
 
@@ -97,8 +108,7 @@ const VoiceAssistantPage: React.FC = () => {
                     hasToken: !!localStorage.getItem('session_token'), 
                     tokenStart: (localStorage.getItem('session_token')||'').slice(0,8) 
                   });
-                  console.log('[VoiceAssistantPage] No chatId, calling createChat...');
-                  const chatResponse = await createChat('Voice Assistant Chat');
+                  const chatResponse = await createChatDirect('Voice Assistant Chat');
                   console.log('[VoiceAssistantPage] createChat response:', chatResponse);
                   
                   if (chatResponse.success && chatResponse.data?.id) {
