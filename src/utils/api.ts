@@ -556,9 +556,19 @@ export const createChat = async (title?: string): Promise<ApiResponse<Chat>> => 
     };
     
     const requestBody = JSON.stringify(bodyData);
+    const url = getApiUrl(API_CONFIG.endpoints.chatCreate);
+    
+    // Логирование для отладки
+    console.log('[createChat] Sending request:', {
+      url,
+      method: 'POST',
+      headers: Object.keys(headers),
+      hasToken: !!token,
+      body: bodyData
+    });
     
     const response = await fetchWithRetry(
-      getApiUrl(API_CONFIG.endpoints.chatCreate),
+      url,
       {
         method: 'POST',
         headers,
@@ -575,6 +585,12 @@ export const createChat = async (title?: string): Promise<ApiResponse<Chat>> => 
       } catch {
         errorMessage = errorText || errorMessage;
       }
+      console.error('[createChat] Request failed:', {
+        url,
+        status: response.status,
+        statusText: response.statusText,
+        error: errorMessage
+      });
       throw new Error(errorMessage);
     }
 
