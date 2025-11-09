@@ -230,10 +230,8 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "INSERT INTO chats (user_id, company_id, title, created_at, updated_at)\nVALUES ($1::uuid, $2::uuid, $3, NOW(), NOW())\nRETURNING id, user_id, company_id, title, created_at;",
-        "options": {
-          "queryReplacement": "={{ [$('Prepare Chat Data').item.json.user_id, $('Prepare Chat Data').item.json.company_id || null, $('Prepare Chat Data').item.json.title] }}"
-        }
+        "query": "=INSERT INTO chats (user_id, company_id, title, created_at, updated_at)\nVALUES (\n  CAST('{{ $json.user_id }}' AS UUID),\n  {{ $json.company_id ? \"CAST('\" + $json.company_id + \"' AS UUID)\" : \"NULL\" }},\n  '{{ $json.title.replace(/'/g, \"''\") }}',\n  NOW(),\n  NOW()\n)\nRETURNING id, user_id, company_id, title, created_at;",
+        "options": {}
       },
       "id": "create-chat",
       "name": "Create Chat",
