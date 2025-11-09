@@ -71,7 +71,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "http://localhost:5678/webhook/admin-validate",
+        "url": "={{ $env.N8N_BASE_URL || 'http://localhost:5678' }}/webhook/admin-validate",
         "authentication": "none",
         "sendBody": true,
         "contentType": "json",
