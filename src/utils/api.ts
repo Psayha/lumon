@@ -463,7 +463,7 @@ export const createUser = async (user: User): Promise<ApiResponse<User>> => {
 // Create chat (без userId - используется session_token)
 export const createChat = async (title?: string): Promise<ApiResponse<Chat>> => {
   try {
-    // КРИТИЧНО: Проверяем наличие токена перед запросом
+    // Проверяем наличие токена
     let token = localStorage.getItem('session_token');
     
     // Если токена нет, пытаемся повторно авторизоваться
@@ -473,16 +473,6 @@ export const createChat = async (title?: string): Promise<ApiResponse<Chat>> => 
       if (reAuthSuccess) {
         token = localStorage.getItem('session_token');
       }
-    }
-    
-    // Если токена все еще нет, возвращаем ошибку
-    if (!token) {
-      const errorMessage = 'Необходима авторизация. Пожалуйста, обновите страницу.';
-      logger.error('[createChat] No token after re-auth attempt');
-      return {
-        success: false,
-        error: errorMessage,
-      };
     }
     
     const headers = getDefaultHeaders();
@@ -495,12 +485,18 @@ export const createChat = async (title?: string): Promise<ApiResponse<Chat>> => 
     // Временное решение: отправляем токен в body, т.к. заголовок Authorization не приходит в webhook
     // TODO: исправить проблему с передачей Authorization заголовка в n8n webhook
     const bodyData: Record<string, any> = { 
-      title: title || 'New Chat',
-      session_token: token // КРИТИЧНО: Всегда добавляем токен в body
+      title: title || 'New Chat'
     };
     
-    console.log('[createChat] ✅ Adding session_token to body:', token.substring(0, 20) + '...');
-    console.log('[createChat] 📦 Body data:', JSON.stringify({ ...bodyData, session_token: token.substring(0, 20) + '...' }, null, 2));
+    // Добавляем токен в body только если он есть
+    if (token) {
+      bodyData.session_token = token;
+      console.log('[createChat] ✅ Adding session_token to body:', token.substring(0, 20) + '...');
+    } else {
+      console.warn('[createChat] ⚠️ No token - request will be sent but workflow will return 401');
+    }
+    
+    console.log('[createChat] 📦 Body data:', JSON.stringify({ ...bodyData, session_token: token ? token.substring(0, 20) + '...' : 'MISSING' }, null, 2));
     
     const response = await fetchWithRetry(
       getApiUrl(API_CONFIG.endpoints.chatCreate),
