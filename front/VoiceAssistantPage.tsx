@@ -52,9 +52,14 @@ const VoiceAssistantPage: React.FC = () => {
             onChatIdChange={setChatId}
             onMessageSave={async (message, role) => {
               try {
+                console.log('[VoiceAssistantPage] onMessageSave called', { message, role, chatId });
+                
                 // Создаем чат если нет
                 if (!chatId) {
+                  console.log('[VoiceAssistantPage] No chatId, calling createChat...');
                   const chatResponse = await createChat('Voice Assistant Chat');
+                  console.log('[VoiceAssistantPage] createChat response:', chatResponse);
+                  
                   if (chatResponse.success && chatResponse.data?.id) {
                     setChatId(chatResponse.data.id);
                     
@@ -69,6 +74,8 @@ const VoiceAssistantPage: React.FC = () => {
                       event_type: 'chat_created',
                       event_data: { chat_id: chatResponse.data.id },
                     });
+                  } else {
+                    console.error('[VoiceAssistantPage] createChat failed:', chatResponse.error);
                   }
                   return;
                 }

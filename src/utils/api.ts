@@ -455,19 +455,14 @@ export const createUser = async (user: User): Promise<ApiResponse<User>> => {
 // Create chat (без userId - используется session_token)
 export const createChat = async (title?: string): Promise<ApiResponse<Chat>> => {
   try {
+    const headers = getDefaultHeaders();
     const token = localStorage.getItem('session_token');
     
-    // Проверяем наличие токена
-    if (!token) {
-      logger.error('[createChat] No session_token in localStorage');
-      return {
-        success: false,
-        error: 'Не авторизован. Пожалуйста, перезагрузите страницу.',
-      };
+    if (token) {
+      logger.log('[createChat] Calling API with token...');
+    } else {
+      logger.warn('[createChat] No token, calling API anyway (workflow will return 401)');
     }
-    
-    const headers = getDefaultHeaders();
-    logger.log('[createChat] Token exists, calling API...');
     
     const response = await fetchWithRetry(
       getApiUrl(API_CONFIG.endpoints.chatCreate),
