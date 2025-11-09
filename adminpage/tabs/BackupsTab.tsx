@@ -22,6 +22,8 @@ export const BackupsTab: React.FC = () => {
       const data = await adminApiRequest<Backup[]>(ADMIN_API_CONFIG.endpoints.backupList);
       if (data.success && data.data) {
         setBackups(data.data);
+      } else {
+        console.error('Failed to load backups:', data.message);
       }
     } catch (error) {
       console.error('Error loading backups:', error);

@@ -34,7 +34,7 @@ interface SystemStatus {
 export const HealthChecksTab: React.FC = () => {
   const [systemStatus, setSystemStatus] = useState<SystemStatus | null>(null);
   const [healthChecks, setHealthChecks] = useState<HealthCheck[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [isChecking, setIsChecking] = useState(false);
   const { showToast } = useToast();
 
@@ -42,16 +42,19 @@ export const HealthChecksTab: React.FC = () => {
     setIsLoading(true);
     try {
       const data = await adminApiRequest(ADMIN_API_CONFIG.endpoints.healthCheckList);
-      if (data.success) {
+      if (data.success && data.data) {
         if (data.data.system_status) {
           setSystemStatus(data.data.system_status);
         }
         if (data.data.health_checks) {
           setHealthChecks(data.data.health_checks);
         }
+      } else {
+        showToast('error', data.message || 'Не удалось загрузить health checks');
       }
     } catch (error) {
       console.error('Error loading health checks:', error);
+      showToast('error', 'Ошибка при загрузке health checks');
     } finally {
       setIsLoading(false);
     }

@@ -90,16 +90,52 @@ export const adminApiRequest = async <T = any>(
       },
     });
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+    // Проверяем Content-Type перед парсингом JSON
+    const contentType = response.headers.get('content-type');
+    let data: any;
+
+    if (contentType && contentType.includes('application/json')) {
+      try {
+        data = await response.json();
+      } catch (jsonError) {
+        console.error('Failed to parse JSON response:', jsonError);
+        throw new Error('Неверный формат ответа от сервера');
+      }
+    } else {
+      // Если ответ не JSON, возвращаем ошибку
+      const text = await response.text();
+      throw new Error(`Ошибка сервера: ${response.status} ${response.statusText}. ${text.substring(0, 100)}`);
     }
 
-    const data = await response.json();
+    // Если ответ не успешный, но есть данные, возвращаем их
+    if (!response.ok) {
+      const errorMessage = data.message || data.error || `HTTP error! status: ${response.status}`;
+      console.error('API Error:', {
+        url,
+        status: response.status,
+        statusText: response.statusText,
+        data,
+      });
+      return {
+        success: false,
+        message: errorMessage,
+        data: data.data,
+      };
+    }
+
     return data;
-  } catch (error) {
-    console.error('Admin API request error:', error);
-    throw error;
+  } catch (error: any) {
+    console.error('Admin API request error:', {
+      url,
+      error: error.message,
+      stack: error.stack,
+    });
+    
+    // Возвращаем структурированную ошибку вместо throw
+    return {
+      success: false,
+      message: error.message || 'Ошибка подключения к серверу',
+    };
   }
 };
 
