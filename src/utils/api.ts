@@ -479,10 +479,17 @@ export const createChat = async (title?: string): Promise<ApiResponse<Chat>> => 
     
     // Временное решение: отправляем токен в body, т.к. заголовок Authorization не приходит в webhook
     // TODO: исправить проблему с передачей Authorization заголовка в n8n webhook
-    const bodyData: Record<string, any> = { title };
+    const bodyData: Record<string, any> = { title: title || 'New Chat' };
+    
+    // Всегда отправляем токен в body (если есть)
     if (token) {
       bodyData.session_token = token;
+      console.log('[createChat] Adding session_token to body');
+    } else {
+      console.warn('[createChat] No token found in localStorage - request will fail');
     }
+    
+    console.log('[createChat] Body data:', JSON.stringify(bodyData, null, 2));
     
     const response = await fetchWithRetry(
       getApiUrl(API_CONFIG.endpoints.chatCreate),
