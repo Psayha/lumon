@@ -7,6 +7,7 @@ import { ModernSplashScreen } from './components/ModernSplashScreen';
 import { AuthGuard } from './components/AuthGuard';
 import { PageGuard } from './components/PageGuard';
 import { useTelegram, isTelegramWebApp } from './hooks/useTelegram';
+import { logger } from './lib/logger';
 import TelegramOnlyPage from '../front/TelegramOnlyPage';
 
 // Lazy loading компонентов для лучшей производительности
@@ -202,7 +203,7 @@ const LoadingFallback: React.FC = () => (
 );
 
 const App: React.FC = () => {
-  console.log('[App] Компонент App монтируется');
+  logger.log('[App] Компонент App монтируется');
   
   // Проверяем, запущено ли приложение через Telegram
   const [isTelegram, setIsTelegram] = useState<boolean | null>(null);
@@ -217,13 +218,13 @@ const App: React.FC = () => {
     const checkTelegram = () => {
       attempts++;
       const result = isTelegramWebApp();
-      console.log(`[App] Проверка Telegram (попытка ${attempts}):`, result);
+      logger.log(`[App] Проверка Telegram (попытка ${attempts}):`, result);
       
       if (result) {
         positiveResults++;
         // Требуем несколько положительных проверок подряд для надежности
         if (positiveResults >= requiredPositiveChecks) {
-          console.log(`[App] Telegram подтвержден (${positiveResults} проверок подряд), показываем приложение`);
+          logger.log(`[App] Telegram подтвержден (${positiveResults} проверок подряд), показываем приложение`);
           setIsTelegram(true);
           return;
         }
@@ -237,8 +238,8 @@ const App: React.FC = () => {
       
       // Если это последняя попытка или прошло достаточно времени
       if (attempts >= maxAttempts) {
-        console.log('[App] Telegram не обнаружен после всех попыток, показываем страницу "Только для Telegram"');
-        console.log('[App] Итоги проверки:', {
+        logger.log('[App] Telegram не обнаружен после всех попыток, показываем страницу "Только для Telegram"');
+        logger.log('[App] Итоги проверки:', {
           attempts,
           positiveResults,
           requiredPositiveChecks
@@ -270,7 +271,7 @@ const App: React.FC = () => {
   }
   
   const TelegramUIManager: React.FC = () => {
-    console.log('[App] TelegramUIManager монтируется');
+    logger.log('[App] TelegramUIManager монтируется');
     const location = useLocation();
     const navigate = useNavigate();
     const { tg, isReady } = useTelegram();
@@ -295,11 +296,11 @@ const App: React.FC = () => {
             const data = await response.json();
             if (data.success && data.data?.session_token) {
               localStorage.setItem('session_token', data.data.session_token);
-              console.log('[App] Session refreshed successfully');
+              logger.log('[App] Session refreshed successfully');
             }
           }
         } catch (error) {
-          console.warn('[App] Session refresh failed:', error);
+          logger.warn('[App] Session refresh failed:', error);
         }
       }, 4 * 60 * 1000); // 4 минуты
 
@@ -331,7 +332,7 @@ const App: React.FC = () => {
         }
       } catch (error) {
         // Тихая обработка - методы могут быть не поддерживаемы в старых версиях
-        console.debug('[Telegram] Некоторые методы UI не поддерживаются в текущей версии API');
+        logger.debug('[Telegram] Некоторые методы UI не поддерживаются в текущей версии API');
       }
 
       const root = document.documentElement;

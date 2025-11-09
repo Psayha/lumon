@@ -1,5 +1,6 @@
 // API Utilities for Lumon Backend
 import { API_CONFIG, getApiUrl, getDefaultHeaders, getIdempotentHeaders } from '../config/api';
+import { logger } from '../lib/logger';
 
 // Re-export для удобства
 export { getIdempotentHeaders };
@@ -163,7 +164,7 @@ const reAuth = async (): Promise<boolean> => {
   try {
     // Проверяем наличие Telegram initData
     if (!window.Telegram?.WebApp?.initData) {
-      console.error('Re-auth failed: no Telegram initData');
+      logger.error('Re-auth failed: no Telegram initData');
       return false;
     }
 
@@ -180,7 +181,7 @@ const reAuth = async (): Promise<boolean> => {
     });
 
     if (!response.ok) {
-      console.error('Re-auth failed:', response.status);
+      logger.error('Re-auth failed:', response.status);
       return false;
     }
 
@@ -198,14 +199,14 @@ const reAuth = async (): Promise<boolean> => {
         }));
       }
       
-      console.log('Re-auth successful');
+      logger.log('Re-auth successful');
       return true;
     }
 
     return false;
   } catch (error) {
     const errorMessage = getErrorMessage(error, 'Re-auth failed');
-    console.error('Re-auth error:', errorMessage);
+    logger.error('Re-auth error:', errorMessage);
     return false;
   }
 };
@@ -231,7 +232,7 @@ const fetchWithRetry = async (
 
     // Обработка 401/403 - попытка повторной авторизации
     if ((response.status === 401 || response.status === 403) && !isRetryAfterAuth) {
-      console.warn(`Auth error ${response.status}, attempting re-auth...`);
+      logger.warn(`Auth error ${response.status}, attempting re-auth...`);
       
       // Очищаем старый токен
       localStorage.removeItem('session_token');
@@ -316,7 +317,7 @@ export const saveMessage = async (message: Message): Promise<ApiResponse<Message
     return { success: true, data: data.data };
   } catch (error) {
     const errorMessage = getErrorMessage(error, 'Не удалось сохранить сообщение');
-    console.error('Error saving message:', error);
+    logger.error('Error saving message:', error);
     return {
       success: false,
       error: errorMessage,
@@ -357,7 +358,7 @@ export const getChatList = async (): Promise<ApiResponse<Chat[]>> => {
     return { success: true, data: data.data || [] };
   } catch (error) {
     const errorMessage = getErrorMessage(error, 'Не удалось загрузить список чатов');
-    console.error('Error fetching chat list:', error);
+    logger.error('Error fetching chat list:', error);
     return {
       success: false,
       error: errorMessage,
@@ -400,7 +401,7 @@ export const getChatHistory = async (chatId: string): Promise<ApiResponse<Messag
     return { success: true, data: data.data || [] };
   } catch (error) {
     const errorMessage = getErrorMessage(error, 'Не удалось загрузить историю чата');
-    console.error('Error fetching chat history:', error);
+    logger.error('Error fetching chat history:', error);
     return {
       success: false,
       error: errorMessage,
@@ -443,7 +444,7 @@ export const createUser = async (user: User): Promise<ApiResponse<User>> => {
     return { success: true, data: data.data };
   } catch (error) {
     const errorMessage = getErrorMessage(error, 'Не удалось создать пользователя');
-    console.error('Error creating user:', error);
+    logger.error('Error creating user:', error);
     return {
       success: false,
       error: errorMessage,
@@ -485,7 +486,7 @@ export const createChat = async (title?: string): Promise<ApiResponse<Chat>> => 
     return { success: true, data: data.data };
   } catch (error) {
     const errorMessage = getErrorMessage(error, 'Не удалось создать чат');
-    console.error('Error creating chat:', error);
+    logger.error('Error creating chat:', error);
     return {
       success: false,
       error: errorMessage,
@@ -520,7 +521,7 @@ export const trackEvent = async (event: AnalyticsEvent): Promise<ApiResponse<voi
     return { success: true };
   } catch (error) {
     const errorMessage = getErrorMessage(error, 'Не удалось отправить событие аналитики');
-    console.error('Error tracking event:', error);
+    logger.error('Error tracking event:', error);
     return {
       success: false,
       error: errorMessage,

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { API_CONFIG, getApiUrl, getDefaultHeaders } from '../config/api';
 import { ModernSplashScreen } from './ModernSplashScreen';
+import { logger } from '../lib/logger';
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -17,7 +18,7 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
         const existingToken = localStorage.getItem('session_token');
         
         if (existingToken) {
-          console.log('[AuthGuard] Найден существующий токен, проверяем валидность...');
+          logger.log('[AuthGuard] Найден существующий токен, проверяем валидность...');
           
           // Проверяем валидность токена через auth-validate
           try {
@@ -39,21 +40,21 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
                   firstName: validateData.data.user.first_name,
                 };
                 localStorage.setItem('user_context', JSON.stringify(userContext));
-                console.log('[AuthGuard] Токен валиден, user context обновлен:', userContext);
+                logger.log('[AuthGuard] Токен валиден, user context обновлен:', userContext);
               }
               
               setIsAuthReady(true);
               return;
             } else {
               // Токен невалиден (401/403), удаляем его и продолжаем с auth-init
-              console.warn('[AuthGuard] Токен невалиден, удаляем и продолжаем с auth-init');
+              logger.warn('[AuthGuard] Токен невалиден, удаляем и продолжаем с auth-init');
               localStorage.removeItem('session_token');
               localStorage.removeItem('user_context');
               // Продолжаем выполнение - переходим к auth-init
             }
           } catch (error) {
             // Ошибка при проверке токена (network error), удаляем токен и продолжаем с auth-init
-            console.warn('[AuthGuard] Ошибка при проверке токена, удаляем и продолжаем с auth-init:', error);
+            logger.warn('[AuthGuard] Ошибка при проверке токена, удаляем и продолжаем с auth-init:', error);
             localStorage.removeItem('session_token');
             localStorage.removeItem('user_context');
             // Продолжаем выполнение - переходим к auth-init
@@ -62,13 +63,13 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
 
         // Проверяем наличие Telegram initData
         if (!window.Telegram?.WebApp?.initData) {
-          console.warn('[AuthGuard] Нет Telegram initData, пропускаем авторизацию');
+          logger.warn('[AuthGuard] Нет Telegram initData, пропускаем авторизацию');
           setAuthError('Telegram initData not available');
           setIsAuthReady(true);
           return;
         }
 
-        console.log('[AuthGuard] Инициализация сессии через auth-init...');
+        logger.log('[AuthGuard] Инициализация сессии через auth-init...');
 
         // Вызываем auth-init для получения session_token
         const response = await fetch(getApiUrl(API_CONFIG.endpoints.authInit), {
@@ -85,7 +86,7 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
 
         if (!response.ok) {
           const errorText = await response.text();
-          console.error('[AuthGuard] Auth init failed:', response.status, errorText);
+          logger.error('[AuthGuard] Auth init failed:', response.status, errorText);
           setAuthError(`Auth failed: ${response.status}`);
           setIsAuthReady(true);
           return;
@@ -107,17 +108,17 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
               firstName: data.data.user.first_name,
             };
             localStorage.setItem('user_context', JSON.stringify(userContext));
-            console.log('[AuthGuard] Авторизация успешна:', userContext);
+            logger.log('[AuthGuard] Авторизация успешна:', userContext);
           }
           
           setIsAuthReady(true);
         } else {
-          console.error('[AuthGuard] Invalid auth response:', data);
+          logger.error('[AuthGuard] Invalid auth response:', data);
           setAuthError('Invalid auth response');
           setIsAuthReady(true);
         }
       } catch (error) {
-        console.error('[AuthGuard] Auth init error:', error);
+        logger.error('[AuthGuard] Auth init error:', error);
         setAuthError(error instanceof Error ? error.message : 'Auth init failed');
         setIsAuthReady(true);
       }
@@ -138,7 +139,7 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
   // Если была ошибка авторизации, все равно показываем приложение
   // (API будет обрабатывать 401/403 автоматически через reAuth)
   if (authError) {
-    console.warn('[AuthGuard] Продолжаем работу с ошибкой авторизации:', authError);
+    logger.warn('[AuthGuard] Продолжаем работу с ошибкой авторизации:', authError);
   }
 
   return <>{children}</>;

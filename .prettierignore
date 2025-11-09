@@ -1,0 +1,7 @@
+# ESLint
+.eslintcache
+node_modules/
+
+# Prettier
+.prettierignore
+
