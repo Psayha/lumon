@@ -31,18 +31,22 @@ const VoiceAssistantPage: React.FC = () => {
   // Инициализируем сессию один раз (если токена нет)
   useEffect(() => {
     const existing = localStorage.getItem('session_token');
-    if (existing) return;
+    if (existing) {
+      console.log('[VoiceAssistantPage] ✅ Session token already exists');
+      return;
+    }
     
     try {
-      // Если есть Telegram WebApp — возьмем initData, иначе прокиньте свой источник
       const initData = (window as any)?.Telegram?.WebApp?.initData || '';
       if (initData) {
-        authInit(initData, '1.0.0').catch((e) => {
-          console.error('[VoiceAssistantPage] Auth init failed:', e);
-        });
+        authInit(initData, '1.0.0')
+          .then(() => console.log('[VoiceAssistantPage] ✅ Session initialized'))
+          .catch(err => console.error('[VoiceAssistantPage] ❌ Auth init failed:', err));
+      } else {
+        console.warn('[VoiceAssistantPage] ⚠️ No Telegram initData available');
       }
     } catch (e) {
-      console.error('[VoiceAssistantPage] Auth init error:', e);
+      console.error('[VoiceAssistantPage] ❌ Auth init exception:', e);
     }
   }, []);
 
@@ -76,6 +80,12 @@ const VoiceAssistantPage: React.FC = () => {
                 
                 // Проверяем наличие токена перед созданием чата
                 const token = localStorage.getItem('session_token');
+                const tokenPreview = (token || '').slice(0, 8);
+                console.log('[VoiceAssistantPage] 🔍 Token check before chat-create:', { 
+                  hasToken: !!token, 
+                  tokenStart: tokenPreview 
+                });
+                
                 if (!token) {
                   console.error('[VoiceAssistantPage] ❌ No session_token found in localStorage');
                   throw new Error('Session token is required. Please log in again.');

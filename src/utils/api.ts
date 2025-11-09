@@ -346,14 +346,37 @@ export const authInit = async (initData: string, appVersion: string = '1.0.0'): 
     body: JSON.stringify({ initData, appVersion }),
     credentials: 'omit'
   });
-  
-  const json = await res.json();
-  if (!json?.success) throw new Error(json?.message || 'auth.init failed');
-  
+
+  try {
+    // Безопасный лог через clone
+    const { logFetchResponse } = await import('./debugLogger').catch(() => ({ logFetchResponse: null }));
+    if (logFetchResponse) await logFetchResponse(res);
+  } catch {}
+
+  let json: any;
+  try {
+    // Используем clone для безопасного чтения (оригинальный response остается нетронутым)
+    const clonedRes = res.clone();
+    json = await clonedRes.json();
+  } catch (e) {
+    // Если clone не сработал, пробуем прочитать оригинальный response
+    try {
+      json = await res.json();
+    } catch (parseError) {
+      const text = await res.text().catch(() => 'Unable to read response');
+      throw new Error(`auth-init-v2: failed to parse body: ${text.slice(0, 200)}`);
+    }
+  }
+
+  if (!res.ok || !json?.success) {
+    throw new Error(json?.message || `auth-init-v2 HTTP ${res.status}`);
+  }
+
   const token = json?.data?.session_token;
-  if (!token) throw new Error('No session_token in response');
-  
+  if (!token) throw new Error('auth-init-v2: no session_token in response');
+
   localStorage.setItem('session_token', token);
+  console.log('[authInit] ✅ Token saved to localStorage:', token.substring(0, 20) + '...');
   
   if (json.data?.user) {
     localStorage.setItem('user_context', JSON.stringify({
@@ -369,12 +392,18 @@ export const authInit = async (initData: string, appVersion: string = '1.0.0'): 
 // Save message to database
 export const saveMessage = async (message: Message): Promise<ApiResponse<Message>> => {
   try {
+    const token = localStorage.getItem('session_token');
+    const payload = {
+      ...message,
+      ...(token ? { session_token: token } : {})
+    };
+    
     const response = await fetchWithRetry(
       getApiUrl(API_CONFIG.endpoints.saveMessage),
       {
         method: 'POST',
         headers: getIdempotentHeaders(),
-        body: JSON.stringify(message),
+        body: JSON.stringify(payload),
       }
     );
 
@@ -561,8 +590,10 @@ export const createUser = async (user: User): Promise<ApiResponse<User>> => {
 // Create chat (без userId - используется session_token)
 export const createChat = async (title?: string): Promise<ApiResponse<Chat>> => {
   const token = localStorage.getItem('session_token');
-  if (!token) throw new Error('No session token');
-  
+  if (!token) throw new Error('No session token in localStorage');
+
+  const payload = { title: title || 'New Chat', session_token: token }; // дублируем для n8n fallback
+
   const res = await fetch(getApiUrl(API_CONFIG.endpoints.chatCreate), {
     method: 'POST',
     headers: {
@@ -570,15 +601,21 @@ export const createChat = async (title?: string): Promise<ApiResponse<Chat>> => 
       'Accept': 'application/json',
       'Authorization': `Bearer ${token}`
     },
-    body: JSON.stringify({ title: title || 'New Chat' }),
+    body: JSON.stringify(payload),
     credentials: 'omit'
   });
-  
+
+  try {
+    // Безопасный лог через clone
+    const { logFetchResponse } = await import('./debugLogger').catch(() => ({ logFetchResponse: null }));
+    if (logFetchResponse) await logFetchResponse(res);
+  } catch {}
+
   const text = await res.text();
   const json = text ? JSON.parse(text) : null;
   
   if (!res.ok) {
-    throw new Error(json?.message || json?.error || `HTTP ${res.status}`);
+    throw new Error(json?.message || json?.error || `chat-create HTTP ${res.status}`);
   }
   
   if (!json?.success || !json?.data) {
