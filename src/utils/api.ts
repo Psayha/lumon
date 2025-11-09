@@ -178,6 +178,7 @@ const reAuth = async (): Promise<boolean> => {
         initData: window.Telegram.WebApp.initData,
         appVersion: '1.0.0',
       }),
+      credentials: 'include', // Важно: для поддержки cookie-авторизации
     });
 
     if (!response.ok) {
@@ -185,11 +186,13 @@ const reAuth = async (): Promise<boolean> => {
       return false;
     }
 
+    // Извлекаем токен из разных возможных мест в ответе
     const data = await response.json() as AuthInitResponse;
+    const token = data?.token || data?.access_token || data.data?.session_token || data.data?.token;
     
-    if (data.success && data.data?.session_token) {
+    if (data.success && token) {
       // Сохраняем новый токен и context
-      localStorage.setItem('session_token', data.data.session_token);
+      localStorage.setItem('session_token', token);
       
       if (data.data.user) {
         localStorage.setItem('user_context', JSON.stringify({
@@ -239,8 +242,10 @@ const fetchWithRetry = async (
       bodyPreview: bodyPreview
     });
 
+    // Убеждаемся, что credentials включен для поддержки cookie
     const response = await fetch(url, {
       ...options,
+      credentials: 'include', // Важно: для поддержки cookie-авторизации
       signal: controller.signal,
     });
 

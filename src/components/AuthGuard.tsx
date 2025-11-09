@@ -25,6 +25,7 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
             const validateResponse = await fetch(getApiUrl(API_CONFIG.endpoints.authValidate), {
               method: 'POST',
               headers: getDefaultHeaders(),
+              credentials: 'include', // Важно: для поддержки cookie-авторизации
             });
             
             if (validateResponse.ok) {
@@ -82,6 +83,7 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
             initData: window.Telegram.WebApp.initData,
             appVersion: '1.0.0',
           }),
+          credentials: 'include', // Важно: для поддержки cookie-авторизации
         });
 
         if (!response.ok) {
@@ -92,6 +94,12 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
           return;
         }
 
+        // Проверяем заголовки ответа (для cookie)
+        const setCookieHeader = response.headers.get('Set-Cookie');
+        if (setCookieHeader) {
+          console.log('[AuthGuard] 🍪 Set-Cookie header received:', setCookieHeader.substring(0, 100));
+        }
+        
         const responseText = await response.text();
         console.log('[AuthGuard] 📥 Raw response text:', responseText.substring(0, 200));
         
@@ -107,9 +115,15 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
         
         console.log('[AuthGuard] 📦 Parsed response:', JSON.stringify(data, null, 2));
         
-        if (data.success && data.data?.session_token) {
+        // Извлекаем токен из разных возможных мест в ответе
+        let token: string | undefined = 
+          data?.token || 
+          data?.access_token || 
+          data?.data?.session_token || 
+          data?.data?.token;
+        
+        if (data.success && token) {
           // Сохраняем session_token
-          const token = data.data.session_token;
           console.log('[AuthGuard] 🔑 Token from response:', token ? token.substring(0, 20) + '...' : 'MISSING');
           localStorage.setItem('session_token', token);
           console.log('[AuthGuard] ✅ Session token saved to localStorage:', token.substring(0, 20) + '...');
@@ -137,9 +151,15 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
           
           setIsAuthReady(true);
         } else {
-          logger.error('[AuthGuard] Invalid auth response:', data);
-          setAuthError('Invalid auth response');
-          setIsAuthReady(true);
+          // Если токен не найден в JSON, но есть cookie - это тоже ок
+          if (setCookieHeader) {
+            console.log('[AuthGuard] ⚠️ No token in JSON, but Set-Cookie present - using cookie auth');
+            setIsAuthReady(true);
+          } else {
+            logger.error('[AuthGuard] Invalid auth response - no token and no cookie:', data);
+            setAuthError('Invalid auth response: no token found');
+            setIsAuthReady(true);
+          }
         }
       } catch (error) {
         logger.error('[AuthGuard] Auth init error:', error);
