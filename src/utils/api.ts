@@ -223,6 +223,14 @@ const fetchWithRetry = async (
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), API_CONFIG.timeout);
 
+    // Debug: логируем заголовки перед отправкой
+    console.log('[fetchWithRetry] Request options:', {
+      url,
+      method: options.method,
+      headers: options.headers,
+      hasAuth: !!(options.headers as Record<string, string>)?.Authorization || !!(options.headers as Record<string, string>)?.authorization
+    });
+
     const response = await fetch(url, {
       ...options,
       signal: controller.signal,
