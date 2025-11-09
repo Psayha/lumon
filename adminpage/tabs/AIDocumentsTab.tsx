@@ -1,6 +1,7 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Database, Upload, FileText, Trash2, Download, CheckCircle } from 'lucide-react';
+import { useToast } from '../components/Toast';
 
 interface AIDocument {
   id: string;
@@ -13,26 +14,71 @@ interface AIDocument {
 export const AIDocumentsTab: React.FC = () => {
   const [documents, setDocuments] = useState<AIDocument[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { showToast } = useToast();
+
+  const loadDocuments = async () => {
+    setIsLoading(true);
+    try {
+      const token = localStorage.getItem('admin_token');
+      const response = await fetch('https://n8n.psayha.ru/webhook/admin-ai-docs-list', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      const data = await response.json();
+      if (data.success && data.data) {
+        setDocuments(data.data);
+      } else {
+        showToast('error', data.message || 'Не удалось загрузить документы');
+      }
+    } catch (error) {
+      console.error('Error loading AI docs:', error);
+      showToast('error', 'Ошибка при загрузке документов');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadDocuments();
+  }, []);
 
   const handleUpload = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
 
-    setIsUploading(true);
+    // Валидация файлов
+    const maxSize = 50 * 1024 * 1024; // 50 MB
+    const allowedTypes = ['.pdf', '.doc', '.docx', '.txt'];
+    const invalidFiles: string[] = [];
 
-    // TODO: Заменить на реальный API
+    Array.from(files).forEach((file) => {
+      const ext = '.' + file.name.split('.').pop()?.toLowerCase();
+      if (!allowedTypes.includes(ext)) {
+        invalidFiles.push(file.name);
+      }
+      if (file.size > maxSize) {
+        invalidFiles.push(`${file.name} (слишком большой)`);
+      }
+    });
+
+    if (invalidFiles.length > 0) {
+      showToast('error', `Некорректные файлы: ${invalidFiles.join(', ')}`);
+      return;
+    }
+
+    setIsUploading(true);
+    showToast('info', 'Загрузка документов...');
+
+    // TODO: Реализовать загрузку файлов через API
     await new Promise((resolve) => setTimeout(resolve, 1500));
 
-    const newDocs: AIDocument[] = Array.from(files).map((file, index) => ({
-      id: Date.now().toString() + index,
-      filename: file.name,
-      size: file.size,
-      uploadedAt: new Date().toISOString(),
-      status: 'processed' as const,
-    }));
-
-    setDocuments([...newDocs, ...documents]);
+    showToast('success', 'Документы загружены');
     setIsUploading(false);
+    await loadDocuments();
 
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -40,8 +86,27 @@ export const AIDocumentsTab: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
-    // TODO: API запрос на удаление
-    setDocuments(documents.filter((doc) => doc.id !== id));
+    try {
+      const token = localStorage.getItem('admin_token');
+      const response = await fetch('https://n8n.psayha.ru/webhook/admin-ai-docs-delete', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        showToast('success', 'Документ удален');
+        await loadDocuments();
+      } else {
+        showToast('error', data.message || 'Не удалось удалить документ');
+      }
+    } catch (error) {
+      console.error('Error deleting doc:', error);
+      showToast('error', 'Ошибка при удалении документа');
+    }
   };
 
   const formatFileSize = (bytes: number) => {
@@ -60,6 +125,14 @@ export const AIDocumentsTab: React.FC = () => {
     };
     return styles[status as keyof typeof styles] || styles.processed;
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

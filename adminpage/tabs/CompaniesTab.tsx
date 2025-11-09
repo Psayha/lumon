@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Building2, Users, Search, ChevronDown, ChevronUp } from 'lucide-react';
+import { useToast } from '../components/Toast';
 
 interface Company {
   id: string;
@@ -19,35 +20,35 @@ export const CompaniesTab: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedCompany, setExpandedCompany] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const { showToast } = useToast();
+
+  const loadCompanies = async () => {
+    setIsLoading(true);
+    try {
+      const token = localStorage.getItem('admin_token');
+      const response = await fetch('https://n8n.psayha.ru/webhook/admin-companies-list', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      const data = await response.json();
+      if (data.success && data.data) {
+        setCompanies(data.data);
+      } else {
+        showToast('error', data.message || 'Не удалось загрузить компании');
+      }
+    } catch (error) {
+      console.error('Error loading companies:', error);
+      showToast('error', 'Ошибка при загрузке компаний');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    // TODO: Заменить на реальный API
-    // Временные моковые данные
-    setTimeout(() => {
-      setCompanies([
-        {
-          id: '1',
-          name: 'ООО "ТехноСофт"',
-          createdAt: '2025-01-15',
-          userCount: 3,
-          users: [
-            { id: '1', username: 'ivanov', role: 'owner' },
-            { id: '2', username: 'petrov', role: 'manager' },
-            { id: '3', username: 'sidorov', role: 'viewer' },
-          ],
-        },
-        {
-          id: '2',
-          name: 'ИП Сидоров',
-          createdAt: '2025-02-20',
-          userCount: 1,
-          users: [
-            { id: '4', username: 'sidorov_ip', role: 'owner' },
-          ],
-        },
-      ]);
-      setIsLoading(false);
-    }, 500);
+    loadCompanies();
   }, []);
 
   const filteredCompanies = companies.filter((company) =>

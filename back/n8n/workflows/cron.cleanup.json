@@ -20,7 +20,7 @@
     },
     {
       "parameters": {
-        "functionCode": "// Prepare cleanup tasks\nreturn {\n  json: {\n    timestamp: new Date().toISOString(),\n    tasks: [\n      'cleanup_expired_sessions',\n      'cleanup_old_idempotency_keys',\n      'cleanup_old_rate_limits'\n    ]\n  }\n};"
+        "functionCode": "// Prepare cleanup tasks\nreturn {\n  json: {\n    timestamp: new Date().toISOString(),\n    tasks: [\n      'cleanup_expired_sessions',\n      'cleanup_old_idempotency_keys',\n      'cleanup_old_rate_limits',\n      'cleanup_viewer_chats',\n      'cleanup_old_backups'\n    ]\n  }\n};"
       },
       "id": "prepare-cleanup",
       "name": "Prepare Cleanup",
@@ -102,7 +102,25 @@
     },
     {
       "parameters": {
-        "functionCode": "// Collect cleanup results\nconst sessionsDeleted = $('Postgres: Cleanup Expired Sessions').item?.json?.length || 0;\nconst idempotencyDeleted = $('Postgres: Cleanup Old Idempotency Keys').item?.json?.length || 0;\nconst rateLimitsDeleted = $('Postgres: Cleanup Old Rate Limits').item?.json?.length || 0;\nconst viewerChatsDeleted = $('Postgres: Cleanup Viewer Chats (> 3 days)').item?.json?.length || 0;\n\nconst result = {\n  timestamp: $('Prepare Cleanup').item.json.timestamp,\n  results: {\n    sessions_deleted: sessionsDeleted,\n    idempotency_keys_deleted: idempotencyDeleted,\n    rate_limits_deleted: rateLimitsDeleted,\n    viewer_chats_deleted: viewerChatsDeleted,\n    total_deleted: sessionsDeleted + idempotencyDeleted + rateLimitsDeleted + viewerChatsDeleted\n  }\n};\n\nconsole.log('[Cron Cleanup]', JSON.stringify(result, null, 2));\n\nreturn {\n  json: result\n};"
+        "operation": "executeQuery",
+        "query": "-- Удаление старых бэкапов (>30 дней)\nDELETE FROM backups\nWHERE created_at < now() - interval '30 days'\nRETURNING id, filename;",
+        "options": {}
+      },
+      "id": "postgres-cleanup-old-backups",
+      "name": "Postgres: Cleanup Old Backups (> 30 days)",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [650, 600],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-postgres",
+          "name": "Supabase PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "// Collect cleanup results\nconst sessionsDeleted = $('Postgres: Cleanup Expired Sessions').item?.json?.length || 0;\nconst idempotencyDeleted = $('Postgres: Cleanup Old Idempotency Keys').item?.json?.length || 0;\nconst rateLimitsDeleted = $('Postgres: Cleanup Old Rate Limits').item?.json?.length || 0;\nconst viewerChatsDeleted = $('Postgres: Cleanup Viewer Chats (> 3 days)').item?.json?.length || 0;\nconst oldBackupsDeleted = $('Postgres: Cleanup Old Backups (> 30 days)').item?.json?.length || 0;\n\nconst result = {\n  timestamp: $('Prepare Cleanup').item.json.timestamp,\n  results: {\n    sessions_deleted: sessionsDeleted,\n    idempotency_keys_deleted: idempotencyDeleted,\n    rate_limits_deleted: rateLimitsDeleted,\n    viewer_chats_deleted: viewerChatsDeleted,\n    old_backups_deleted: oldBackupsDeleted,\n    total_deleted: sessionsDeleted + idempotencyDeleted + rateLimitsDeleted + viewerChatsDeleted + oldBackupsDeleted\n  }\n};\n\nconsole.log('[Cron Cleanup]', JSON.stringify(result, null, 2));\n\nreturn {\n  json: result\n};"
       },
       "id": "format-results",
       "name": "Format Results",
@@ -204,6 +222,11 @@
             "node": "postgres-cleanup-viewer-chats",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "postgres-cleanup-old-backups",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
@@ -242,6 +265,17 @@
       ]
     },
     "postgres-cleanup-viewer-chats": {
+      "main": [
+        [
+          {
+            "node": "format-results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "postgres-cleanup-old-backups": {
       "main": [
         [
           {

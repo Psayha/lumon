@@ -1,0 +1,206 @@
+{
+  "name": "cron.export-workflows",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 0 * * 0"
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Schedule Trigger (Weekly)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Prepare export data\nconst timestamp = new Date().toISOString().replace(/[:.]/g, '-');\nconst exportDir = '/var/backups/lumon/workflows';\nconst filename = `workflows-export-${timestamp}.json`;\n\nreturn {\n  json: {\n    timestamp: timestamp,\n    export_dir: exportDir,\n    filename: filename,\n    full_path: `${exportDir}/${filename}`\n  }\n};"
+      },
+      "id": "prepare-export",
+      "name": "Prepare Export",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "command": "mkdir -p {{ $json.export_dir }}"
+      },
+      "id": "create-export-dir",
+      "name": "Create Export Directory",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "http://localhost:5678/api/v1/workflows",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-N8N-API-KEY",
+              "value": "={{ $env.N8N_API_KEY }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fetch-workflows",
+      "name": "Fetch Workflows from n8n API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [850, 300],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "functionCode": "// Format workflows export\nconst workflows = $('Fetch Workflows from n8n API').item?.json?.data || [];\nconst prepareData = $('Prepare Export').item.json;\n\nconst exportData = {\n  export_date: new Date().toISOString(),\n  version: '1.0',\n  workflows_count: workflows.length,\n  workflows: workflows.map(w => ({\n    id: w.id,\n    name: w.name,\n    active: w.active,\n    nodes: w.nodes,\n    connections: w.connections,\n    settings: w.settings,\n    staticData: w.staticData,\n    tags: w.tags\n  }))\n};\n\nreturn {\n  json: {\n    ...prepareData,\n    export_data: exportData,\n    json_string: JSON.stringify(exportData, null, 2)\n  }\n};"
+      },
+      "id": "format-export",
+      "name": "Format Export",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "command": "cat > {{ $json.full_path }} << 'EOF'\n{{ $json.json_string }}\nEOF"
+      },
+      "id": "save-export-file",
+      "name": "Save Export File",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1250, 300]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "schema": {
+          "__rl": true,
+          "value": "public",
+          "mode": "list",
+          "cachedResultName": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "audit_events",
+          "mode": "list",
+          "cachedResultName": "audit_events"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "action": "cron.export-workflows",
+            "resource": "workflows",
+            "meta": "={{ JSON.stringify({ filename: $json.filename, workflows_count: $json.export_data.workflows_count }) }}",
+            "ip": "system",
+            "user_agent": "n8n-cron"
+          },
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "log-audit",
+      "name": "Log Audit Event",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1450, 300],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-postgres",
+          "name": "Supabase PostgreSQL"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "schedule-trigger": {
+      "main": [
+        [
+          {
+            "node": "prepare-export",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "prepare-export": {
+      "main": [
+        [
+          {
+            "node": "create-export-dir",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "create-export-dir": {
+      "main": [
+        [
+          {
+            "node": "fetch-workflows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "fetch-workflows": {
+      "main": [
+        [
+          {
+            "node": "format-export",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "format-export": {
+      "main": [
+        [
+          {
+            "node": "save-export-file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "save-export-file": {
+      "main": [
+        [
+          {
+            "node": "log-audit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "id": "cron-export-workflows",
+  "meta": {
+    "instanceId": "lumon-n8n"
+  },
+  "tags": []
+}
+

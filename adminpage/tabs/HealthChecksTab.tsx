@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { RefreshCw, CheckCircle, XCircle, AlertCircle, Server, Cpu, HardDrive, MemoryStick } from 'lucide-react';
+import { RefreshCw, CheckCircle, XCircle, AlertCircle, Server, Cpu, HardDrive, MemoryStick, TrendingUp } from 'lucide-react';
+import { useToast } from '../components/Toast';
 
 interface SystemMetrics {
   cpu_usage_percent: number;
@@ -34,6 +35,7 @@ export const HealthChecksTab: React.FC = () => {
   const [healthChecks, setHealthChecks] = useState<HealthCheck[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
+  const { showToast } = useToast();
 
   const loadHealthChecks = async () => {
     setIsLoading(true);
@@ -81,13 +83,13 @@ export const HealthChecksTab: React.FC = () => {
       const data = await response.json();
       if (data.success) {
         await loadHealthChecks();
-        alert('Проверка завершена');
+        showToast('success', 'Проверка завершена');
       } else {
-        alert(`Ошибка: ${data.message || 'Не удалось выполнить проверку'}`);
+        showToast('error', data.message || 'Не удалось выполнить проверку');
       }
     } catch (error) {
       console.error('Error checking health:', error);
-      alert('Ошибка при проверке здоровья системы');
+      showToast('error', 'Ошибка при проверке здоровья системы');
     } finally {
       setIsChecking(false);
     }
@@ -107,13 +109,92 @@ export const HealthChecksTab: React.FC = () => {
       const data = await response.json();
       if (data.success) {
         await loadHealthChecks();
+        showToast('success', `Проверка ${serviceName} завершена`);
       } else {
-        alert(`Ошибка: ${data.message || 'Не удалось выполнить проверку'}`);
+        showToast('error', data.message || 'Не удалось выполнить проверку');
       }
     } catch (error) {
       console.error('Error checking service:', error);
-      alert('Ошибка при проверке сервиса');
+      showToast('error', 'Ошибка при проверке сервиса');
     }
+  };
+
+  // Получить историю метрик для графиков
+  const getMetricsHistory = () => {
+    const systemChecks = healthChecks
+      .filter((check) => check.service_name === 'system' && check.metrics)
+      .sort((a, b) => new Date(a.checked_at).getTime() - new Date(b.checked_at).getTime())
+      .slice(-20); // Последние 20 проверок
+
+    return {
+      cpu: systemChecks.map((check) => ({
+        value: check.metrics?.cpu_usage_percent || 0,
+        time: new Date(check.checked_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
+      })),
+      memory: systemChecks.map((check) => ({
+        value: check.metrics?.memory_usage_percent || 0,
+        time: new Date(check.checked_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
+      })),
+      disk: systemChecks.map((check) => ({
+        value: check.metrics?.disk_usage_percent || 0,
+        time: new Date(check.checked_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
+      })),
+    };
+  };
+
+  const metricsHistory = getMetricsHistory();
+
+  const renderChart = (data: Array<{ value: number; time: string }>, color: string, label: string) => {
+    if (data.length === 0) return null;
+
+    const maxValue = Math.max(...data.map((d) => d.value), 100);
+    const chartHeight = 100;
+    const chartWidth = 100;
+
+    return (
+      <div className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+        <div className="flex items-center gap-2 mb-3">
+          <TrendingUp className="w-4 h-4 text-gray-500" />
+          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{label}</span>
+        </div>
+        <div className="relative" style={{ height: `${chartHeight}px` }}>
+          <svg width="100%" height={chartHeight} className="overflow-visible">
+            <polyline
+              points={data
+                .map((d, i) => {
+                  const x = (i / (data.length - 1 || 1)) * 100;
+                  const y = chartHeight - (d.value / maxValue) * chartHeight;
+                  return `${x}%,${y}`;
+                })
+                .join(' ')}
+              fill="none"
+              stroke={color}
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            {data.map((d, i) => {
+              const x = (i / (data.length - 1 || 1)) * 100;
+              const y = chartHeight - (d.value / maxValue) * chartHeight;
+              return (
+                <circle
+                  key={i}
+                  cx={`${x}%`}
+                  cy={y}
+                  r="3"
+                  fill={color}
+                  className="hover:r-4 transition-all"
+                />
+              );
+            })}
+          </svg>
+          <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
+            <span>{data[0]?.time}</span>
+            <span>{data[data.length - 1]?.time}</span>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   const getStatusIcon = (status: string) => {
@@ -263,7 +344,19 @@ export const HealthChecksTab: React.FC = () => {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Графики метрик */}
+      {metricsHistory.cpu.length > 0 && (
+        <div className="mt-6">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">История метрик</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {renderChart(metricsHistory.cpu, '#3b82f6', 'CPU')}
+            {renderChart(metricsHistory.memory, '#a855f7', 'Память')}
+            {renderChart(metricsHistory.disk, '#10b981', 'Диск')}
+          </div>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
         {services.map((service) => {
           const serviceStatus = systemStatus?.services_status[service] || 'unknown';
           const latestCheck = healthChecks

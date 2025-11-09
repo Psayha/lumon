@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { FileText, Upload, Edit, Trash2, Save, X } from 'lucide-react';
+import { useToast } from '../components/Toast';
 
 interface LegalDoc {
   id: string;
@@ -14,26 +15,35 @@ export const LegalDocsTab: React.FC = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const { showToast } = useToast();
+
+  const loadDocs = async () => {
+    setIsLoading(true);
+    try {
+      const token = localStorage.getItem('admin_token');
+      const response = await fetch('https://n8n.psayha.ru/webhook/admin-legal-docs-list', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      const data = await response.json();
+      if (data.success && data.data) {
+        setDocs(data.data);
+      } else {
+        showToast('error', data.message || 'Не удалось загрузить документы');
+      }
+    } catch (error) {
+      console.error('Error loading legal docs:', error);
+      showToast('error', 'Ошибка при загрузке документов');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    // TODO: Заменить на реальный API
-    setTimeout(() => {
-      setDocs([
-        {
-          id: '1',
-          title: 'Пользовательское соглашение',
-          content: 'Текст пользовательского соглашения...',
-          updatedAt: '2025-01-10',
-        },
-        {
-          id: '2',
-          title: 'Политика конфиденциальности',
-          content: 'Текст политики конфиденциальности...',
-          updatedAt: '2025-01-15',
-        },
-      ]);
-      setIsLoading(false);
-    }, 500);
+    loadDocs();
   }, []);
 
   const handleEdit = (doc: LegalDoc) => {
@@ -42,10 +52,39 @@ export const LegalDocsTab: React.FC = () => {
   };
 
   const handleSave = async (id: string) => {
-    // TODO: API запрос на обновление
-    setDocs(docs.map((doc) => (doc.id === id ? { ...doc, content: editContent, updatedAt: new Date().toISOString().split('T')[0] } : doc)));
-    setEditingId(null);
-    setEditContent('');
+    // Валидация
+    if (!editContent.trim()) {
+      showToast('error', 'Содержимое документа не может быть пустым');
+      return;
+    }
+    if (editContent.length > 100000) {
+      showToast('error', 'Содержимое документа слишком большое (максимум 100000 символов)');
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('admin_token');
+      const response = await fetch('https://n8n.psayha.ru/webhook/admin-legal-docs-update', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id, content: editContent }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        showToast('success', 'Документ обновлен');
+        await loadDocs();
+        setEditingId(null);
+        setEditContent('');
+      } else {
+        showToast('error', data.message || 'Не удалось обновить документ');
+      }
+    } catch (error) {
+      console.error('Error updating doc:', error);
+      showToast('error', 'Ошибка при обновлении документа');
+    }
   };
 
   const handleCancel = () => {
