@@ -455,11 +455,25 @@ export const createUser = async (user: User): Promise<ApiResponse<User>> => {
 // Create chat (без userId - используется session_token)
 export const createChat = async (title?: string): Promise<ApiResponse<Chat>> => {
   try {
+    const token = localStorage.getItem('session_token');
+    
+    // Проверяем наличие токена
+    if (!token) {
+      logger.error('[createChat] No session_token in localStorage');
+      return {
+        success: false,
+        error: 'Не авторизован. Пожалуйста, перезагрузите страницу.',
+      };
+    }
+    
+    const headers = getDefaultHeaders();
+    logger.log('[createChat] Token exists, calling API...');
+    
     const response = await fetchWithRetry(
       getApiUrl(API_CONFIG.endpoints.chatCreate),
       {
         method: 'POST',
-        headers: getDefaultHeaders(),
+        headers,
         body: JSON.stringify({ title }),
       }
     );
