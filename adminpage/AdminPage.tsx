@@ -36,6 +36,45 @@ const AdminPage: React.FC = () => {
     setIsAuthenticated(false);
   };
 
+  // Определение и применение системной темы
+  useEffect(() => {
+    const applySystemTheme = () => {
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      if (prefersDark) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    };
+
+    // Применяем тему при загрузке
+    applySystemTheme();
+
+    // Отслеживаем изменения системной темы
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleThemeChange = (e: MediaQueryListEvent) => {
+      if (e.matches) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    };
+
+    // Современный способ подписки на изменения
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener('change', handleThemeChange);
+      return () => {
+        mediaQuery.removeEventListener('change', handleThemeChange);
+      };
+    } else {
+      // Fallback для старых браузеров
+      mediaQuery.addListener(handleThemeChange);
+      return () => {
+        mediaQuery.removeListener(handleThemeChange);
+      };
+    }
+  }, []);
+
   // Фиксируем страницу
   useEffect(() => {
     document.body.style.overflow = 'hidden';
