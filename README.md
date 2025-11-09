@@ -4,16 +4,17 @@
 
 > **📖 Документация:** 
 > - [docs/AUTH_SYSTEM.md](./docs/AUTH_SYSTEM.md) - система авторизации (текущее состояние, архитектура, endpoints)
-> - [docs/ROADMAP_FUTURE.md](./docs/ROADMAP_FUTURE.md) - следующие шаги развития (автоматизация, мониторинг)
+> - [docs/ROADMAP_FUTURE.md](./docs/ROADMAP_FUTURE.md) - следующие шаги развития (пагинация, фильтры, оптимизация)
 > - [docs/BACKUPS_HEALTH_CHECKS.md](./docs/BACKUPS_HEALTH_CHECKS.md) - документация по бэкапам и health checks
+> - [docs/ANALYTICS_ADMIN.md](./docs/ANALYTICS_ADMIN.md) - расширенная аналитика и функции для админов
 > - [docs/BUILD_STATUS.md](./docs/BUILD_STATUS.md) - статус сборки проекта и исправленные проблемы
 
 ## 📊 Статус проекта (Обновлено: 6 ноября 2025)
 
 > **🎯 Текущая разработка:** Все критические задачи из roadmap завершены ✅  
-> **Следующие шаги:** См. [docs/ROADMAP_FUTURE.md](./docs/ROADMAP_FUTURE.md) - пагинация, фильтры, расширенная аналитика  
-> **Этап:** Auth система готова 🚀 | Админ-панель готова ✅ | Инфраструктура стабилизирована ✅ | Бэкапы и Health Checks реализованы ✅ | Автоматизация настроена ✅ | Мониторинг готов ✅ | API интеграция завершена ✅  
-> **Прогресс:** Все основные задачи завершены ✅ | Система авторизации в production | Админ-панель с реальной аутентификацией | Все домены работают с SSL | Smoke-тесты в CI/CD | Бэкапы и мониторинг готовы | Автоматические бэкапы и health-checks ✅ | Графики метрик ✅ | Toast уведомления ✅ | Валидация форм ✅ | Алерты настроены ✅
+> **Следующие шаги:** См. [docs/ROADMAP_FUTURE.md](./docs/ROADMAP_FUTURE.md) - пагинация, фильтры, оптимизация  
+> **Этап:** Auth система готова 🚀 | Админ-панель готова ✅ | Инфраструктура стабилизирована ✅ | Бэкапы и Health Checks реализованы ✅ | Автоматизация настроена ✅ | Мониторинг готов ✅ | API интеграция завершена ✅ | Расширенная аналитика готова ✅  
+> **Прогресс:** Все основные задачи завершены ✅ | Система авторизации в production | Админ-панель с реальной аутентификацией | Все домены работают с SSL | Smoke-тесты в CI/CD | Бэкапы и мониторинг готовы | Автоматические бэкапы и health-checks ✅ | Графики метрик ✅ | Toast уведомления ✅ | Валидация форм ✅ | Алерты настроены ✅ | Логи системы ✅ | Управление пользователями ✅ | Статистика платформы ✅ | A/B тестирование ✅
 
 ### ✅ Frontend (Реализовано)
 - **React 18.2.0** - современные паттерны (Suspense, ErrorBoundary, lazy loading, StrictMode)
@@ -88,11 +89,15 @@
 - **Admin Panel** - админ-панель с реальной аутентификацией ✅
   - Workflows: admin.login, admin.validate
   - Таблицы: `admin_users`, `admin_sessions`
-  - Табы: Компании, Юр документы, Документы для ИИ, Бэкапы, Health Checks
-  - API endpoints: admin-companies-list, admin-legal-docs-list, admin-legal-docs-update, admin-ai-docs-list, admin-ai-docs-delete
+  - Табы: Компании, Юр документы, Документы для ИИ, Бэкапы, Health Checks, Логи, Пользователи, Аналитика, A/B Тесты
+  - API endpoints: admin-companies-list, admin-legal-docs-list, admin-legal-docs-update, admin-ai-docs-list, admin-ai-docs-delete, admin-logs-list, admin-users-list, admin-stats-platform, admin-user-limits-list, admin-user-limits-update, admin-ab-experiments-list, admin-ab-experiment-create, admin-ab-experiment-update
   - Toast уведомления для успеха/ошибок
   - Валидация форм (документы, файлы)
   - Графики метрик в HealthChecksTab
+  - Просмотр логов с фильтрацией и экспортом CSV
+  - Управление пользователями и их лимитами
+  - Статистика платформы с карточками метрик
+  - A/B тестирование функций
 - **Автоматизация** - cron задачи для бэкапов и мониторинга ✅
   - Скрипты: cron-backup.sh, cron-health-check.sh, cleanup-old-backups.sh, setup-cron.sh
   - Автоматические бэкапы (ежедневно в 2:00)
@@ -123,21 +128,21 @@
 - **Инструменты**: ESLint и Prettier настроены для проверки и форматирования кода
 
 **Backend:**
-- **База данных**: 16 таблиц (users, companies, user_companies, sessions, chats, messages, audit_events, admin_users, admin_sessions, backups, health_checks, system_status, idempotency_keys, rate_limits, legal_documents, ai_documents)
-- **n8n workflows**: 27 активных workflows
+- **База данных**: 21 таблица (users, companies, user_companies, sessions, chats, messages, audit_events, admin_users, admin_sessions, backups, health_checks, system_status, idempotency_keys, rate_limits, legal_documents, ai_documents, user_limits, ab_experiments, ab_assignments, ab_events, platform_stats)
+- **n8n workflows**: 36 активных workflows
   - **6 auth workflows**: init, validate, refresh, logout, set-viewer-role, switch-company
   - **4 chat workflows**: create, list, save-message, get-history
-  - **2 cron workflows**: cleanup, export-workflows
+  - **3 cron workflows**: cleanup, export-workflows, aggregate-stats
   - **2 admin workflows**: login, validate
-  - **5 admin API workflows**: companies-list, legal-docs-list, legal-docs-update, ai-docs-list, ai-docs-delete
+  - **13 admin API workflows**: companies-list, legal-docs-list, legal-docs-update, ai-docs-list, ai-docs-delete, logs-list, users-list, stats-platform, user-limits-list, user-limits-update, ab-experiments-list, ab-experiment-create, ab-experiment-update
   - **4 backup workflows**: create, list, restore, delete
   - **2 health-check workflows**: check, check-list
   - **1 analytics workflow**: log-event
   - **1 rate-limit subworkflow**: check
-- **API endpoints**: 23+ защищенных endpoints
+- **API endpoints**: 30+ защищенных endpoints
   - **11 user endpoints**: auth-init, auth-validate, auth-refresh, auth-logout, auth-set-viewer-role, auth-switch-company, chat-create, chat-list, chat-save-message, chat-get-history, analytics-log-event
-  - **12 admin endpoints**: admin-login, admin-validate, backup-create, backup-list, backup-restore, backup-delete, health-check, health-check-list, admin-companies-list, admin-legal-docs-list, admin-legal-docs-update, admin-ai-docs-list, admin-ai-docs-delete
-- **Миграции**: 6 файлов (drop old tables + auth system + admin users + backups/health_checks + system metrics + legal_ai_documents)
+  - **19 admin endpoints**: admin-login, admin-validate, backup-create, backup-list, backup-restore, backup-delete, health-check, health-check-list, admin-companies-list, admin-legal-docs-list, admin-legal-docs-update, admin-ai-docs-list, admin-ai-docs-delete, admin-logs-list, admin-users-list, admin-stats-platform, admin-user-limits-list, admin-user-limits-update, admin-ab-experiments-list, admin-ab-experiment-create, admin-ab-experiment-update
+- **Миграции**: 7 файлов (drop old tables + auth system + admin users + backups/health_checks + system metrics + legal_ai_documents + analytics_limits_ab_testing)
 - **Auth coverage**: 100% (все endpoints защищены auth.validate или admin.validate)
 - **Frontend интеграция**: 100% (AuthGuard, re-auth, автопродление сессии)
 - **Cron jobs**: автоматическая очистка устаревших данных (каждый час)
@@ -151,6 +156,7 @@
   - Автоматические health-checks (каждые 10 минут)
   - Автоматическая очистка старых бэкапов (ежедневно в 3:00)
   - Экспорт n8n workflows (еженедельно)
+  - Агрегация статистики платформы (каждый час)
   - Алерты при проблемах (email/Telegram)
 - **CI/CD**: автоматический деплой с smoke-тестами
   - Проверка всех доменов после деплоя
