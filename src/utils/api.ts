@@ -590,9 +590,8 @@ export const createChat = async (title?: string): Promise<ApiResponse<Chat>> => 
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Accept': 'application/json'
-      // ВАЖНО: не полагаемся на Authorization, так как он может отваливаться в WebView
-      // 'Authorization': `Bearer ${token}`
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${token}` // Основной способ передачи токена
     },
     body: JSON.stringify(payload)
   });
