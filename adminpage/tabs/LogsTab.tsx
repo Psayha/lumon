@@ -201,7 +201,7 @@ export const LogsTab: React.FC = () => {
                 filteredLogs.map((log) => (
                   <tr key={log.id} className="hover:bg-gray-50 dark:hover:bg-slate-700">
                     <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">
-                      {new Date(log.createdAt).toLocaleString('ru-RU')}
+                      {log.createdAt ? new Date(log.createdAt).toLocaleString('ru-RU') : '-'}
                     </td>
                     <td className="px-4 py-3 text-sm">
                       <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
