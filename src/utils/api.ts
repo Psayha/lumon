@@ -335,6 +335,37 @@ const fetchWithRetry = async (
 
 // API Functions
 
+// Auth init function - инициализация сессии
+export const authInit = async (initData: string, appVersion: string = '1.0.0'): Promise<AuthInitResponse> => {
+  const res = await fetch(getApiUrl(API_CONFIG.endpoints.authInit), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    },
+    body: JSON.stringify({ initData, appVersion }),
+    credentials: 'omit'
+  });
+  
+  const json = await res.json();
+  if (!json?.success) throw new Error(json?.message || 'auth.init failed');
+  
+  const token = json?.data?.session_token;
+  if (!token) throw new Error('No session_token in response');
+  
+  localStorage.setItem('session_token', token);
+  
+  if (json.data?.user) {
+    localStorage.setItem('user_context', JSON.stringify({
+      userId: json.data.user.id,
+      role: json.data.role || json.data.user.role || null,
+      companyId: json.data.company_id || json.data.companyId || null,
+    }));
+  }
+  
+  return json;
+};
+
 // Save message to database
 export const saveMessage = async (message: Message): Promise<ApiResponse<Message>> => {
   try {
@@ -529,94 +560,32 @@ export const createUser = async (user: User): Promise<ApiResponse<User>> => {
 
 // Create chat (без userId - используется session_token)
 export const createChat = async (title?: string): Promise<ApiResponse<Chat>> => {
-  console.log('[createChat] Function called with title:', title);
-  try {
-    // Получаем токен из localStorage
-    let token = localStorage.getItem('session_token');
-    console.log('[createChat] Token from localStorage:', token ? token.substring(0, 20) + '...' : 'NOT FOUND');
-    
-    // Если токена нет, пытаемся повторно авторизоваться
-    if (!token) {
-      console.warn('[createChat] No token found, attempting re-auth...');
-      logger.warn('[createChat] No token found, attempting re-auth...');
-      const reAuthSuccess = await reAuth();
-      if (reAuthSuccess) {
-        token = localStorage.getItem('session_token');
-        console.log('[createChat] Re-auth successful, token:', token ? token.substring(0, 20) + '...' : 'STILL NOT FOUND');
-      } else {
-        console.error('[createChat] Re-auth failed');
-      }
-    }
-    
-    // Если токена все еще нет - ошибка
-    if (!token || token.trim().length === 0) {
-      console.error('[createChat] ❌ No token available, throwing error');
-      throw new Error('Session token is required. Please log in again.');
-    }
-    
-    const headers = getDefaultHeaders();
-    
-    // ВСЕГДА добавляем токен в body (для n8n webhooks это надежнее)
-    const bodyData: Record<string, any> = { 
-      title: title || 'New Chat',
-      session_token: token.trim()
-    };
-    
-    const requestBody = JSON.stringify(bodyData);
-    const url = getApiUrl(API_CONFIG.endpoints.chatCreate);
-    
-    // Логирование для отладки
-    console.log('[createChat] Sending request:', {
-      url,
-      method: 'POST',
-      headers: Object.keys(headers),
-      hasToken: !!token,
-      body: bodyData
-    });
-    
-    const response = await fetchWithRetry(
-      url,
-      {
-        method: 'POST',
-        headers,
-        body: requestBody,
-      }
-    );
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      let errorMessage = `HTTP error! status: ${response.status}`;
-      try {
-        const errorJson = JSON.parse(errorText) as ApiErrorResponse;
-        errorMessage = errorJson.message || errorJson.error || errorMessage;
-      } catch {
-        errorMessage = errorText || errorMessage;
-      }
-      console.error('[createChat] Request failed:', {
-        url,
-        status: response.status,
-        statusText: response.statusText,
-        error: errorMessage
-      });
-      throw new Error(errorMessage);
-    }
-
-    const data = await response.json() as CreateChatResponse;
-    
-    // Валидация ответа
-    if (!data.success || !data.data) {
-      throw new Error('Invalid response: missing success or data');
-    }
-    
-    return { success: true, data: data.data };
-  } catch (error) {
-    const errorMessage = getErrorMessage(error, 'Не удалось создать чат');
-    logger.error('Error creating chat:', error);
-    return {
-      success: false,
-      error: errorMessage,
-    };
+  const token = localStorage.getItem('session_token');
+  if (!token) throw new Error('No session token');
+  
+  const res = await fetch(getApiUrl(API_CONFIG.endpoints.chatCreate), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify({ title: title || 'New Chat' }),
+    credentials: 'omit'
+  });
+  
+  const text = await res.text();
+  const json = text ? JSON.parse(text) : null;
+  
+  if (!res.ok) {
+    throw new Error(json?.message || json?.error || `HTTP ${res.status}`);
   }
+  
+  if (!json?.success || !json?.data) {
+    throw new Error('Invalid response: missing success or data');
+  }
+  
+  return { success: true, data: json.data };
 };
 
 // Track analytics event

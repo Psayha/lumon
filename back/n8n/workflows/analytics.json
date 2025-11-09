@@ -110,6 +110,7 @@
     {
       "parameters": {
         "workflowId": "rate-limit.check",
+        "mode": "subWorkflow",
         "fieldsUi": {
           "values": [
             {

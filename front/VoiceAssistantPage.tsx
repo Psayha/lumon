@@ -5,7 +5,8 @@ import { AnimatedAIChat } from '../src/components/ui/animated-ai-chat';
 import { 
   createChat, 
   saveMessage, 
-  trackEvent
+  trackEvent,
+  authInit
 } from '../src/utils/api';
 
 const VoiceAssistantPage: React.FC = () => {
@@ -27,7 +28,23 @@ const VoiceAssistantPage: React.FC = () => {
     };
   }, []);
 
-  // Chat инициализация при первом сообщении
+  // Инициализируем сессию один раз (если токена нет)
+  useEffect(() => {
+    const existing = localStorage.getItem('session_token');
+    if (existing) return;
+    
+    try {
+      // Если есть Telegram WebApp — возьмем initData, иначе прокиньте свой источник
+      const initData = (window as any)?.Telegram?.WebApp?.initData || '';
+      if (initData) {
+        authInit(initData, '1.0.0').catch((e) => {
+          console.error('[VoiceAssistantPage] Auth init failed:', e);
+        });
+      }
+    } catch (e) {
+      console.error('[VoiceAssistantPage] Auth init error:', e);
+    }
+  }, []);
 
   return (
     <>
