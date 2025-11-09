@@ -196,13 +196,18 @@ const ApiTestPage: React.FC = () => {
 
       // Добавляем Authorization header для защищённых endpoints
       const protectedEndpoints = ['auth-validate', 'auth-refresh', 'auth-logout', 'auth-set-viewer-role', 'auth-switch-company', 'chat-create', 'chat-save-message', 'chat-get-history', 'analytics-log-event'];
-      if (protectedEndpoints.includes(selectedEndpoint) && sessionToken) {
-        (requestOptions.headers as Record<string, string>)['Authorization'] = `Bearer ${sessionToken}`;
+      
+      // Получаем токен из state или localStorage (fallback)
+      const currentToken = sessionToken || localStorage.getItem('session_token') || localStorage.getItem('test_session_token');
+      
+      if (protectedEndpoints.includes(selectedEndpoint) && currentToken) {
+        (requestOptions.headers as Record<string, string>)['Authorization'] = `Bearer ${currentToken}`;
         
         // Для chat-create добавляем session_token в body (для n8n webhooks)
         if (selectedEndpoint === 'chat-create' && method === 'POST') {
-          parsedBody.session_token = sessionToken;
+          parsedBody.session_token = currentToken;
           requestOptions.body = JSON.stringify(parsedBody);
+          console.log('[ApiTestPage] Added session_token to body for chat-create:', currentToken.substring(0, 20) + '...');
         }
       }
 
@@ -350,7 +355,9 @@ const ApiTestPage: React.FC = () => {
         const token = responseData.data.session_token;
         setSessionToken(token);
         localStorage.setItem('test_session_token', token);
-        console.log('[API Test] Session token saved:', token);
+        // Также сохраняем в session_token для совместимости с основным приложением
+        localStorage.setItem('session_token', token);
+        console.log('[API Test] Session token saved to both test_session_token and session_token');
         
         // Сохраняем user context
         if (responseData.data) {
@@ -604,12 +611,17 @@ const ApiTestPage: React.FC = () => {
 
         // Добавляем Authorization для защищённых эндпоинтов
         const protectedEndpoints = ['auth-validate', 'auth-refresh', 'auth-logout', 'auth-set-viewer-role', 'auth-switch-company', 'chat-create', 'chat-save-message', 'chat-get-history', 'analytics-log-event'];
-        if (protectedEndpoints.includes(endpoint) && currentToken) {
-          (requestOptions.headers as Record<string, string>)['Authorization'] = `Bearer ${currentToken}`;
+        
+        // Получаем токен из state или localStorage (fallback)
+        const tokenForRequest = currentToken || localStorage.getItem('session_token') || localStorage.getItem('test_session_token');
+        
+        if (protectedEndpoints.includes(endpoint) && tokenForRequest) {
+          (requestOptions.headers as Record<string, string>)['Authorization'] = `Bearer ${tokenForRequest}`;
           
           // Для chat-create добавляем session_token в body (для n8n webhooks)
           if (endpoint === 'chat-create' && info.method === 'POST') {
-            testDataForEndpoint.session_token = currentToken;
+            testDataForEndpoint.session_token = tokenForRequest;
+            console.log('[ApiTestPage] handleTestAll: Added session_token to body for chat-create');
           }
         }
 
@@ -644,6 +656,8 @@ const ApiTestPage: React.FC = () => {
           currentToken = responseData.data.session_token;
           setSessionToken(currentToken);
           localStorage.setItem('test_session_token', currentToken);
+          // Также сохраняем в session_token для совместимости с основным приложением
+          localStorage.setItem('session_token', currentToken);
         }
 
         // Сохраняем chat_id из chat-create

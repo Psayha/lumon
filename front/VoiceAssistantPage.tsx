@@ -57,6 +57,13 @@ const VoiceAssistantPage: React.FC = () => {
               try {
                 console.log('[VoiceAssistantPage] onMessageSave called', { message, role, chatId });
                 
+                // Проверяем наличие токена перед созданием чата
+                const token = localStorage.getItem('session_token');
+                if (!token) {
+                  console.error('[VoiceAssistantPage] ❌ No session_token found in localStorage');
+                  throw new Error('Session token is required. Please log in again.');
+                }
+                
                 // Создаем чат если нет
                 if (!chatId) {
                   console.log('[VoiceAssistantPage] No chatId, calling createChat...');
@@ -64,31 +71,37 @@ const VoiceAssistantPage: React.FC = () => {
                   console.log('[VoiceAssistantPage] createChat response:', chatResponse);
                   
                   if (chatResponse.success && chatResponse.data?.id) {
-                    setChatId(chatResponse.data.id);
+                    const newChatId = chatResponse.data.id;
+                    console.log('[VoiceAssistantPage] ✅ Chat created successfully:', newChatId);
+                    setChatId(newChatId);
                     
                     // Сохраняем первое сообщение
-                    await saveMessage({
-                      chat_id: chatResponse.data.id,
+                    const saveResult = await saveMessage({
+                      chat_id: newChatId,
                       role,
                       content: message,
                     });
+                    console.log('[VoiceAssistantPage] First message save result:', saveResult);
 
                     await trackEvent({
                       event_type: 'chat_created',
-                      event_data: { chat_id: chatResponse.data.id },
+                      event_data: { chat_id: newChatId },
                     });
                   } else {
-                    console.error('[VoiceAssistantPage] createChat failed:', chatResponse.error);
+                    console.error('[VoiceAssistantPage] ❌ createChat failed:', chatResponse.error);
+                    throw new Error(chatResponse.error || 'Failed to create chat');
                   }
                   return;
                 }
                 
                 // Сохраняем сообщение
-                await saveMessage({
+                console.log('[VoiceAssistantPage] Saving message to existing chat:', chatId);
+                const saveResult = await saveMessage({
                   chat_id: chatId,
                   role,
                   content: message,
                 });
+                console.log('[VoiceAssistantPage] Message save result:', saveResult);
                 
                 await trackEvent({
                   event_type: 'message_sent',
@@ -99,7 +112,8 @@ const VoiceAssistantPage: React.FC = () => {
                   },
                 });
               } catch (error) {
-                console.error('[VoiceAssistantPage] Error saving message:', error);
+                console.error('[VoiceAssistantPage] ❌ Error saving message:', error);
+                // Не пробрасываем ошибку дальше, чтобы не ломать UI
               }
             }}
           />
