@@ -90,6 +90,11 @@ Frontend → API (с Bearer token)
 ### Admin Endpoints
 - `POST /webhook/admin-login` - аутентификация администратора
 - `POST /webhook/admin-validate` - валидация admin токена
+- `GET /webhook/admin-companies-list` - список компаний
+- `GET /webhook/admin-legal-docs-list` - список юридических документов
+- `POST /webhook/admin-legal-docs-update` - обновление юридического документа
+- `GET /webhook/admin-ai-docs-list` - список AI документов
+- `POST /webhook/admin-ai-docs-delete` - удаление AI документа
 
 ### Формат запросов
 ```http
