@@ -502,7 +502,7 @@ export function AnimatedAIChat({
     };
 
     const handleCreateNewChat = () => {
-        console.log('Создание нового чата');
+        console.log('[AnimatedAIChat] handleCreateNewChat called', { currentChatId: chatId, hasOnChatIdChange: !!onChatIdChange });
         // Очищаем текущие сообщения
         setMessages([]);
         // Очищаем выбранные команды
@@ -515,7 +515,10 @@ export function AnimatedAIChat({
         adjustHeight(true);
         // Очищаем chatId через callback
         if (onChatIdChange) {
+            console.log('[AnimatedAIChat] Clearing chatId via onChatIdChange(null)');
             onChatIdChange(null);
+        } else {
+            console.warn('[AnimatedAIChat] onChatIdChange is not provided!');
         }
     };
 

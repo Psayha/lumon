@@ -49,7 +49,10 @@ const VoiceAssistantPage: React.FC = () => {
             isRecognizing={isRecognizing}
             onRecognizingChange={setIsRecognizing}
             chatId={chatId}
-            onChatIdChange={setChatId}
+            onChatIdChange={(newChatId) => {
+                console.log('[VoiceAssistantPage] onChatIdChange called:', { oldChatId: chatId, newChatId });
+                setChatId(newChatId);
+            }}
             onMessageSave={async (message, role) => {
               try {
                 console.log('[VoiceAssistantPage] onMessageSave called', { message, role, chatId });
