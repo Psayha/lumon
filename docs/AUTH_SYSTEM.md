@@ -143,6 +143,17 @@ Content-Type: application/json
 - **Cron workflows**: 3 (cleanup - каждый час, export-workflows - еженедельно, aggregate-stats - каждый час)
 - **Всего активных workflows**: 36
 
+### ✅ Обработка ошибок в workflows (Обновлено: 6 ноября 2025)
+- **Все admin workflows** имеют полную обработку ошибок:
+  - Узлы с `continueOnFail: true` обрабатываются через `Handle DB Result` и `IF DB Error`
+  - HTTP запросы обрабатываются через `Parse Admin Response` и `IF Admin Success`
+  - Все пути выполнения гарантированно ведут к `respondToWebhook`
+  - Исправлены `connections` - используются имена узлов вместо id
+- **Дополнительные workflows** также имеют обработку ошибок:
+  - `health-check-list.json` - обработка ошибок для Parse Admin Response и Handle System Status Result
+  - `backup.list.json` - обработка ошибок для Parse Admin Response и Get Backups List
+  - `chat.list.json` - обработка ошибок для Parse Auth Response
+
 ---
 
 ## 🔐 Роли и права (RBAC)
