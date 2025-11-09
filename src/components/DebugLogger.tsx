@@ -18,11 +18,12 @@ const DebugLogger: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Перехватываем console.log, console.warn, console.error
+    // Перехватываем console.log, console.warn, console.error, console.info, console.debug
     const originalLog = console.log;
     const originalWarn = console.warn;
     const originalError = console.error;
     const originalInfo = console.info;
+    const originalDebug = console.debug;
 
     const addLog = (level: LogEntry['level'], ...args: any[]) => {
       const message = args
@@ -72,11 +73,78 @@ const DebugLogger: React.FC = () => {
       addLog('info', ...args);
     };
 
+    console.debug = (...args: any[]) => {
+      originalDebug(...args);
+      addLog('log', ...args);
+    };
+
+    // Перехватываем fetch запросы
+    const originalFetch = window.fetch;
+    window.fetch = async (...args: any[]) => {
+      const [url, options = {}] = args;
+      const method = options.method || 'GET';
+      const startTime = Date.now();
+      
+      // Логируем запрос
+      const requestInfo = {
+        method,
+        url: typeof url === 'string' ? url : url.toString(),
+        headers: options.headers ? (options.headers instanceof Headers ? Object.fromEntries(options.headers.entries()) : options.headers) : {},
+        hasBody: !!options.body,
+        bodyPreview: options.body ? (typeof options.body === 'string' ? options.body.substring(0, 200) : '[...]') : undefined
+      };
+      
+      addLog('info', `[FETCH] ${method} ${requestInfo.url}`, requestInfo);
+
+      try {
+        const response = await originalFetch(...args);
+        const endTime = Date.now();
+        const duration = endTime - startTime;
+        
+        // Клонируем response для чтения body (оригинальный response остается нетронутым)
+        const clonedResponse = response.clone();
+        let responseBody = null;
+        
+        try {
+          const contentType = response.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            responseBody = await clonedResponse.json();
+          } else {
+            const text = await clonedResponse.text();
+            responseBody = text.substring(0, 500);
+          }
+        } catch {
+          // Игнорируем ошибки парсинга body
+        }
+
+        // Логируем ответ
+        const responseInfo = {
+          status: response.status,
+          statusText: response.statusText,
+          duration: `${duration}ms`,
+          headers: Object.fromEntries(response.headers.entries()),
+          body: responseBody
+        };
+        
+        const logLevel = response.ok ? 'info' : 'error';
+        addLog(logLevel, `[FETCH] ${method} ${requestInfo.url} → ${response.status} (${duration}ms)`, responseInfo);
+
+        return response;
+      } catch (error) {
+        const endTime = Date.now();
+        const duration = endTime - startTime;
+        addLog('error', `[FETCH] ${method} ${requestInfo.url} → ERROR (${duration}ms)`, error);
+        throw error;
+      }
+    };
+
     return () => {
       console.log = originalLog;
       console.warn = originalWarn;
       console.error = originalError;
       console.info = originalInfo;
+      console.debug = originalDebug;
+      window.fetch = originalFetch;
     };
   }, [maxLogs]);
 

@@ -517,15 +517,23 @@ export const createChat = async (title?: string): Promise<ApiResponse<Chat>> => 
       bodyForLog.session_token = bodyForLog.session_token.substring(0, 20) + '...';
     }
     console.log('[createChat] 📦 Final body data:', JSON.stringify(bodyForLog, null, 2));
+    console.log('[createChat] 🔑 Token in body:', finalToken ? `✅ Present (${finalToken.length} chars)` : '❌ MISSING');
+    console.log('[createChat] 📤 Sending request to:', getApiUrl(API_CONFIG.endpoints.chatCreate));
+    
+    const requestBody = JSON.stringify(bodyData);
+    console.log('[createChat] 📝 Request body length:', requestBody.length, 'bytes');
+    console.log('[createChat] 📋 Request body preview:', requestBody.substring(0, 150) + '...');
     
     const response = await fetchWithRetry(
       getApiUrl(API_CONFIG.endpoints.chatCreate),
       {
         method: 'POST',
         headers,
-        body: JSON.stringify(bodyData),
+        body: requestBody,
       }
     );
+    
+    console.log('[createChat] 📥 Response status:', response.status, response.statusText);
 
     if (!response.ok) {
       const errorText = await response.text();
