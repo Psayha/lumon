@@ -481,15 +481,25 @@ export const createChat = async (title?: string): Promise<ApiResponse<Chat>> => 
     // TODO: исправить проблему с передачей Authorization заголовка в n8n webhook
     const bodyData: Record<string, any> = { title: title || 'New Chat' };
     
-    // Всегда отправляем токен в body (если есть)
-    if (token) {
-      bodyData.session_token = token;
-      console.log('[createChat] Adding session_token to body');
+    // КРИТИЧНО: Всегда отправляем токен в body (если есть)
+    // Проверяем токен еще раз перед отправкой
+    const finalToken = token || localStorage.getItem('session_token');
+    
+    if (finalToken) {
+      bodyData.session_token = finalToken;
+      console.log('[createChat] ✅ Adding session_token to body:', finalToken.substring(0, 20) + '...');
     } else {
-      console.warn('[createChat] No token found in localStorage - request will fail');
+      console.error('[createChat] ❌ No token found in localStorage - request will fail');
+      console.error('[createChat] localStorage keys:', Object.keys(localStorage));
+      // Пробуем найти токен под другими ключами
+      const altToken = localStorage.getItem('token') || localStorage.getItem('auth_token');
+      if (altToken) {
+        bodyData.session_token = altToken;
+        console.log('[createChat] ⚠️ Found token under alternative key');
+      }
     }
     
-    console.log('[createChat] Body data:', JSON.stringify(bodyData, null, 2));
+    console.log('[createChat] 📦 Body data:', JSON.stringify(bodyData, null, 2));
     
     const response = await fetchWithRetry(
       getApiUrl(API_CONFIG.endpoints.chatCreate),
