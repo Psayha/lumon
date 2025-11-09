@@ -46,6 +46,118 @@ export interface AnalyticsEvent {
   event_data?: Record<string, any>;
 }
 
+// API Response Types
+export interface AuthInitResponse {
+  success: boolean;
+  data: {
+    session_token: string;
+    user: {
+      id: string;
+      telegram_id: number;
+      username?: string;
+      first_name?: string;
+      last_name?: string;
+      language_code?: string;
+      is_premium?: boolean;
+    };
+    role: 'owner' | 'manager' | 'viewer';
+    companyId: string | null;
+  };
+}
+
+export interface AuthValidateResponse {
+  success: boolean;
+  data: {
+    user: {
+      id: string;
+      telegram_id: number;
+      username?: string;
+      first_name?: string;
+      last_name?: string;
+    };
+    role: 'owner' | 'manager' | 'viewer';
+    companyId: string | null;
+  };
+}
+
+export interface ChatListResponse {
+  success: boolean;
+  data: Chat[];
+}
+
+export interface SaveMessageResponse {
+  success: boolean;
+  data: Message;
+}
+
+export interface ChatHistoryResponse {
+  success: boolean;
+  data: Message[];
+}
+
+export interface CreateChatResponse {
+  success: boolean;
+  data: Chat;
+}
+
+export interface CreateUserResponse {
+  success: boolean;
+  data: User;
+}
+
+export interface ApiErrorResponse {
+  success: false;
+  error?: string;
+  message?: string;
+}
+
+// Network Error Types
+type NetworkErrorType = 'offline' | 'timeout' | 'cors' | 'unknown';
+
+// Helper function to determine network error type
+const getNetworkErrorType = (error: unknown): NetworkErrorType => {
+  if (error instanceof TypeError) {
+    // Network error (offline, DNS failure, etc.)
+    if (error.message.includes('fetch') || error.message.includes('network') || error.message.includes('Failed to fetch')) {
+      return 'offline';
+    }
+    // CORS error
+    if (error.message.includes('CORS') || error.message.includes('cross-origin')) {
+      return 'cors';
+    }
+  }
+  
+  if (error instanceof DOMException) {
+    // AbortError = timeout
+    if (error.name === 'AbortError') {
+      return 'timeout';
+    }
+  }
+  
+  // Check for AbortError in Error instances
+  if (error instanceof Error && error.name === 'AbortError') {
+    return 'timeout';
+  }
+  
+  return 'unknown';
+};
+
+// Helper function to get user-friendly error message
+const getErrorMessage = (error: unknown, defaultMessage: string): string => {
+  const errorType = getNetworkErrorType(error);
+  
+  switch (errorType) {
+    case 'offline':
+      return 'Нет подключения к интернету. Проверьте соединение и попробуйте снова.';
+    case 'timeout':
+      return 'Превышено время ожидания ответа. Проверьте соединение и попробуйте снова.';
+    case 'cors':
+      return 'Ошибка подключения к серверу. Обратитесь в поддержку.';
+    default:
+      return error instanceof Error ? error.message : defaultMessage;
+  }
+};
+
 // Re-auth function - повторная инициализация сессии
 const reAuth = async (): Promise<boolean> => {
   try {
@@ -72,7 +184,7 @@ const reAuth = async (): Promise<boolean> => {
       return false;
     }
 
-    const data = await response.json();
+    const data = await response.json() as AuthInitResponse;
     
     if (data.success && data.data?.session_token) {
       // Сохраняем новый токен и context
@@ -92,7 +204,8 @@ const reAuth = async (): Promise<boolean> => {
 
     return false;
   } catch (error) {
-    console.error('Re-auth error:', error);
+    const errorMessage = getErrorMessage(error, 'Re-auth failed');
+    console.error('Re-auth error:', errorMessage);
     return false;
   }
 };
@@ -181,7 +294,7 @@ export const saveMessage = async (message: Message): Promise<ApiResponse<Message
       const errorText = await response.text();
       let errorMessage = `HTTP error! status: ${response.status}`;
       try {
-        const errorJson = JSON.parse(errorText);
+        const errorJson = JSON.parse(errorText) as ApiErrorResponse;
         errorMessage = errorJson.message || errorJson.error || errorMessage;
       } catch {
         errorMessage = errorText || errorMessage;
@@ -189,13 +302,24 @@ export const saveMessage = async (message: Message): Promise<ApiResponse<Message
       throw new Error(errorMessage);
     }
 
-    const data = await response.json();
-    return { success: true, data };
+    const data = await response.json() as SaveMessageResponse;
+    
+    // Валидация ответа
+    if (!data.success || !data.data) {
+      throw new Error('Invalid response: missing success or data');
+    }
+    
+    if (!data.data.content) {
+      throw new Error('Invalid response: missing required field content');
+    }
+    
+    return { success: true, data: data.data };
   } catch (error) {
+    const errorMessage = getErrorMessage(error, 'Не удалось сохранить сообщение');
     console.error('Error saving message:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to save message',
+      error: errorMessage,
     };
   }
 };
@@ -215,7 +339,7 @@ export const getChatList = async (): Promise<ApiResponse<Chat[]>> => {
       const errorText = await response.text();
       let errorMessage = `HTTP error! status: ${response.status}`;
       try {
-        const errorJson = JSON.parse(errorText);
+        const errorJson = JSON.parse(errorText) as ApiErrorResponse;
         errorMessage = errorJson.message || errorJson.error || errorMessage;
       } catch {
         errorMessage = errorText || errorMessage;
@@ -223,13 +347,20 @@ export const getChatList = async (): Promise<ApiResponse<Chat[]>> => {
       throw new Error(errorMessage);
     }
 
-    const data = await response.json();
+    const data = await response.json() as ChatListResponse;
+    
+    // Валидация ответа
+    if (!data.success) {
+      throw new Error('Invalid response: missing success');
+    }
+    
     return { success: true, data: data.data || [] };
   } catch (error) {
+    const errorMessage = getErrorMessage(error, 'Не удалось загрузить список чатов');
     console.error('Error fetching chat list:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to fetch chat list',
+      error: errorMessage,
       data: [],
     };
   }
@@ -251,7 +382,7 @@ export const getChatHistory = async (chatId: string): Promise<ApiResponse<Messag
       const errorText = await response.text();
       let errorMessage = `HTTP error! status: ${response.status}`;
       try {
-        const errorJson = JSON.parse(errorText);
+        const errorJson = JSON.parse(errorText) as ApiErrorResponse;
         errorMessage = errorJson.message || errorJson.error || errorMessage;
       } catch {
         errorMessage = errorText || errorMessage;
@@ -259,13 +390,20 @@ export const getChatHistory = async (chatId: string): Promise<ApiResponse<Messag
       throw new Error(errorMessage);
     }
 
-    const data = await response.json();
-    return { success: true, data };
+    const data = await response.json() as ChatHistoryResponse;
+    
+    // Валидация ответа
+    if (!data.success) {
+      throw new Error('Invalid response: missing success');
+    }
+    
+    return { success: true, data: data.data || [] };
   } catch (error) {
+    const errorMessage = getErrorMessage(error, 'Не удалось загрузить историю чата');
     console.error('Error fetching chat history:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to fetch chat history',
+      error: errorMessage,
       data: [],
     };
   }
@@ -287,7 +425,7 @@ export const createUser = async (user: User): Promise<ApiResponse<User>> => {
       const errorText = await response.text();
       let errorMessage = `HTTP error! status: ${response.status}`;
       try {
-        const errorJson = JSON.parse(errorText);
+        const errorJson = JSON.parse(errorText) as ApiErrorResponse;
         errorMessage = errorJson.message || errorJson.error || errorMessage;
       } catch {
         errorMessage = errorText || errorMessage;
@@ -295,13 +433,20 @@ export const createUser = async (user: User): Promise<ApiResponse<User>> => {
       throw new Error(errorMessage);
     }
 
-    const data = await response.json();
-    return { success: true, data };
+    const data = await response.json() as CreateUserResponse;
+    
+    // Валидация ответа
+    if (!data.success || !data.data) {
+      throw new Error('Invalid response: missing success or data');
+    }
+    
+    return { success: true, data: data.data };
   } catch (error) {
+    const errorMessage = getErrorMessage(error, 'Не удалось создать пользователя');
     console.error('Error creating user:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to create user',
+      error: errorMessage,
     };
   }
 };
@@ -322,7 +467,7 @@ export const createChat = async (title?: string): Promise<ApiResponse<Chat>> => 
       const errorText = await response.text();
       let errorMessage = `HTTP error! status: ${response.status}`;
       try {
-        const errorJson = JSON.parse(errorText);
+        const errorJson = JSON.parse(errorText) as ApiErrorResponse;
         errorMessage = errorJson.message || errorJson.error || errorMessage;
       } catch {
         errorMessage = errorText || errorMessage;
@@ -330,13 +475,20 @@ export const createChat = async (title?: string): Promise<ApiResponse<Chat>> => 
       throw new Error(errorMessage);
     }
 
-    const data = await response.json();
-    return { success: true, data };
+    const data = await response.json() as CreateChatResponse;
+    
+    // Валидация ответа
+    if (!data.success || !data.data) {
+      throw new Error('Invalid response: missing success or data');
+    }
+    
+    return { success: true, data: data.data };
   } catch (error) {
+    const errorMessage = getErrorMessage(error, 'Не удалось создать чат');
     console.error('Error creating chat:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to create chat',
+      error: errorMessage,
     };
   }
 };
@@ -357,7 +509,7 @@ export const trackEvent = async (event: AnalyticsEvent): Promise<ApiResponse<voi
       const errorText = await response.text();
       let errorMessage = `HTTP error! status: ${response.status}`;
       try {
-        const errorJson = JSON.parse(errorText);
+        const errorJson = JSON.parse(errorText) as ApiErrorResponse;
         errorMessage = errorJson.message || errorJson.error || errorMessage;
       } catch {
         errorMessage = errorText || errorMessage;
@@ -367,10 +519,11 @@ export const trackEvent = async (event: AnalyticsEvent): Promise<ApiResponse<voi
 
     return { success: true };
   } catch (error) {
+    const errorMessage = getErrorMessage(error, 'Не удалось отправить событие аналитики');
     console.error('Error tracking event:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to track event',
+      error: errorMessage,
     };
   }
 };
