@@ -107,19 +107,26 @@ const DebugLogger: React.FC = () => {
         const duration = endTime - startTime;
         
         // Клонируем response для чтения body (оригинальный response остается нетронутым)
-        const clonedResponse = response.clone();
         let responseBody = null;
         
         try {
+          const clonedResponse = response.clone();
           const contentType = response.headers.get('content-type');
           if (contentType && contentType.includes('application/json')) {
-            responseBody = await clonedResponse.json();
+            try {
+              responseBody = await clonedResponse.json();
+            } catch {
+              // Если JSON парсинг не удался, пробуем как текст
+              const text = await clonedResponse.text();
+              responseBody = text.substring(0, 500);
+            }
           } else {
             const text = await clonedResponse.text();
             responseBody = text.substring(0, 500);
           }
-        } catch {
-          // Игнорируем ошибки парсинга body
+        } catch (e) {
+          // Игнорируем ошибки парсинга body (возможно response уже был прочитан)
+          responseBody = '[Unable to read response body]';
         }
 
         // Логируем ответ

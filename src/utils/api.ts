@@ -479,14 +479,37 @@ export const createChat = async (title?: string): Promise<ApiResponse<Chat>> => 
     
     // КРИТИЧНО: Читаем токен еще раз непосредственно перед созданием body
     // Это гарантирует, что мы используем актуальное значение
-    const finalToken = localStorage.getItem('session_token');
-    console.log('[createChat] Final token check before body creation:', finalToken ? finalToken.substring(0, 20) + '...' : 'MISSING');
+    let finalToken = localStorage.getItem('session_token');
+    console.log('[createChat] 🔍 Final token check before body creation:', finalToken ? `✅ Found (${finalToken.length} chars)` : '❌ MISSING');
+    
+    // Если токена все еще нет, пробуем еще раз подождать и прочитать (на случай race condition)
+    if (!finalToken) {
+      console.warn('[createChat] ⚠️ Token still missing, waiting 100ms and retrying...');
+      await new Promise(resolve => setTimeout(resolve, 100));
+      finalToken = localStorage.getItem('session_token');
+      console.log('[createChat] 🔍 Retry token check:', finalToken ? `✅ Found (${finalToken.length} chars)` : '❌ STILL MISSING');
+    }
+    
+    // Проверяем все возможные ключи в localStorage
+    if (!finalToken) {
+      console.error('[createChat] ❌ CRITICAL: No token found in session_token!');
+      console.error('[createChat] 📋 localStorage keys:', Object.keys(localStorage));
+      console.error('[createChat] 🔍 Checking alternative keys...');
+      const altToken = localStorage.getItem('token') || localStorage.getItem('auth_token') || localStorage.getItem('test_session_token');
+      if (altToken) {
+        finalToken = altToken;
+        console.log('[createChat] ⚠️ Found token under alternative key:', altToken.substring(0, 20) + '...');
+      } else {
+        console.error('[createChat] ❌ No token found in any location!');
+        console.error('[createChat] 📋 All localStorage items:', Object.keys(localStorage).map(key => ({ key, hasValue: !!localStorage.getItem(key) })));
+      }
+    }
     
     const headers = getDefaultHeaders();
     
     // Debug: логируем заголовки перед отправкой
-    console.log('[createChat] Headers before request:', JSON.stringify(headers, null, 2));
-    console.log('[createChat] Full URL:', getApiUrl(API_CONFIG.endpoints.chatCreate));
+    console.log('[createChat] 📤 Headers before request:', JSON.stringify(headers, null, 2));
+    console.log('[createChat] 🌐 Full URL:', getApiUrl(API_CONFIG.endpoints.chatCreate));
     
     // Временное решение: отправляем токен в body, т.к. заголовок Authorization не приходит в webhook
     // TODO: исправить проблему с передачей Authorization заголовка в n8n webhook
@@ -495,20 +518,11 @@ export const createChat = async (title?: string): Promise<ApiResponse<Chat>> => 
     };
     
     // КРИТИЧНО: Всегда добавляем токен в body, если он есть
-    if (finalToken) {
-      bodyData.session_token = finalToken;
-      console.log('[createChat] ✅ Adding session_token to body:', finalToken.substring(0, 20) + '...');
+    if (finalToken && finalToken.trim().length > 0) {
+      bodyData.session_token = finalToken.trim();
+      console.log('[createChat] ✅ Adding session_token to body:', finalToken.substring(0, 20) + '... (length: ' + finalToken.length + ')');
     } else {
-      console.error('[createChat] ❌ CRITICAL: No token found in localStorage!');
-      console.error('[createChat] localStorage keys:', Object.keys(localStorage));
-      console.error('[createChat] Checking alternative keys...');
-      const altToken = localStorage.getItem('token') || localStorage.getItem('auth_token') || localStorage.getItem('test_session_token');
-      if (altToken) {
-        bodyData.session_token = altToken;
-        console.log('[createChat] ⚠️ Found token under alternative key:', altToken.substring(0, 20) + '...');
-      } else {
-        console.error('[createChat] ❌ No token found in any location - request will fail');
-      }
+      console.error('[createChat] ❌ CRITICAL: Cannot add token to body - token is missing or empty!');
     }
     
     // Логируем финальный body (скрываем полный токен для безопасности)

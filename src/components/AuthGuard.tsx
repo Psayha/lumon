@@ -96,7 +96,10 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
         
         if (data.success && data.data?.session_token) {
           // Сохраняем session_token
-          localStorage.setItem('session_token', data.data.session_token);
+          const token = data.data.session_token;
+          localStorage.setItem('session_token', token);
+          console.log('[AuthGuard] ✅ Session token saved to localStorage:', token.substring(0, 20) + '...');
+          console.log('[AuthGuard] 🔍 Verifying token in localStorage:', localStorage.getItem('session_token') ? '✅ Found' : '❌ NOT FOUND');
           
           // Сохраняем user context
           if (data.data.user) {
@@ -109,6 +112,7 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
             };
             localStorage.setItem('user_context', JSON.stringify(userContext));
             logger.log('[AuthGuard] Авторизация успешна:', userContext);
+            console.log('[AuthGuard] ✅ User context saved:', userContext);
           }
           
           setIsAuthReady(true);
