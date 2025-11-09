@@ -150,8 +150,8 @@
     },
     {
       "parameters": {
-        "respondWith": "text",
-        "responseBody": "={{ JSON.stringify($json) }}",
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
         "options": {
           "responseHeaders": {
             "entries": [
@@ -173,7 +173,7 @@
       "parameters": {
         "respondWith": "json",
         "responseCode": 400,
-        "responseBody": "={{ JSON.stringify($json) }}",
+        "responseBody": "={{ $json }}",
         "options": {
           "responseHeaders": {
             "entries": [
