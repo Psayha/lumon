@@ -144,12 +144,19 @@ export const adminApiRequest = async <T = any>(
     // Если ответ не успешный, но есть данные, возвращаем их
     if (!response.ok) {
       const errorMessage = data?.message || data?.error || `Ошибка сервера: ${response.status} ${response.statusText || 'Internal Server Error'}`;
-      console.error('API Error:', {
-        url,
-        status: response.status,
-        statusText: response.statusText,
-        data,
-      });
+      
+      // Для ошибок 500 уменьшаем детальность логов
+      if (response.status === 500) {
+        console.warn(`API 500 Error: ${url.split('/').pop() || url}`);
+      } else {
+        console.error('API Error:', {
+          url,
+          status: response.status,
+          statusText: response.statusText,
+          data,
+        });
+      }
+      
       return {
         success: false,
         message: errorMessage,
