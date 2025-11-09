@@ -150,7 +150,7 @@ else
     echo "Рекомендации:"
     echo "1. Проверь /etc/nginx/sites-enabled/ на наличие неправильных конфигов"
     echo "2. Проверь логи: tail -50 /var/log/nginx/error.log"
-    echo "3. При необходимости выполни: bash /var/www/back/NGINX_MAINTENANCE.md"
+    echo "3. При необходимости выполни: bash /var/www/docs/NGINX_MAINTENANCE.md"
     exit 1
 fi
 
