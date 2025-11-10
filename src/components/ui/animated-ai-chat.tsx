@@ -101,17 +101,20 @@ export function AnimatedAIChat({
     onChatIdChange
 }: AnimatedAIChatProps) {
     // Логируем напрямую в window для гарантии
-    if (typeof window !== 'undefined') {
-        (window as any).__ANIMATED_AI_CHAT_RENDERED__ = true;
-        console.log('[AnimatedAIChat] 🔵 COMPONENT RENDERED', { 
-            hasOnMessageSave: !!onMessageSave, 
-            chatId,
-            isListening: externalIsListening,
-            isRecognizing: externalIsRecognizing
-        });
-        console.warn('[AnimatedAIChat] ⚠️ COMPONENT RENDERED WARN');
-        console.error('[AnimatedAIChat] ❌ COMPONENT RENDERED ERROR');
-    }
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            (window as any).__ANIMATED_AI_CHAT_RENDERED__ = true;
+            (window as any).__ANIMATED_AI_CHAT_ON_MESSAGE_SAVE__ = !!onMessageSave;
+            console.log('[AnimatedAIChat] 🔵 COMPONENT RENDERED', { 
+                hasOnMessageSave: !!onMessageSave, 
+                chatId,
+                isListening: externalIsListening,
+                isRecognizing: externalIsRecognizing
+            });
+            console.warn('[AnimatedAIChat] ⚠️ COMPONENT RENDERED WARN');
+            console.error('[AnimatedAIChat] ❌ COMPONENT RENDERED ERROR');
+        }
+    }, [onMessageSave, chatId, externalIsListening, externalIsRecognizing]);
     
     const [value, setValue] = useState("");
     const [messages, setMessages] = useState<Message[]>([]);
