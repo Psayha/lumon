@@ -17,13 +17,52 @@
     },
     {
       "parameters": {
-        "functionCode": "// Parse Telegram initData from webhook body\ntry {\n  const input = $input.item.json;\n  const body = input.body || input;\n  const headers = input.headers || {};\n  const initData = body.initData || '';\n  const appVersion = body.appVersion || '1.0.0';\n\n  // Manual parse query string (URLSearchParams not available in n8n)\n  const params = {};\n  initData.split('&').forEach(pair => {\n    const [key, value] = pair.split('=');\n    params[key] = value;\n  });\n\n  // Parse user data\n  const userStr = decodeURIComponent(params.user || '');\n  const user = JSON.parse(userStr);\n\n  return {\n    json: {\n      telegram_id: user.id.toString(),\n      first_name: user.first_name,\n      last_name: user.last_name || '',\n      username: user.username || '',\n      language_code: user.language_code || 'ru',\n      app_version: appVersion,\n      auth_date: params.auth_date,\n      ip: headers['x-forwarded-for'] || headers['x-real-ip'] || 'unknown',\n      user_agent: headers['user-agent'] || 'unknown'\n    }\n  };\n} catch (error) {\n  // If parsing fails, return error that will stop workflow\n  throw new Error('Invalid Telegram initData: ' + error.message);\n}"
+        "functionCode": "// Parse Telegram initData from webhook body\ntry {\n  const input = $input.item.json;\n  const body = input.body || input;\n  const headers = input.headers || {};\n  const initData = body.initData || '';\n  const appVersion = body.appVersion || '1.0.0';\n\n  // Validate initData is not empty\n  if (!initData || initData.trim().length === 0) {\n    return {\n      json: {\n        error: true,\n        message: 'initData is empty or missing',\n        status: 400\n      }\n    };\n  }\n\n  // Manual parse query string (URLSearchParams not available in n8n)\n  const params = {};\n  initData.split('&').forEach(pair => {\n    if (pair.includes('=')) {\n      const [key, value] = pair.split('=');\n      if (key && value) {\n        params[key] = value;\n      }\n    }\n  });\n\n  // Validate user param exists\n  if (!params.user) {\n    return {\n      json: {\n        error: true,\n        message: 'user parameter is missing in initData',\n        status: 400\n      }\n    };\n  }\n\n  // Parse user data with validation\n  const userStr = decodeURIComponent(params.user);\n  \n  // Check if userStr is valid before parsing\n  if (!userStr || userStr.trim().length === 0) {\n    return {\n      json: {\n        error: true,\n        message: 'user parameter is empty after decoding',\n        status: 400\n      }\n    };\n  }\n\n  let user;\n  try {\n    user = JSON.parse(userStr);\n  } catch (parseError) {\n    return {\n      json: {\n        error: true,\n        message: 'Failed to parse user JSON: ' + parseError.message,\n        raw_user_preview: userStr.substring(0, 100),\n        status: 400\n      }\n    };\n  }\n\n  // Validate user object has required fields\n  if (!user || !user.id) {\n    return {\n      json: {\n        error: true,\n        message: 'user object is missing required id field',\n        status: 400\n      }\n    };\n  }\n\n  return {\n    json: {\n      error: false,\n      telegram_id: user.id.toString(),\n      first_name: user.first_name || '',\n      last_name: user.last_name || '',\n      username: user.username || '',\n      language_code: user.language_code || 'ru',\n      app_version: appVersion,\n      auth_date: params.auth_date || '',\n      ip: headers['x-forwarded-for'] || headers['x-real-ip'] || 'unknown',\n      user_agent: headers['user-agent'] || 'unknown'\n    }\n  };\n} catch (error) {\n  // Unexpected error - return it as json\n  return {\n    json: {\n      error: true,\n      message: 'Unexpected error: ' + error.message,\n      status: 500\n    }\n  };\n}"
       },
       "id": "parse-init-data",
       "name": "Parse Telegram initData",
       "type": "n8n-nodes-base.function",
       "typeVersion": 1,
       "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "has-error",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-parse-error",
+      "name": "IF Parse Error",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [550, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Format error response from Parse Telegram initData\nconst input = $input.item.json;\n\nreturn {\n  json: {\n    success: false,\n    error: 'invalid_init_data',\n    message: input.message || 'Failed to parse Telegram initData',\n    status: input.status || 400\n  }\n};"
+      },
+      "id": "format-parse-error",
+      "name": "Format Parse Error",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [650, 200]
     },
     {
       "parameters": {
@@ -35,7 +74,7 @@
       "name": "Upsert User",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.4,
-      "position": [650, 300],
+      "position": [750, 400],
       "credentials": {
         "postgres": {
           "id": "supabase-postgres",
@@ -218,7 +257,36 @@
       "main": [
         [
           {
+            "node": "IF Parse Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Parse Error": {
+      "main": [
+        [
+          {
+            "node": "Format Parse Error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
             "node": "Upsert User",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Parse Error": {
+      "main": [
+        [
+          {
+            "node": "Respond Error",
             "type": "main",
             "index": 0
           }
