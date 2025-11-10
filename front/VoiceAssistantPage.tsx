@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { AppHeader } from '../src/components/AppHeader';
 import { AnimatedAIChat } from '../src/components/ui/animated-ai-chat';
-import { 
-  saveMessage, 
+import {
+  saveMessage,
   trackEvent
 } from '../src/utils/api';
+import { getApiUrl, API_CONFIG } from '../src/config/api';
 
 // VoiceAssistantPage component
 
@@ -21,8 +22,8 @@ const VoiceAssistantPage: React.FC = () => {
       throw new Error('No session token in localStorage');
     }
 
-    const url = 'https://n8n.psayha.ru/webhook/chat-create';
-    
+    const url = getApiUrl(API_CONFIG.endpoints.chatCreate);
+
     const response = await fetch(url, {
       method: 'POST',
       headers: {
