@@ -225,10 +225,27 @@ export function AnimatedAIChat({
     };
 
     const handleSendMessage = async () => {
-        console.log('[AnimatedAIChat] handleSendMessage called', { value, chatId, hasOnMessageSave: !!onMessageSave });
+        console.log('[AnimatedAIChat] 🔵 handleSendMessage CALLED', { 
+            value: value?.substring(0, 50), 
+            valueLength: value?.length,
+            valueTrimmed: value?.trim(),
+            chatId, 
+            hasOnMessageSave: !!onMessageSave,
+            isListening,
+            isRecognizing
+        });
+        
         if (isListening || isRecognizing) {
+            console.log('[AnimatedAIChat] ⚠️ Blocked: isListening or isRecognizing');
             return;
         }
+        
+        if (!value.trim()) {
+            console.log('[AnimatedAIChat] ⚠️ Blocked: empty value');
+            return;
+        }
+        
+        console.log('[AnimatedAIChat] ✅ Proceeding with message send');
         
         if (value.trim()) {
             // Проверяем лимит генераций для viewer
