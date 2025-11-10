@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - claude/n8n-nextjs-integration-011CUzUwzaJL8RuKyUxZTE1m
   workflow_dispatch:
 
 jobs:

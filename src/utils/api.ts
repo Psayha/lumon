@@ -43,8 +43,10 @@ export interface User {
 }
 
 export interface AnalyticsEvent {
-  event_type: string;
-  event_data?: Record<string, any>;
+  action: string;
+  resource?: string | null;
+  resource_id?: string | null;
+  meta?: Record<string, any>;
 }
 
 // API Response Types
@@ -620,7 +622,7 @@ export const createChat = async (title?: string): Promise<ApiResponse<Chat>> => 
 export const trackEvent = async (event: AnalyticsEvent): Promise<ApiResponse<void>> => {
   try {
     const response = await fetchWithRetry(
-      getApiUrl(API_CONFIG.endpoints.trackEvent),
+      getApiUrl(API_CONFIG.endpoints.analyticsLogEvent),
       {
         method: 'POST',
         headers: getDefaultHeaders(),
