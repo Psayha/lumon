@@ -11,13 +11,13 @@ interface LogEntry {
 
 const DebugLogger: React.FC = () => {
   const [logs, setLogs] = useState<LogEntry[]>([]);
-  const [isMinimized, setIsMinimized] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(true); // Всегда свернутым по умолчанию
   const [copied, setCopied] = useState(false);
   const [maxLogs] = useState(100);
   const logIdRef = useRef(0);
   const containerRef = useRef<HTMLDivElement>(null);
   
-  // Состояние для перетаскивания
+  // Состояние для перетаскивания (только когда развернут)
   const [position, setPosition] = useState(() => {
     const saved = localStorage.getItem('debugLoggerPosition');
     if (saved) {
@@ -25,10 +25,10 @@ const DebugLogger: React.FC = () => {
         const { x, y } = JSON.parse(saved);
         return { x, y };
       } catch {
-        return { x: 16, y: 16 };
+        return null; // Используем дефолтную позицию справа по середине
       }
     }
-    return { x: 16, y: 16 };
+    return null; // Используем дефолтную позицию справа по середине
   });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
@@ -282,13 +282,52 @@ const DebugLogger: React.FC = () => {
   const errorCount = logs.filter(l => l.level === 'error').length;
   const warnCount = logs.filter(l => l.level === 'warn').length;
 
+  // Позиция справа по середине для свернутого состояния
+  const getPosition = () => {
+    if (!isMinimized && position) {
+      return { x: position.x, y: position.y };
+    }
+    // Справа по середине для свернутого состояния
+    return { x: 'auto', y: '50%', right: 8 };
+  };
+
+  const pos = getPosition();
+
+  // Свернутое состояние - маленькая кнопка
+  if (isMinimized) {
+    return (
+      <div 
+        className="fixed z-50 right-2"
+        style={{
+          top: '50%',
+          transform: 'translateY(-50%)'
+        }}
+      >
+        <button
+          onClick={() => setIsMinimized(false)}
+          className="w-10 h-10 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white rounded-lg shadow-lg flex items-center justify-center transition-colors relative"
+          aria-label="Открыть Debug Logger"
+          title={`Debug Logger: ${logs.length} записей${errorCount > 0 ? `, ${errorCount} ошибок` : ''}${warnCount > 0 ? `, ${warnCount} предупреждений` : ''}`}
+        >
+          <span className="text-xs font-bold">DL</span>
+          {(errorCount > 0 || warnCount > 0) && (
+            <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white dark:border-slate-800"></span>
+          )}
+        </button>
+      </div>
+    );
+  }
+
+  // Развернутое состояние
   return (
     <div 
       ref={containerElementRef}
       className="fixed z-50 w-96 max-w-[calc(100vw-2rem)]"
       style={{
-        left: `${position.x}px`,
-        top: `${position.y}px`,
+        left: typeof pos.x === 'number' ? `${pos.x}px` : 'auto',
+        top: typeof pos.y === 'number' ? `${pos.y}px` : pos.y,
+        right: pos.right ? `${pos.right}px` : 'auto',
+        transform: typeof pos.y === 'string' && pos.y === '50%' ? 'translateY(-50%)' : 'none',
         cursor: isDragging ? 'grabbing' : 'default'
       }}
     >
@@ -335,68 +374,55 @@ const DebugLogger: React.FC = () => {
               <Trash2 className="w-4 h-4" />
             </button>
             <button
-              onClick={() => setIsMinimized(!isMinimized)}
+              onClick={() => setIsMinimized(true)}
               className="p-1.5 hover:bg-gray-200 dark:hover:bg-slate-700 rounded transition-colors"
-              aria-label={isMinimized ? 'Развернуть' : 'Свернуть'}
-              title={isMinimized ? 'Развернуть' : 'Свернуть'}
+              aria-label="Свернуть"
+              title="Свернуть"
             >
-              {isMinimized ? (
-                <ChevronDown className="w-4 h-4" />
-              ) : (
-                <ChevronUp className="w-4 h-4" />
-              )}
+              <ChevronUp className="w-4 h-4" />
             </button>
           </div>
         </div>
 
         {/* Список логов */}
-        {!isMinimized && (
-          <div
-            ref={containerRef}
-            className="overflow-y-auto flex-1 p-2 space-y-1 text-xs font-mono"
-            style={{ maxHeight: '500px' }}
-          >
-            {logs.length === 0 ? (
-              <div className="text-center text-gray-500 dark:text-gray-400 py-8">
-                Логи отсутствуют
-              </div>
-            ) : (
-              logs.map(log => (
-                <div
-                  key={log.id}
-                  className={`p-2 rounded border-l-2 ${
-                    log.level === 'error'
-                      ? 'border-red-500'
-                      : log.level === 'warn'
-                      ? 'border-yellow-500'
-                      : log.level === 'info'
-                      ? 'border-blue-500'
-                      : 'border-gray-300 dark:border-gray-600'
-                  } ${getLogColor(log.level)}`}
-                >
-                  <div className="flex items-start gap-2">
-                    <span className="text-[10px] text-gray-500 dark:text-gray-400 flex-shrink-0">
-                      {log.timestamp}
-                    </span>
-                    <span className="font-semibold text-[10px] uppercase flex-shrink-0">
-                      {log.level}:
-                    </span>
-                    <div className="flex-1 break-words">
-                      <div className="whitespace-pre-wrap break-all">{log.message}</div>
-                    </div>
+        <div
+          ref={containerRef}
+          className="overflow-y-auto flex-1 p-2 space-y-1 text-xs font-mono"
+          style={{ maxHeight: '500px' }}
+        >
+          {logs.length === 0 ? (
+            <div className="text-center text-gray-500 dark:text-gray-400 py-8">
+              Логи отсутствуют
+            </div>
+          ) : (
+            logs.map(log => (
+              <div
+                key={log.id}
+                className={`p-2 rounded border-l-2 ${
+                  log.level === 'error'
+                    ? 'border-red-500'
+                    : log.level === 'warn'
+                    ? 'border-yellow-500'
+                    : log.level === 'info'
+                    ? 'border-blue-500'
+                    : 'border-gray-300 dark:border-gray-600'
+                } ${getLogColor(log.level)}`}
+              >
+                <div className="flex items-start gap-2">
+                  <span className="text-[10px] text-gray-500 dark:text-gray-400 flex-shrink-0">
+                    {log.timestamp}
+                  </span>
+                  <span className="font-semibold text-[10px] uppercase flex-shrink-0">
+                    {log.level}:
+                  </span>
+                  <div className="flex-1 break-words">
+                    <div className="whitespace-pre-wrap break-all">{log.message}</div>
                   </div>
                 </div>
-              ))
-            )}
-          </div>
-        )}
-
-        {/* Статистика при свернутом виде */}
-        {isMinimized && (
-          <div className="p-2 text-xs text-gray-600 dark:text-gray-400 text-center">
-            {logs.length} записей • {errorCount} ошибок • {warnCount} предупреждений
-          </div>
-        )}
+              </div>
+            ))
+          )}
+        </div>
       </div>
     </div>
   );
