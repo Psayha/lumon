@@ -17,15 +17,38 @@ const VoiceAssistantPage: React.FC = () => {
   const [chatId, setChatId] = useState<string | null>(null);
 
   async function createChatDirect(title: string) {
-    console.log('[createChatDirect] 🔵 FUNCTION CALLED', { title });
     const token = localStorage.getItem('session_token');
-    console.log('[createChatDirect] Token check:', { hasToken: !!token, tokenLength: token?.length });
     if (!token) throw new Error('No session token in localStorage');
+
+    // Проверяем токен перед созданием чата
+    try {
+      const validateRes = await fetch('https://n8n.psayha.ru/webhook/auth-validate-v2', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({ token })
+      });
+      
+      const validateText = await validateRes.text();
+      let validateJson: any = null;
+      try {
+        validateJson = validateText ? JSON.parse(validateText) : null;
+      } catch (e) {
+        throw new Error(`Invalid validate response: ${validateText.substring(0, 200)}`);
+      }
+      
+      if (!validateRes.ok || !validateJson?.success) {
+        throw new Error(`Token validation failed: ${validateJson?.error || validateJson?.message || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('[createChatDirect] Token validation error:', error);
+      throw new Error(`Session expired or invalid. Please refresh the page. Error: ${error instanceof Error ? error.message : String(error)}`);
+    }
 
     const url = 'https://n8n.psayha.ru/webhook/chat-create?token=' + encodeURIComponent(token);
     const payload = { title, session_token: token };
-    
-    console.log('[createChatDirect] 🔵 FETCH START', { url, hasToken: !!token, title, payload });
     
     const res = await fetch(url, {
       method: 'POST',
