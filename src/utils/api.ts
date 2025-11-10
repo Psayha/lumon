@@ -440,7 +440,7 @@ export const getChatList = async (): Promise<ApiResponse<Chat[]>> => {
   try {
     // Проверяем наличие токена
     let token = localStorage.getItem('session_token');
-    
+
     // Если токена нет, пытаемся повторно авторизоваться
     if (!token) {
       logger.warn('[getChatList] No token found, attempting re-auth...');
@@ -448,8 +448,18 @@ export const getChatList = async (): Promise<ApiResponse<Chat[]>> => {
       if (reAuthSuccess) {
         token = localStorage.getItem('session_token');
       }
+
+      // Если токен все еще не получен, возвращаем ошибку
+      if (!token) {
+        logger.error('[getChatList] No token available after re-auth attempt');
+        return {
+          success: false,
+          error: 'unauthorized',
+          data: undefined
+        };
+      }
     }
-    
+
     // Формируем URL с токеном в query параметрах (fallback для случаев, когда заголовок не передается)
     let url = getApiUrl(API_CONFIG.endpoints.chatList);
     if (token) {

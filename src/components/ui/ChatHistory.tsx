@@ -37,7 +37,14 @@ export const ChatHistory: React.FC<ChatHistoryProps> = ({
   // Загружаем список чатов при открытии
   useEffect(() => {
     if (isOpen) {
-      loadChatList();
+      // Проверяем наличие токена перед загрузкой
+      const token = localStorage.getItem('session_token');
+      if (token) {
+        loadChatList();
+      } else {
+        setError('Необходима авторизация');
+        setIsLoading(false);
+      }
     }
   }, [isOpen]);
 
