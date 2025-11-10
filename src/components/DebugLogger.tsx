@@ -16,6 +16,23 @@ const DebugLogger: React.FC = () => {
   const [maxLogs] = useState(100);
   const logIdRef = useRef(0);
   const containerRef = useRef<HTMLDivElement>(null);
+  
+  // Состояние для перетаскивания
+  const [position, setPosition] = useState(() => {
+    const saved = localStorage.getItem('debugLoggerPosition');
+    if (saved) {
+      try {
+        const { x, y } = JSON.parse(saved);
+        return { x, y };
+      } catch {
+        return { x: 16, y: 16 };
+      }
+    }
+    return { x: 16, y: 16 };
+  });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const containerElementRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // Перехватываем console.log, console.warn, console.error, console.info, console.debug
@@ -215,14 +232,72 @@ const DebugLogger: React.FC = () => {
     }
   };
 
+  // Обработчики перетаскивания
+  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (containerElementRef.current) {
+      const rect = containerElementRef.current.getBoundingClientRect();
+      setIsDragging(true);
+      setDragStart({
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top
+      });
+    }
+  };
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (isDragging && containerElementRef.current) {
+        const newX = e.clientX - dragStart.x;
+        const newY = e.clientY - dragStart.y;
+        
+        // Ограничиваем позицию в пределах экрана
+        const maxX = window.innerWidth - (containerElementRef.current.offsetWidth || 384);
+        const maxY = window.innerHeight - (containerElementRef.current.offsetHeight || 200);
+        
+        const clampedX = Math.max(0, Math.min(newX, maxX));
+        const clampedY = Math.max(0, Math.min(newY, maxY));
+        
+        setPosition({ x: clampedX, y: clampedY });
+      }
+    };
+
+    const handleMouseUp = () => {
+      if (isDragging) {
+        setIsDragging(false);
+        // Сохраняем позицию в localStorage
+        localStorage.setItem('debugLoggerPosition', JSON.stringify(position));
+      }
+    };
+
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      };
+    }
+  }, [isDragging, dragStart, position]);
+
   const errorCount = logs.filter(l => l.level === 'error').length;
   const warnCount = logs.filter(l => l.level === 'warn').length;
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 w-96 max-w-[calc(100vw-2rem)]">
+    <div 
+      ref={containerElementRef}
+      className="fixed z-50 w-96 max-w-[calc(100vw-2rem)]"
+      style={{
+        left: `${position.x}px`,
+        top: `${position.y}px`,
+        cursor: isDragging ? 'grabbing' : 'default'
+      }}
+    >
       <div className="bg-white dark:bg-slate-800 rounded-lg shadow-2xl border border-gray-200 dark:border-slate-700 flex flex-col max-h-[600px]">
-        {/* Заголовок */}
-        <div className="flex items-center justify-between p-3 border-b border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900">
+        {/* Заголовок - область для перетаскивания */}
+        <div 
+          className="flex items-center justify-between p-3 border-b border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900 cursor-grab active:cursor-grabbing select-none"
+          onMouseDown={handleMouseDown}
+        >
           <div className="flex items-center gap-2">
             <span className="font-semibold text-sm">Debug Logger</span>
             {errorCount > 0 && (
