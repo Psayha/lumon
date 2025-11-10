@@ -313,25 +313,13 @@ export function AnimatedAIChat({
             }, 0);
 
             // Сохраняем пользовательское сообщение (создаст чат если нет)
-            console.log('[AnimatedAIChat] 🔵🔵🔵 Before onMessageSave:', { 
-                hasOnMessageSave: !!onMessageSave, 
-                message: userMessage.text, 
-                chatId 
-            });
-            console.warn('[AnimatedAIChat] ⚠️⚠️⚠️ CHECKING onMessageSave:', typeof onMessageSave);
-            
             if (onMessageSave) {
-                console.log('[AnimatedAIChat] 🔵🔵🔵 Calling onMessageSave...');
                 try {
                     await onMessageSave(userMessage.text, 'user');
-                    console.log('[AnimatedAIChat] ✅✅✅ onMessageSave completed successfully');
                 } catch (error) {
-                    console.error('[AnimatedAIChat] ❌❌❌ Error saving user message:', error);
-                    console.error('[AnimatedAIChat] Error details:', error);
+                    // Не блокируем отправку сообщения при ошибке сохранения
+                    console.error('[AnimatedAIChat] Error saving user message:', error);
                 }
-            } else {
-                console.error('[AnimatedAIChat] ❌❌❌ onMessageSave is NOT PROVIDED!');
-                console.warn('[AnimatedAIChat] ⚠️⚠️⚠️ onMessageSave is not provided!');
             }
 
             startTransition(() => {
