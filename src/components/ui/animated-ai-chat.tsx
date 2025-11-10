@@ -196,12 +196,24 @@ export function AnimatedAIChat({
     ];
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+        console.log('[AnimatedAIChat] 🔵 handleKeyDown', { 
+            key: e.key, 
+            shiftKey: e.shiftKey,
+            value: value?.substring(0, 50),
+            valueTrimmed: value?.trim(),
+            hasValue: !!value.trim()
+        });
+        
         if (e.key === "Escape") {
                 setShowCommandPalette(false);
         } else if (e.key === "Enter" && !e.shiftKey) {
+            console.log('[AnimatedAIChat] 🔵 Enter pressed (without Shift)');
             e.preventDefault();
             if (value.trim()) {
+                console.log('[AnimatedAIChat] 🔵 Calling handleSendMessage from handleKeyDown');
                 handleSendMessage();
+            } else {
+                console.log('[AnimatedAIChat] ⚠️ Enter pressed but value is empty');
             }
         }
     };
