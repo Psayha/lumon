@@ -100,12 +100,18 @@ export function AnimatedAIChat({
     onMessageSave,
     onChatIdChange
 }: AnimatedAIChatProps) {
-    console.log('[AnimatedAIChat] 🔵 COMPONENT RENDERED', { 
-        hasOnMessageSave: !!onMessageSave, 
-        chatId,
-        isListening: externalIsListening,
-        isRecognizing: externalIsRecognizing
-    });
+    // Логируем напрямую в window для гарантии
+    if (typeof window !== 'undefined') {
+        (window as any).__ANIMATED_AI_CHAT_RENDERED__ = true;
+        console.log('[AnimatedAIChat] 🔵 COMPONENT RENDERED', { 
+            hasOnMessageSave: !!onMessageSave, 
+            chatId,
+            isListening: externalIsListening,
+            isRecognizing: externalIsRecognizing
+        });
+        console.warn('[AnimatedAIChat] ⚠️ COMPONENT RENDERED WARN');
+        console.error('[AnimatedAIChat] ❌ COMPONENT RENDERED ERROR');
+    }
     
     const [value, setValue] = useState("");
     const [messages, setMessages] = useState<Message[]>([]);
@@ -244,6 +250,10 @@ export function AnimatedAIChat({
     };
 
     const handleSendMessage = async () => {
+        // Логируем напрямую в window для гарантии
+        if (typeof window !== 'undefined') {
+            (window as any).__HANDLE_SEND_MESSAGE_CALLED__ = true;
+        }
         console.log('[AnimatedAIChat] 🔵 handleSendMessage CALLED', { 
             value: value?.substring(0, 50), 
             valueLength: value?.length,
@@ -253,6 +263,8 @@ export function AnimatedAIChat({
             isListening,
             isRecognizing
         });
+        console.warn('[AnimatedAIChat] ⚠️⚠️⚠️ handleSendMessage WARN');
+        console.error('[AnimatedAIChat] ❌❌❌ handleSendMessage ERROR');
         
         if (isListening || isRecognizing) {
             console.log('[AnimatedAIChat] ⚠️ Blocked: isListening or isRecognizing');
