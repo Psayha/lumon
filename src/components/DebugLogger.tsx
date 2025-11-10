@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronDown, ChevronUp, Trash2, Copy, Check } from 'lucide-react';
+import { ChevronUp, Trash2, Copy, Check } from 'lucide-react';
 
 interface LogEntry {
   id: number;
