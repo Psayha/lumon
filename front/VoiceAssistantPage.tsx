@@ -6,12 +6,13 @@ import {
   trackEvent
 } from '../src/utils/api';
 
+// VoiceAssistantPage component
+
 const VoiceAssistantPage: React.FC = () => {
   const [isTyping, setIsTyping] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [isRecognizing, setIsRecognizing] = useState(false);
   const [chatId, setChatId] = useState<string | null>(null);
-  const [isAuthReady, setIsAuthReady] = useState(false);
 
   // Функция инициализации сессии
   async function initializeSession() {
@@ -19,7 +20,6 @@ const VoiceAssistantPage: React.FC = () => {
       const existingToken = localStorage.getItem('session_token');
       if (existingToken) {
         console.log('[VoiceAssistantPage] Session token already exists');
-        setIsAuthReady(true);
         return;
       }
 
@@ -50,7 +50,6 @@ const VoiceAssistantPage: React.FC = () => {
         // Сохраняем токен в localStorage
         localStorage.setItem('session_token', data.data.session_token);
         console.log('[VoiceAssistantPage] ✅ Session token saved successfully');
-        setIsAuthReady(true);
       } else {
         console.error('[VoiceAssistantPage] ❌ Invalid auth response:', data);
       }
@@ -109,11 +108,6 @@ const VoiceAssistantPage: React.FC = () => {
       document.body.style.overflow = '';
       document.documentElement.style.overflow = '';
     };
-  }, []);
-
-  // Лог для подтверждения обновления страницы
-  useEffect(() => {
-    console.log('[VoiceAssistantPage] mounted');
   }, []);
 
   // Инициализируем сессию при загрузке
