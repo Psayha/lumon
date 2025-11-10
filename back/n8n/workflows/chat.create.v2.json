@@ -1,0 +1,333 @@
+{
+  "name": "chat.create.v2",
+  "active": true,
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "chat-create",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 400],
+      "webhookId": "chat-create"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract token from Authorization header\nconst input = $input.item.json;\nconst headers = input.headers || {};\nconst body = input.body || input;\n\n// Get Authorization header\nconst authHeader = headers.authorization || headers.Authorization || '';\n\nif (!authHeader || !authHeader.startsWith('Bearer ')) {\n  return {\n    json: {\n      success: false,\n      error: 'unauthorized',\n      status: 401,\n      message: 'Missing or invalid Authorization header'\n    }\n  };\n}\n\nconst token = authHeader.replace('Bearer ', '').trim();\nconst title = (body && body.title) ? body.title : 'New Chat';\n\nreturn {\n  json: {\n    token: token,\n    title: title\n  }\n};"
+      },
+      "id": "extract-token",
+      "name": "Extract Token",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [450, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "has-error",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-token-error",
+      "name": "IF Token Error",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [650, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": "={{ $json.status || 401 }}"
+        }
+      },
+      "id": "respond-token-error",
+      "name": "Respond Token Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://n8n.psayha.ru/webhook/auth-validate-v2",
+        "authentication": "none",
+        "sendBody": true,
+        "contentType": "json",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "token",
+              "value": "={{ $json.token }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "call-auth-validate",
+      "name": "Call auth.validate",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [850, 500],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse auth response and handle errors\nconst input = $input.item.json;\n\n// Check for HTTP errors\nif (input.error) {\n  return {\n    json: {\n      success: false,\n      error: 'unauthorized',\n      status: 401,\n      message: input.error.message || 'Auth validation failed'\n    }\n  };\n}\n\n// Check for non-200 status\nif (input.statusCode && input.statusCode >= 400) {\n  return {\n    json: {\n      success: false,\n      error: 'unauthorized',\n      status: input.statusCode,\n      message: 'Auth validation request failed'\n    }\n  };\n}\n\n// Get response data\nlet authData = input;\n\n// If responseFormat was json, data is already parsed\nif (typeof authData === 'object' && authData !== null) {\n  // Check if it's wrapped in data property (HTTP Request node format)\n  if (authData.data && typeof authData.data === 'object') {\n    authData = authData.data;\n  }\n  \n  // Return parsed auth data\n  return { json: authData };\n}\n\n// Fallback: invalid response\nreturn {\n  json: {\n    success: false,\n    error: 'unauthorized',\n    status: 401,\n    message: 'Invalid auth response format'\n  }\n};"
+      },
+      "id": "parse-auth-response",
+      "name": "Parse Auth Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1050, 500]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "success-true",
+              "leftValue": "={{ $json.success }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-auth-success",
+      "name": "IF Auth Success",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1250, 500]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": "={{ $json.status || 401 }}"
+        }
+      },
+      "id": "respond-auth-error",
+      "name": "Respond Auth Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1450, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Prepare data for chat creation\nconst authData = $input.item.json;\nconst extractNode = $('Extract Token').item.json;\n\nconst userId = authData?.data?.user?.id;\nconst companyId = authData?.data?.user?.company_id || null;\nconst title = extractNode?.title || 'New Chat';\n\nif (!userId) {\n  throw new Error('User ID not found in auth response');\n}\n\nreturn {\n  json: {\n    user_id: userId,\n    company_id: companyId,\n    title: title\n  }\n};"
+      },
+      "id": "prepare-chat-data",
+      "name": "Prepare Chat Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1450, 600]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO chats (user_id, company_id, title, created_at, updated_at)\nVALUES ($1::uuid, $2::uuid, $3, NOW(), NOW())\nRETURNING id, user_id, company_id, title, created_at, updated_at;",
+        "options": {
+          "queryReplacement": "={{ [$json.user_id, $json.company_id, $json.title] }}"
+        }
+      },
+      "id": "create-chat",
+      "name": "Create Chat",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1650, 600],
+      "credentials": {
+        "postgres": {
+          "id": "supabase_postgres",
+          "name": "Supabase PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Manual UUID v4 generator\nfunction generateUUIDv4() {\n  const hex = '0123456789abcdef';\n  let uuid = '';\n  for (let i = 0; i < 36; i++) {\n    if (i === 8 || i === 13 || i === 18 || i === 23) {\n      uuid += '-';\n    } else if (i === 14) {\n      uuid += '4';\n    } else if (i === 19) {\n      uuid += hex[(Math.random() * 4 | 8)];\n    } else {\n      uuid += hex[Math.random() * 16 | 0];\n    }\n  }\n  return uuid;\n}\n\nconst chat = $input.item.json;\n\nreturn {\n  json: {\n    success: true,\n    data: {\n      id: chat.id,\n      user_id: chat.user_id,\n      company_id: chat.company_id,\n      title: chat.title,\n      created_at: chat.created_at,\n      updated_at: chat.updated_at\n    },\n    traceId: generateUUIDv4()\n  }\n};"
+      },
+      "id": "build-response",
+      "name": "Build Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1850, 600]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 201
+        }
+      },
+      "id": "respond-success",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [2050, 600]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Extract Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Token": {
+      "main": [
+        [
+          {
+            "node": "IF Token Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Token Error": {
+      "main": [
+        [
+          {
+            "node": "Respond Token Error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Call auth.validate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call auth.validate": {
+      "main": [
+        [
+          {
+            "node": "Parse Auth Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Auth Response": {
+      "main": [
+        [
+          {
+            "node": "IF Auth Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Auth Success": {
+      "main": [
+        [
+          {
+            "node": "Respond Auth Error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Chat Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Chat Data": {
+      "main": [
+        [
+          {
+            "node": "Create Chat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Chat": {
+      "main": [
+        [
+          {
+            "node": "Build Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Response": {
+      "main": [
+        [
+          {
+            "node": "Respond Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2025-11-10T20:00:00.000Z",
+  "versionId": "2"
+}
