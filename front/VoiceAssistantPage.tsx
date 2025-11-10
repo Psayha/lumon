@@ -22,19 +22,43 @@ const VoiceAssistantPage: React.FC = () => {
 
     const url = 'https://n8n.psayha.ru/webhook/chat-create?token=' + encodeURIComponent(token);
     const payload = { title, session_token: token };
+    
+    console.log('[createChatDirect] Request:', { url, hasToken: !!token, title });
+    
     const res = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'Authorization': `Bearer ${token}` // Основной способ передачи токена
+        'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify(payload)
     });
 
     const text = await res.text();
-    const json = text ? JSON.parse(text) : null;
-    if (!res.ok) throw new Error(json?.message || `chat-create HTTP ${res.status}`);
+    console.log('[createChatDirect] Response:', { status: res.status, statusText: res.statusText, textLength: text.length, textPreview: text.substring(0, 200) });
+    
+    let json: any = null;
+    try {
+      json = text ? JSON.parse(text) : null;
+    } catch (e) {
+      console.error('[createChatDirect] Failed to parse JSON:', e, 'Response text:', text);
+      throw new Error(`Invalid JSON response: ${text.substring(0, 200)}`);
+    }
+    
+    if (!res.ok) {
+      const errorMsg = json?.message || json?.error || `chat-create HTTP ${res.status}`;
+      console.error('[createChatDirect] Error response:', { status: res.status, error: errorMsg, json });
+      throw new Error(errorMsg);
+    }
+    
+    if (!json || !json.success) {
+      const errorMsg = json?.message || json?.error || 'Invalid response format';
+      console.error('[createChatDirect] Invalid success response:', json);
+      throw new Error(errorMsg);
+    }
+    
+    console.log('[createChatDirect] Success:', json);
     return json;
   }
 
