@@ -298,19 +298,25 @@ export function AnimatedAIChat({
             }, 0);
 
             // Сохраняем пользовательское сообщение (создаст чат если нет)
-            console.log('[AnimatedAIChat] Before onMessageSave:', { 
+            console.log('[AnimatedAIChat] 🔵🔵🔵 Before onMessageSave:', { 
                 hasOnMessageSave: !!onMessageSave, 
                 message: userMessage.text, 
                 chatId 
             });
+            console.warn('[AnimatedAIChat] ⚠️⚠️⚠️ CHECKING onMessageSave:', typeof onMessageSave);
+            
             if (onMessageSave) {
-                console.log('[AnimatedAIChat] Calling onMessageSave...');
-                await onMessageSave(userMessage.text, 'user').catch(error => {
-                    console.error('[AnimatedAIChat] Error saving user message:', error);
-                });
-                console.log('[AnimatedAIChat] onMessageSave completed');
+                console.log('[AnimatedAIChat] 🔵🔵🔵 Calling onMessageSave...');
+                try {
+                    await onMessageSave(userMessage.text, 'user');
+                    console.log('[AnimatedAIChat] ✅✅✅ onMessageSave completed successfully');
+                } catch (error) {
+                    console.error('[AnimatedAIChat] ❌❌❌ Error saving user message:', error);
+                    console.error('[AnimatedAIChat] Error details:', error);
+                }
             } else {
-                console.warn('[AnimatedAIChat] onMessageSave is not provided!');
+                console.error('[AnimatedAIChat] ❌❌❌ onMessageSave is NOT PROVIDED!');
+                console.warn('[AnimatedAIChat] ⚠️⚠️⚠️ onMessageSave is not provided!');
             }
 
             startTransition(() => {
