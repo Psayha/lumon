@@ -113,20 +113,22 @@ const VoiceAssistantPage: React.FC = () => {
                 setChatId(newChatId);
             }}
             onMessageSave={async (message, role) => {
-              console.log('[VoiceAssistantPage] 🔵 onMessageSave START', { message: message?.substring(0, 50), role, chatId, hasMessage: !!message });
+              console.log('[VoiceAssistantPage] 🔵🔵🔵 onMessageSave START', { message: message?.substring(0, 50), role, chatId, hasMessage: !!message });
+              console.warn('[VoiceAssistantPage] ⚠️⚠️⚠️ onMessageSave CALLED');
               try {
                 console.log('[VoiceAssistantPage] onMessageSave called', { message, role, chatId });
                 const token = localStorage.getItem('session_token') || '';
-                console.log('[Before chat-create]', { hasToken: !!token, tokenStart: token.slice(0, 8) });
+                console.log('[Before chat-create]', { hasToken: !!token, tokenStart: token.slice(0, 8), tokenLength: token.length });
                 
                 if (!token) {
-                  console.error('[VoiceAssistantPage] ❌ No session_token found in localStorage');
+                  console.error('[VoiceAssistantPage] ❌❌❌ No session_token found in localStorage');
                   throw new Error('Session token is required. Please log in again.');
                 }
                 
                 // Создаем чат если нет
                 if (!chatId) {
-                  console.log('[VoiceAssistantPage] 🔵 Creating new chat...');
+                  console.log('[VoiceAssistantPage] 🔵🔵🔵 Creating new chat...');
+                  console.warn('[VoiceAssistantPage] ⚠️⚠️⚠️ About to call createChatDirect');
                   const chatResponse = await createChatDirect('Voice Assistant Chat');
                   console.log('[VoiceAssistantPage] createChat response:', chatResponse);
                   
