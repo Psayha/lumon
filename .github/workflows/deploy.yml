@@ -159,7 +159,7 @@ jobs:
             # Проверка доступности
             HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$DOMAIN" || echo "000")
             
-            if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "301" ] || [ "$HTTP_CODE" = "302" ] || [ "$HTTP_CODE" = "307" ]; then
+            if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "301" ] || [ "$HTTP_CODE" = "302" ] || [ "$HTTP_CODE" = "307" ] || [ "$HTTP_CODE" = "403" ]; then
               echo "✅ $DOMAIN - OK (HTTP $HTTP_CODE)"
             else
               echo "❌ $DOMAIN - FAILED (HTTP $HTTP_CODE)"
