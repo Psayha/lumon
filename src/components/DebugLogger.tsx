@@ -311,7 +311,7 @@ const DebugLogger: React.FC = () => {
               </span>
             )}
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
             <button
               onClick={copyLogs}
               className={`p-1.5 hover:bg-gray-200 dark:hover:bg-slate-700 rounded transition-colors ${
