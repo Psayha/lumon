@@ -87,7 +87,7 @@
         "options": {
           "response": {
             "response": {
-              "responseFormat": "json"
+              "responseFormat": "text"
             }
           }
         }
@@ -101,7 +101,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Parse auth response from HTTP Request node\nconst input = $input.item.json;\n\n// HTTP Request node with responseFormat: json returns direct JSON\n// No need to parse, just validate structure\nif (!input || typeof input !== 'object') {\n  return {\n    json: {\n      success: false,\n      error: 'unauthorized',\n      status: 401,\n      message: 'Invalid auth response format'\n    }\n  };\n}\n\n// Check if auth validation was successful\nif (input.success === false || input.error) {\n  return {\n    json: {\n      success: false,\n      error: 'unauthorized',\n      status: input.status || 401,\n      message: input.message || 'Auth validation failed'\n    }\n  };\n}\n\n// Return the response as-is (it should have success and data properties)\nreturn { json: input };"
+        "jsCode": "// Parse auth response from HTTP Request node (text format)\nconst input = $input.item.json;\n\n// HTTP Request with responseFormat: text returns { data: \"json string\" }\nlet responseText = input.data || input;\n\n// If it's still a string, parse it\nif (typeof responseText === 'string') {\n  try {\n    responseText = JSON.parse(responseText);\n  } catch (e) {\n    return {\n      json: {\n        success: false,\n        error: 'unauthorized',\n        status: 401,\n        message: 'Failed to parse auth response as JSON'\n      }\n    };\n  }\n}\n\n// Now responseText should be an object\nif (!responseText || typeof responseText !== 'object') {\n  return {\n    json: {\n      success: false,\n      error: 'unauthorized',\n      status: 401,\n      message: 'Invalid auth response format'\n    }\n  };\n}\n\n// Check if auth validation was successful\nif (responseText.success === false || responseText.error) {\n  return {\n    json: {\n      success: false,\n      error: 'unauthorized',\n      status: responseText.status || 401,\n      message: responseText.message || 'Auth validation failed'\n    }\n  };\n}\n\n// Return the parsed response\nreturn { json: responseText };"
       },
       "id": "parse-auth-response",
       "name": "Parse Auth Response",
