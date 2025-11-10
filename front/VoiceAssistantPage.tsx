@@ -20,33 +20,6 @@ const VoiceAssistantPage: React.FC = () => {
     const token = localStorage.getItem('session_token');
     if (!token) throw new Error('No session token in localStorage');
 
-    // Проверяем токен перед созданием чата
-    try {
-      const validateRes = await fetch('https://n8n.psayha.ru/webhook/auth-validate-v2', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify({ token })
-      });
-      
-      const validateText = await validateRes.text();
-      let validateJson: any = null;
-      try {
-        validateJson = validateText ? JSON.parse(validateText) : null;
-      } catch (e) {
-        throw new Error(`Invalid validate response: ${validateText.substring(0, 200)}`);
-      }
-      
-      if (!validateRes.ok || !validateJson?.success) {
-        throw new Error(`Token validation failed: ${validateJson?.error || validateJson?.message || 'Unknown error'}`);
-      }
-    } catch (error) {
-      console.error('[createChatDirect] Token validation error:', error);
-      throw new Error(`Session expired or invalid. Please refresh the page. Error: ${error instanceof Error ? error.message : String(error)}`);
-    }
-
     const url = 'https://n8n.psayha.ru/webhook/chat-create?token=' + encodeURIComponent(token);
     const payload = { title, session_token: token };
     
@@ -150,31 +123,32 @@ const VoiceAssistantPage: React.FC = () => {
                 
                 // Создаем чат если нет
                 if (!chatId) {
-                  console.log('[VoiceAssistantPage] 🔵🔵🔵 Creating new chat...');
-                  console.warn('[VoiceAssistantPage] ⚠️⚠️⚠️ About to call createChatDirect');
-                  const chatResponse = await createChatDirect('Voice Assistant Chat');
-                  console.log('[VoiceAssistantPage] createChat response:', chatResponse);
-                  
-                  if (chatResponse.success && chatResponse.data?.id) {
-                    const newChatId = chatResponse.data.id;
-                    console.log('[VoiceAssistantPage] ✅ Chat created successfully:', newChatId);
-                    setChatId(newChatId);
+                  try {
+                    const chatResponse = await createChatDirect('Voice Assistant Chat');
                     
-                    // Сохраняем первое сообщение
-                    const saveResult = await saveMessage({
-                      chat_id: newChatId,
-                      role,
-                      content: message,
-                    });
-                    console.log('[VoiceAssistantPage] First message save result:', saveResult);
+                    if (chatResponse.success && chatResponse.data?.id) {
+                      const newChatId = chatResponse.data.id;
+                      setChatId(newChatId);
+                      
+                      // Сохраняем первое сообщение
+                      await saveMessage({
+                        chat_id: newChatId,
+                        role,
+                        content: message,
+                      });
 
-                    await trackEvent({
-                      event_type: 'chat_created',
-                      event_data: { chat_id: newChatId },
-                    });
-                  } else {
-                    console.error('[VoiceAssistantPage] ❌ createChat failed:', chatResponse.error);
-                    throw new Error(chatResponse.error || 'Failed to create chat');
+                      await trackEvent({
+                        event_type: 'chat_created',
+                        event_data: { chat_id: newChatId },
+                      });
+                    } else {
+                      throw new Error(chatResponse.error || 'Failed to create chat');
+                    }
+                  } catch (error) {
+                    // Если не удалось создать чат, все равно пытаемся сохранить сообщение
+                    // Это позволит пользователю продолжать работу
+                    console.error('[VoiceAssistantPage] Failed to create chat:', error);
+                    // Не пробрасываем ошибку дальше
                   }
                   return;
                 }
