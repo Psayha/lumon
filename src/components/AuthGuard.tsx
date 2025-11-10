@@ -62,8 +62,9 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
           }
         }
 
-        // Проверяем наличие Telegram initData
-        if (!window.Telegram?.WebApp?.initData) {
+        // Проверяем наличие Telegram initData (проверяем и на undefined/null, и на пустую строку)
+        const initData = window.Telegram?.WebApp?.initData;
+        if (!initData || initData.trim() === '') {
           logger.warn('[AuthGuard] Нет Telegram initData, пропускаем авторизацию');
           setAuthError('Telegram initData not available');
           setIsAuthReady(true);
@@ -80,7 +81,7 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
             'Accept': 'application/json',
           },
           body: JSON.stringify({
-            initData: window.Telegram.WebApp.initData,
+            initData: initData,
             appVersion: '1.0.0',
           }),
           credentials: 'omit', // Не используем cookie, только Bearer token

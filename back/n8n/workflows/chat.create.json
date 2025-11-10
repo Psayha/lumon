@@ -101,7 +101,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const httpResponse = $input.item.json;\nconst responseText = httpResponse.data;\n\nlet parsedData;\nif (typeof responseText === 'string') {\n  try {\n    parsedData = JSON.parse(responseText);\n  } catch (e) {\n    return { json: { success: false, error: 'Failed to parse auth response' } };\n  }\n} else {\n  parsedData = responseText;\n}\n\n// Check if parsedData is empty or missing required fields\nif (!parsedData || Object.keys(parsedData).length === 0) {\n  return { json: { success: false, error: 'Empty auth response' } };\n}\n\n// Check if response has success field\nif (parsedData.success === undefined) {\n  return { json: { success: false, error: 'Invalid auth response format' } };\n}\n\nreturn { json: parsedData };"
+        "jsCode": "// Handle both success and error cases from HTTP request\nconst httpResponse = $input.item.json;\n\n// Check if HTTP Request node returned an error or status code\n// When continueOnFail is true, HTTP errors are still passed through\nif (httpResponse.error) {\n  return { \n    json: { \n      success: false, \n      error: 'unauthorized', \n      status: 401, \n      message: httpResponse.error.message || 'Auth validation request failed' \n    } \n  };\n}\n\n// Check statusCode - HTTP Request node includes this even with continueOnFail\nconst statusCode = httpResponse.statusCode || httpResponse.status || null;\n\n// Get response text - HTTP Request with responseFormat: 'text' returns data as string\nlet responseText = httpResponse.data;\n\n// If statusCode is 401 and data is empty/undefined, auth.validate returned error\nif (statusCode === 401 && (!responseText || responseText === '' || responseText === null || responseText === undefined)) {\n  return { \n    json: { \n      success: false, \n      error: 'unauthorized', \n      status: 401, \n      message: 'Invalid or expired token' \n    } \n  };\n}\n\n// If data is not a string, check other possible fields\nif (typeof responseText !== 'string') {\n  // Try body field\n  if (httpResponse.body && typeof httpResponse.body === 'string') {\n    responseText = httpResponse.body;\n  } else if (httpResponse.data && typeof httpResponse.data === 'object') {\n    // If data is already an object, stringify it\n    responseText = JSON.stringify(httpResponse.data);\n  } else if (typeof httpResponse === 'object' && httpResponse !== null) {\n    // Try to stringify the whole response (excluding statusCode)\n    const { statusCode, status, ...rest } = httpResponse;\n    responseText = JSON.stringify(rest);\n  } else {\n    responseText = String(httpResponse);\n  }\n}\n\n// If responseText is still empty or undefined after all checks\nif (!responseText || responseText === '' || responseText === 'null' || responseText === 'undefined') {\n  return { \n    json: { \n      success: false, \n      error: 'unauthorized', \n      status: statusCode || 401, \n      message: 'Empty auth response. Status: ' + (statusCode || 'unknown') \n    } \n  };\n}\n\nlet parsedData;\nif (typeof responseText === 'string') {\n  // Try to parse as JSON\n  try {\n    parsedData = JSON.parse(responseText);\n  } catch (e) {\n    // If parsing fails, return error with debug info\n    return { \n      json: { \n        success: false, \n        error: 'unauthorized', \n        status: statusCode || 401, \n        message: 'Failed to parse auth response. Response: ' + responseText.substring(0, 200) \n      } \n    };\n  }\n} else if (typeof responseText === 'object' && responseText !== null) {\n  // Already an object\n  parsedData = responseText;\n} else {\n  return { \n    json: { \n      success: false, \n      error: 'unauthorized', \n      status: statusCode || 401, \n      message: 'Unexpected response format' \n    } \n  };\n}\n\n// Check if parsedData is empty or missing required fields\nif (!parsedData || Object.keys(parsedData).length === 0) {\n  return { \n    json: { \n      success: false, \n      error: 'unauthorized', \n      status: statusCode || 401, \n      message: 'Empty auth response after parsing' \n    } \n  };\n}\n\n// If response already has error format, return as is\nif (parsedData.error || parsedData.success === false) {\n  return { json: parsedData };\n}\n\n// Check if response has success field\nif (parsedData.success === undefined) {\n  // Return error with debug info about what we received\n  return { \n    json: { \n      success: false, \n      error: 'unauthorized', \n      status: statusCode || 401, \n      message: 'Invalid auth response format. Status: ' + (statusCode || 'unknown') + '. Keys: ' + Object.keys(parsedData).join(', ') + '. Response: ' + JSON.stringify(parsedData).substring(0, 300) \n    } \n  };\n}\n\nreturn { json: parsedData };"
       },
       "id": "parse-auth-response",
       "name": "Parse Auth Response",
@@ -192,6 +192,15 @@
                 "type": "boolean",
                 "operation": "true"
               }
+            },
+            {
+              "id": "no-error-check",
+              "leftValue": "={{ $('Parse Auth Response').item.json.error }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "isEmpty"
+              }
             }
           ],
           "combinator": "and"
@@ -207,9 +216,9 @@
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{ { error: 'unauthorized', status: 401, message: 'Invalid or expired token' } }}",
+        "responseBody": "={{ $('Parse Auth Response').item.json }}",
         "options": {
-          "responseCode": 401
+          "responseCode": "={{ $('Parse Auth Response').item.json.status || 401 }}"
         }
       },
       "id": "response-auth-error",

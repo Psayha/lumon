@@ -45,13 +45,91 @@
     },
     {
       "parameters": {
-        "functionCode": "// Check session validity\nconst session = $input.item.json;\n\nif (!session.id) {\n  throw new Error('SESSION_NOT_FOUND: Invalid or expired session');\n}\n\nconst now = new Date();\nconst expiresAt = new Date(session.expires_at);\nconst lastActivity = new Date(session.last_activity_at);\n\n// Check if session is expired\nif (now > expiresAt) {\n  throw new Error('SESSION_EXPIRED: Session has expired');\n}\n\n// Check grace window (24 hours of inactivity)\nconst hoursSinceActivity = (now - lastActivity) / (1000 * 60 * 60);\nif (hoursSinceActivity > 24) {\n  throw new Error('SESSION_INACTIVE: Session expired due to inactivity');\n}\n\n// Session is valid, pass through\nreturn {\n  json: session\n};"
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "session-found",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-session-found",
+      "name": "IF Session Found",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Prepare error response for missing session\nreturn {\n  json: {\n    success: false,\n    error: 'unauthorized',\n    status: 401,\n    message: 'Invalid or expired token'\n  }\n};"
+      },
+      "id": "prepare-error",
+      "name": "Prepare Error Response",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [850, 500]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Check session validity\nconst session = $input.item.json;\n\nconst now = new Date();\nconst expiresAt = new Date(session.expires_at);\nconst lastActivity = new Date(session.last_activity_at);\n\n// Check if session is expired\nif (now > expiresAt) {\n  return {\n    json: {\n      success: false,\n      error: 'unauthorized',\n      status: 401,\n      message: 'Session has expired'\n    }\n  };\n}\n\n// Check grace window (24 hours of inactivity)\nconst hoursSinceActivity = (now - lastActivity) / (1000 * 60 * 60);\nif (hoursSinceActivity > 24) {\n  return {\n    json: {\n      success: false,\n      error: 'unauthorized',\n      status: 401,\n      message: 'Session expired due to inactivity'\n    }\n  };\n}\n\n// Session is valid, pass through\nreturn {\n  json: session\n};"
       },
       "id": "check-validity",
       "name": "Check Session Validity",
       "type": "n8n-nodes-base.function",
       "typeVersion": 1,
-      "position": [850, 300]
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "validity-ok",
+              "leftValue": "={{ $json.success }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-validity-ok",
+      "name": "IF Validity OK",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1250, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Prepare error response from validity check\nconst input = $input.item.json;\nreturn {\n  json: {\n    success: false,\n    error: input.error || 'unauthorized',\n    status: input.status || 401,\n    message: input.message || 'Invalid or expired token'\n  }\n};"
+      },
+      "id": "prepare-validity-error",
+      "name": "Prepare Validity Error",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1250, 500]
     },
     {
       "parameters": {
@@ -63,7 +141,7 @@
       "name": "Update Last Activity",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.4,
-      "position": [1050, 300],
+      "position": [1450, 300],
       "credentials": {
         "postgres": {
           "id": "supabase-postgres",
@@ -73,13 +151,13 @@
     },
     {
       "parameters": {
-        "functionCode": "// Build permissions based on role\nconst session = $('Check Session Validity').item.json;\nconst role = session.role;\n\nconst permissions = {\n  owner: ['read', 'write', 'delete', 'manage_users', 'manage_company'],\n  manager: ['read', 'write', 'delete'],\n  viewer: ['read']\n};\n\nreturn {\n  json: {\n    success: true,\n    data: {\n      user: {\n        id: session.user_id,\n        telegram_id: session.telegram_id,\n        first_name: session.first_name,\n        last_name: session.last_name,\n        username: session.username,\n        role: role,\n        company_id: session.company_id,\n        company_name: session.company_name,\n        permissions: permissions[role] || []\n      },\n      session: {\n        expires_at: session.expires_at,\n        last_activity_at: session.last_activity_at\n      }\n    }\n  }\n};"
+        "functionCode": "// Build permissions based on role\n// Get session data from Check Session Validity (passed through IF Validity OK)\n// The IF node passes data through, so we can reference the previous node\nconst session = $('Check Session Validity').item.json;\nconst role = session.role;\n\nconst permissions = {\n  owner: ['read', 'write', 'delete', 'manage_users', 'manage_company'],\n  manager: ['read', 'write', 'delete'],\n  viewer: ['read']\n};\n\nreturn {\n  json: {\n    success: true,\n    data: {\n      user: {\n        id: session.user_id,\n        telegram_id: session.telegram_id,\n        first_name: session.first_name,\n        last_name: session.last_name,\n        username: session.username,\n        role: role,\n        company_id: session.company_id,\n        company_name: session.company_name,\n        permissions: permissions[role] || []\n      },\n      session: {\n        expires_at: session.expires_at,\n        last_activity_at: session.last_activity_at\n      }\n    }\n  }\n};"
       },
       "id": "build-response",
       "name": "Build User Context",
       "type": "n8n-nodes-base.function",
       "typeVersion": 1,
-      "position": [1250, 300]
+      "position": [1650, 300]
     },
     {
       "parameters": {
@@ -100,13 +178,13 @@
       "name": "Respond to Webhook",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [1450, 300]
+      "position": [1850, 300]
     },
     {
       "parameters": {
         "respondWith": "text",
-        "responseCode": 401,
-        "responseBody": "={{ JSON.stringify({success: false, error: {code: 'UNAUTHORIZED', message: $json.message || 'Unauthorized'}}) }}",
+        "responseCode": "={{ $json.status || 401 }}",
+        "responseBody": "={{ JSON.stringify($json) }}",
         "options": {
           "responseHeaders": {
             "entries": [
@@ -122,7 +200,29 @@
       "name": "Respond Error",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [850, 500]
+      "position": [1050, 500]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseCode": "={{ $json.status || 401 }}",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "id": "respond-validity-error",
+      "name": "Respond Validity Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1450, 500]
     }
   ],
   "connections": {
@@ -152,7 +252,36 @@
       "main": [
         [
           {
+            "node": "IF Session Found",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Session Found": {
+      "main": [
+        [
+          {
             "node": "Check Session Validity",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Error Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Error Response": {
+      "main": [
+        [
+          {
+            "node": "Respond Error",
             "type": "main",
             "index": 0
           }
@@ -163,7 +292,36 @@
       "main": [
         [
           {
+            "node": "IF Validity OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Validity OK": {
+      "main": [
+        [
+          {
             "node": "Update Last Activity",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Validity Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Validity Error": {
+      "main": [
+        [
+          {
+            "node": "Respond Validity Error",
             "type": "main",
             "index": 0
           }

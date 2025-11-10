@@ -162,8 +162,9 @@ const getErrorMessage = (error: unknown, defaultMessage: string): string => {
 // Re-auth function - повторная инициализация сессии
 const reAuth = async (): Promise<boolean> => {
   try {
-    // Проверяем наличие Telegram initData
-    if (!window.Telegram?.WebApp?.initData) {
+    // Проверяем наличие Telegram initData (проверяем и на undefined/null, и на пустую строку)
+    const initData = window.Telegram?.WebApp?.initData;
+    if (!initData || initData.trim() === '') {
       logger.error('Re-auth failed: no Telegram initData');
       return false;
     }
@@ -175,7 +176,7 @@ const reAuth = async (): Promise<boolean> => {
         'Accept': 'application/json',
       },
       body: JSON.stringify({
-        initData: window.Telegram.WebApp.initData,
+        initData: initData,
         appVersion: '1.0.0',
       }),
       credentials: 'omit', // Не используем cookie, только Bearer token
