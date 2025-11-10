@@ -14,50 +14,6 @@ const VoiceAssistantPage: React.FC = () => {
   const [isRecognizing, setIsRecognizing] = useState(false);
   const [chatId, setChatId] = useState<string | null>(null);
 
-  // Функция инициализации сессии
-  async function initializeSession() {
-    try {
-      const existingToken = localStorage.getItem('session_token');
-      if (existingToken) {
-        console.log('[VoiceAssistantPage] Session token already exists');
-        return;
-      }
-
-      const initData = (window as any)?.Telegram?.WebApp?.initData || '';
-      if (!initData) {
-        console.error('[VoiceAssistantPage] No Telegram initData available');
-        return;
-      }
-
-      console.log('[VoiceAssistantPage] Initializing session...');
-      
-      const response = await fetch('https://n8n.psayha.ru/webhook/auth-init-v2', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify({
-          initData: initData,
-          appVersion: '1.0.0'
-        })
-      });
-
-      const data = await response.json();
-      console.log('[VoiceAssistantPage] Auth response:', data);
-
-      if (data.success && data.data?.session_token) {
-        // Сохраняем токен в localStorage
-        localStorage.setItem('session_token', data.data.session_token);
-        console.log('[VoiceAssistantPage] ✅ Session token saved successfully');
-      } else {
-        console.error('[VoiceAssistantPage] ❌ Invalid auth response:', data);
-      }
-    } catch (error) {
-      console.error('[VoiceAssistantPage] ❌ Auth initialization failed:', error);
-    }
-  }
-
   // Функция создания чата
   async function createChatDirect(title: string) {
     const token = localStorage.getItem('session_token');
@@ -103,16 +59,11 @@ const VoiceAssistantPage: React.FC = () => {
   useEffect(() => {
     document.body.style.overflow = 'hidden';
     document.documentElement.style.overflow = 'hidden';
-    
+
     return () => {
       document.body.style.overflow = '';
       document.documentElement.style.overflow = '';
     };
-  }, []);
-
-  // Инициализируем сессию при загрузке
-  useEffect(() => {
-    initializeSession();
   }, []);
 
   return (
@@ -176,8 +127,10 @@ const VoiceAssistantPage: React.FC = () => {
                     });
 
                     await trackEvent({
-                      event_type: 'chat_created',
-                      event_data: { chat_id: newChatId },
+                      action: 'chat_created',
+                      resource: 'chat',
+                      resource_id: newChatId,
+                      meta: { source: 'voice_assistant' },
                     });
                     
                     console.log('[VoiceAssistantPage] ✅ Chat created and message saved:', newChatId);
@@ -196,9 +149,10 @@ const VoiceAssistantPage: React.FC = () => {
                 });
                 
                 await trackEvent({
-                  event_type: 'message_sent',
-                  event_data: { 
-                    chat_id: chatId,
+                  action: 'message_sent',
+                  resource: 'message',
+                  resource_id: chatId,
+                  meta: {
                     role,
                     message_length: message.length,
                   },
