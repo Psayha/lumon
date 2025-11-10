@@ -100,6 +100,13 @@ export function AnimatedAIChat({
     onMessageSave,
     onChatIdChange
 }: AnimatedAIChatProps) {
+    console.log('[AnimatedAIChat] 🔵 COMPONENT RENDERED', { 
+        hasOnMessageSave: !!onMessageSave, 
+        chatId,
+        isListening: externalIsListening,
+        isRecognizing: externalIsRecognizing
+    });
+    
     const [value, setValue] = useState("");
     const [messages, setMessages] = useState<Message[]>([]);
     const [isTyping, setIsTyping] = useState(false);
