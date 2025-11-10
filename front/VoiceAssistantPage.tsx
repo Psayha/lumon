@@ -1,63 +1,103 @@
 import React, { useState, useEffect } from 'react';
 import { AppHeader } from '../src/components/AppHeader';
-// import { AppFooter } from '../src/components/AppFooter';
 import { AnimatedAIChat } from '../src/components/ui/animated-ai-chat';
 import { 
   saveMessage, 
-  trackEvent,
-  authInit
+  trackEvent
 } from '../src/utils/api';
 
 const VoiceAssistantPage: React.FC = () => {
   const [isTyping, setIsTyping] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [isRecognizing, setIsRecognizing] = useState(false);
-  
-  // Backend state
   const [chatId, setChatId] = useState<string | null>(null);
+  const [isAuthReady, setIsAuthReady] = useState(false);
 
+  // Функция инициализации сессии
+  async function initializeSession() {
+    try {
+      const existingToken = localStorage.getItem('session_token');
+      if (existingToken) {
+        console.log('[VoiceAssistantPage] Session token already exists');
+        setIsAuthReady(true);
+        return;
+      }
+
+      const initData = (window as any)?.Telegram?.WebApp?.initData || '';
+      if (!initData) {
+        console.error('[VoiceAssistantPage] No Telegram initData available');
+        return;
+      }
+
+      console.log('[VoiceAssistantPage] Initializing session...');
+      
+      const response = await fetch('https://n8n.psayha.ru/webhook/auth-init-v2', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          initData: initData,
+          appVersion: '1.0.0'
+        })
+      });
+
+      const data = await response.json();
+      console.log('[VoiceAssistantPage] Auth response:', data);
+
+      if (data.success && data.data?.session_token) {
+        // Сохраняем токен в localStorage
+        localStorage.setItem('session_token', data.data.session_token);
+        console.log('[VoiceAssistantPage] ✅ Session token saved successfully');
+        setIsAuthReady(true);
+      } else {
+        console.error('[VoiceAssistantPage] ❌ Invalid auth response:', data);
+      }
+    } catch (error) {
+      console.error('[VoiceAssistantPage] ❌ Auth initialization failed:', error);
+    }
+  }
+
+  // Функция создания чата
   async function createChatDirect(title: string) {
     const token = localStorage.getItem('session_token');
-    if (!token) throw new Error('No session token in localStorage');
+    if (!token) {
+      throw new Error('No session token in localStorage');
+    }
 
-    const url = 'https://n8n.psayha.ru/webhook/chat-create?token=' + encodeURIComponent(token);
-    const payload = { title, session_token: token };
+    const url = 'https://n8n.psayha.ru/webhook/chat-create';
     
-    const res = await fetch(url, {
+    const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
         'Authorization': `Bearer ${token}`
       },
-      body: JSON.stringify(payload)
+      body: JSON.stringify({
+        title: title,
+        session_token: token
+      })
     });
 
-    const text = await res.text();
-    console.log('[createChatDirect] Response:', { status: res.status, statusText: res.statusText, textLength: text.length, textPreview: text.substring(0, 200) });
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[createChatDirect] Error:', { 
+        status: response.status, 
+        errorText 
+      });
+      throw new Error(`HTTP ${response.status}: ${errorText}`);
+    }
+
+    const data = await response.json();
+    console.log('[createChatDirect] Success:', data);
     
-    let json: any = null;
-    try {
-      json = text ? JSON.parse(text) : null;
-    } catch (e) {
-      console.error('[createChatDirect] Failed to parse JSON:', e, 'Response text:', text);
-      throw new Error(`Invalid JSON response: ${text.substring(0, 200)}`);
+    if (!data.success || !data.data?.id) {
+      throw new Error(data.message || 'Invalid response format');
     }
     
-    if (!res.ok) {
-      const errorMsg = json?.message || json?.error || `chat-create HTTP ${res.status}`;
-      console.error('[createChatDirect] Error response:', { status: res.status, error: errorMsg, json });
-      throw new Error(errorMsg);
-    }
-    
-    if (!json || !json.success) {
-      const errorMsg = json?.message || json?.error || 'Invalid response format';
-      console.error('[createChatDirect] Invalid success response:', json);
-      throw new Error(errorMsg);
-    }
-    
-    console.log('[createChatDirect] Success:', json);
-    return json;
+    return data;
   }
 
   // Фиксируем страницу - предотвращаем скролл body
@@ -71,31 +111,31 @@ const VoiceAssistantPage: React.FC = () => {
     };
   }, []);
 
-  // Инициализируем сессию один раз (если токена нет)
+  // Лог для подтверждения обновления страницы
   useEffect(() => {
-    if (localStorage.getItem('session_token')) return;
-    try {
-      const initData = (window as any)?.Telegram?.WebApp?.initData || '';
-      authInit(initData, '1.0.0')
-        .then(() => console.log('[VoiceAssistantPage] session initialized'))
-        .catch(err => console.error('[VoiceAssistantPage] authInit failed', err));
-    } catch (e) { 
-      console.error('[VoiceAssistantPage] authInit exception', e); 
-    }
+    console.log('[VoiceAssistantPage] mounted');
+  }, []);
+
+  // Инициализируем сессию при загрузке
+  useEffect(() => {
+    initializeSession();
   }, []);
 
   return (
     <>
-      {/* Контент занимает весь экран, включая safe-area */}
       <div 
         className="fixed gradient-bg overflow-hidden flex flex-col inset-0"
         style={{
           height: '100dvh'
         }}
       >
-        <AppHeader isTyping={isTyping} showHomeButton={false} isListening={isListening} isRecognizing={isRecognizing} />
+        <AppHeader 
+          isTyping={isTyping} 
+          showHomeButton={false} 
+          isListening={isListening} 
+          isRecognizing={isRecognizing} 
+        />
         
-        {/* AI Chat с поддержкой ответов - скроллируемый контент */}
         <div className="flex-1 overflow-hidden min-h-0 pt-[calc(var(--safe-top,0px)+52px)] pb-6">
           <AnimatedAIChat 
             onTypingChange={setIsTyping} 
@@ -105,62 +145,61 @@ const VoiceAssistantPage: React.FC = () => {
             onRecognizingChange={setIsRecognizing}
             chatId={chatId}
             onChatIdChange={(newChatId) => {
-                console.log('[VoiceAssistantPage] onChatIdChange called:', { oldChatId: chatId, newChatId });
-                setChatId(newChatId);
+              console.log('[VoiceAssistantPage] Chat ID changed:', newChatId);
+              setChatId(newChatId);
             }}
             onMessageSave={async (message, role) => {
-              console.log('[VoiceAssistantPage] 🔵🔵🔵 onMessageSave START', { message: message?.substring(0, 50), role, chatId, hasMessage: !!message });
-              console.warn('[VoiceAssistantPage] ⚠️⚠️⚠️ onMessageSave CALLED');
+              console.log('[VoiceAssistantPage] 🔵 onMessageSave called:', { 
+                role, 
+                messageLength: message.length,
+                chatId,
+                hasToken: !!localStorage.getItem('session_token')
+              });
+
               try {
-                console.log('[VoiceAssistantPage] onMessageSave called', { message, role, chatId });
-                const token = localStorage.getItem('session_token') || '';
-                console.log('[Before chat-create]', { hasToken: !!token, tokenStart: token.slice(0, 8), tokenLength: token.length });
+                const token = localStorage.getItem('session_token');
                 
                 if (!token) {
-                  console.error('[VoiceAssistantPage] ❌❌❌ No session_token found in localStorage');
+                  console.error('[VoiceAssistantPage] ❌ No session token found');
                   throw new Error('Session token is required. Please log in again.');
                 }
-                
-                // Создаем чат если нет
-                if (!chatId) {
-                  try {
-                    const chatResponse = await createChatDirect('Voice Assistant Chat');
-                    
-                    if (chatResponse.success && chatResponse.data?.id) {
-                      const newChatId = chatResponse.data.id;
-                      setChatId(newChatId);
-                      
-                      // Сохраняем первое сообщение
-                      await saveMessage({
-                        chat_id: newChatId,
-                        role,
-                        content: message,
-                      });
 
-                      await trackEvent({
-                        event_type: 'chat_created',
-                        event_data: { chat_id: newChatId },
-                      });
-                    } else {
-                      throw new Error(chatResponse.error || 'Failed to create chat');
-                    }
-                  } catch (error) {
-                    // Если не удалось создать чат, все равно пытаемся сохранить сообщение
-                    // Это позволит пользователю продолжать работу
-                    console.error('[VoiceAssistantPage] Failed to create chat:', error);
-                    // Не пробрасываем ошибку дальше
+                // Создаем чат если нужно
+                if (!chatId) {
+                  console.log('[VoiceAssistantPage] Creating new chat...');
+                  
+                  const chatResponse = await createChatDirect('Voice Assistant Chat');
+                  
+                  if (chatResponse.success && chatResponse.data?.id) {
+                    const newChatId = chatResponse.data.id;
+                    setChatId(newChatId);
+                    
+                    // Сохраняем первое сообщение
+                    await saveMessage({
+                      chat_id: newChatId,
+                      role,
+                      content: message,
+                    });
+
+                    await trackEvent({
+                      event_type: 'chat_created',
+                      event_data: { chat_id: newChatId },
+                    });
+                    
+                    console.log('[VoiceAssistantPage] ✅ Chat created and message saved:', newChatId);
+                  } else {
+                    throw new Error(chatResponse.error || 'Failed to create chat');
                   }
                   return;
                 }
                 
-                // Сохраняем сообщение
-                console.log('[VoiceAssistantPage] Saving message to existing chat:', chatId);
-                const saveResult = await saveMessage({
+                // Сохраняем сообщение в существующий чат
+                console.log('[VoiceAssistantPage] Saving message to chat:', chatId);
+                await saveMessage({
                   chat_id: chatId,
                   role,
                   content: message,
                 });
-                console.log('[VoiceAssistantPage] Message save result:', saveResult);
                 
                 await trackEvent({
                   event_type: 'message_sent',
@@ -170,6 +209,8 @@ const VoiceAssistantPage: React.FC = () => {
                     message_length: message.length,
                   },
                 });
+                
+                console.log('[VoiceAssistantPage] ✅ Message saved successfully');
               } catch (error) {
                 console.error('[VoiceAssistantPage] ❌ Error saving message:', error);
                 // Не пробрасываем ошибку дальше, чтобы не ломать UI
@@ -177,8 +218,6 @@ const VoiceAssistantPage: React.FC = () => {
             }}
           />
         </div>
-
-        {/* <AppFooter showHomeButton={true} /> */}
       </div>
 
       {/* Градиентное размытие сверху с плавным переходом */}
