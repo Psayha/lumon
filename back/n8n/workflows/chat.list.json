@@ -295,14 +295,14 @@
       "main": [
         [
           {
-            "node": "Respond Auth Error",
+            "node": "Prepare Query Data",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "Prepare Query Data",
+            "node": "Respond Auth Error",
             "type": "main",
             "index": 0
           }
