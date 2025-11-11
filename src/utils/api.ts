@@ -393,7 +393,7 @@ export const saveMessage = async (message: Message): Promise<ApiResponse<Message
     };
     
     const response = await fetchWithRetry(
-      getApiUrl(API_CONFIG.endpoints.saveMessage),
+      getApiUrl(API_CONFIG.endpoints.chatSaveMessage),
       {
         method: 'POST',
         headers: getIdempotentHeaders(),
