@@ -103,11 +103,11 @@
           "conditions": [
             {
               "id": "validity-ok",
-              "leftValue": "={{ $json.success }}",
-              "rightValue": true,
+              "leftValue": "={{ $json.user_id }}",
+              "rightValue": "",
               "operator": {
-                "type": "boolean",
-                "operation": "true"
+                "type": "string",
+                "operation": "notEmpty"
               }
             }
           ],
