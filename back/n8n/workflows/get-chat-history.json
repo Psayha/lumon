@@ -153,7 +153,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "=SELECT m.id, m.chat_id, m.role, m.content, m.metadata, m.created_at\nFROM messages m\nJOIN chats c ON c.id = m.chat_id\nWHERE m.chat_id = '{{ $('Extract & Validate').item.json.chat_id }}'\n  AND (\n    c.user_id = '{{ $json.data.user.id }}'\n    OR {{ $json.data.user.company_id ? \"c.company_id = '\" + $json.data.user.company_id + \"'\" : \"FALSE\" }}\n  )\nORDER BY m.created_at ASC\nLIMIT {{ $('Extract & Validate').item.json.limit }};",
+        "query": "=SELECT m.id, m.chat_id, m.role, m.content, m.created_at\nFROM messages m\nJOIN chats c ON c.id = m.chat_id\nWHERE m.chat_id = '{{ $('Extract & Validate').item.json.chat_id }}'\n  AND (\n    c.user_id = '{{ $json.data.user.id }}'\n    OR {{ $json.data.companyId ? \"c.company_id = '\" + $json.data.companyId + \"'\" : \"FALSE\" }}\n  )\nORDER BY m.created_at ASC\nLIMIT {{ $('Extract & Validate').item.json.limit }};",
         "options": {}
       },
       "id": "select-messages",
@@ -180,8 +180,8 @@
     },
     {
       "parameters": {
-        "respondWith": "text",
-        "responseBody": "={{ JSON.stringify($json) }}",
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
         "options": {
           "responseCode": 200
         }
