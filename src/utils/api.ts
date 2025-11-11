@@ -460,13 +460,9 @@ export const getChatList = async (): Promise<ApiResponse<Chat[]>> => {
       }
     }
 
-    // Формируем URL с токеном в query параметрах (fallback для случаев, когда заголовок не передается)
-    let url = getApiUrl(API_CONFIG.endpoints.chatList);
-    if (token) {
-      const separator = url.includes('?') ? '&' : '?';
-      url = `${url}${separator}session_token=${encodeURIComponent(token)}`;
-    }
-    
+    // Backend получает токен из Authorization header (через getDefaultHeaders)
+    const url = getApiUrl(API_CONFIG.endpoints.chatList);
+
     const response = await fetchWithRetry(
       url,
       {
