@@ -1,0 +1,453 @@
+{
+  "name": "chat.delete",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "chat-delete",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 400],
+      "webhookId": "chat-delete"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract token and chat_id\nconst input = $input.item.json;\nconst body = input.body || input;\nconst headers = input.headers || {};\n\nconst authHeader = headers.authorization || headers.Authorization || '';\n\nif (!authHeader || !authHeader.startsWith('Bearer ')) {\n  return {\n    json: {\n      error: 'unauthorized',\n      status: 401,\n      message: 'Missing or invalid Authorization header'\n    }\n  };\n}\n\nconst token = authHeader.replace('Bearer ', '').trim();\n\nif (!body.chat_id) {\n  return {\n    json: {\n      error: 'bad_request',\n      status: 400,\n      message: 'Missing required field: chat_id'\n    }\n  };\n}\n\nreturn {\n  json: {\n    token: token,\n    chat_id: body.chat_id\n  }\n};"
+      },
+      "id": "extract-and-validate",
+      "name": "Extract & Validate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [450, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "error-check",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-validation-error",
+      "name": "IF Validation Error",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [650, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": "={{ $json.status || 400 }}"
+        }
+      },
+      "id": "response-validation-error",
+      "name": "Respond Validation Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://n8n.psayha.ru/webhook/auth-validate-v2",
+        "authentication": "none",
+        "sendBody": true,
+        "contentType": "json",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "token",
+              "value": "={{ $json.token }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "id": "call-auth-validate",
+      "name": "Call auth.validate",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [850, 500]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse JSON from text response\nconst input = $input.item.json;\nlet responseText = input.data || input;\n\nlet parsedData;\nif (typeof responseText === 'string') {\n  try {\n    parsedData = JSON.parse(responseText);\n  } catch (e) {\n    return { json: { success: false, error: 'Failed to parse auth response' } };\n  }\n} else {\n  parsedData = responseText;\n}\n\nif (!parsedData || Object.keys(parsedData).length === 0) {\n  return { json: { success: false, error: 'Empty auth response' } };\n}\n\nif (parsedData.success === undefined) {\n  return { json: { success: false, error: 'Invalid auth response format' } };\n}\n\nreturn { json: parsedData };"
+      },
+      "id": "parse-auth-response",
+      "name": "Parse Auth Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1050, 500]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "success-check",
+              "leftValue": "={{ $json.success }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-auth-success",
+      "name": "IF Auth Success",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1250, 500]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify({ error: 'unauthorized', status: 401, message: 'Invalid or expired token' }) }}",
+        "options": {
+          "responseCode": 401
+        }
+      },
+      "id": "response-auth-error",
+      "name": "Respond Auth Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1250, 400]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=SELECT c.id, c.user_id, c.company_id\nFROM chats c\nWHERE c.id = '{{ $('Extract & Validate').item.json.chat_id }}'\n  AND (\n    c.user_id = '{{ $json.data.user.id }}'\n    OR {{ $json.data.companyId ? \"c.company_id = '\" + $json.data.companyId + \"'\" : \"FALSE\" }}\n  )\nLIMIT 1;",
+        "options": {}
+      },
+      "id": "check-chat-ownership",
+      "name": "Check Chat Ownership",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1250, 600],
+      "credentials": {
+        "postgres": {
+          "id": "supabase_postgres",
+          "name": "Supabase PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "chat-found",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-chat-found",
+      "name": "IF Chat Found",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1450, 600]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify({ error: 'forbidden', status: 403, message: 'Chat not found or access denied' }) }}",
+        "options": {
+          "responseCode": 403
+        }
+      },
+      "id": "response-access-denied",
+      "name": "Respond Access Denied",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1450, 500]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=DELETE FROM messages\nWHERE chat_id = '{{ $('Extract & Validate').item.json.chat_id }}';\n\nDELETE FROM chats\nWHERE id = '{{ $('Extract & Validate').item.json.chat_id }}'\nRETURNING id;",
+        "options": {}
+      },
+      "id": "delete-chat",
+      "name": "Delete Chat",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1650, 700],
+      "credentials": {
+        "postgres": {
+          "id": "supabase_postgres",
+          "name": "Supabase PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "schema": {
+          "__rl": true,
+          "value": "public",
+          "mode": "list",
+          "cachedResultName": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "audit_events",
+          "mode": "list",
+          "cachedResultName": "audit_events"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "user_id": "={{ $('Parse Auth Response').item.json.data.user.id }}",
+            "action": "chat.deleted",
+            "resource_type": "chat",
+            "resource_id": "={{ $('Extract & Validate').item.json.chat_id }}",
+            "metadata": "={{ JSON.stringify({ chat_id: $('Extract & Validate').item.json.chat_id }) }}",
+            "ip": "unknown",
+            "user_agent": "unknown"
+          },
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "log-audit-event",
+      "name": "Log Audit Event",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1850, 700],
+      "continueOnFail": true,
+      "credentials": {
+        "postgres": {
+          "id": "OPy15M2cOLEss5yi",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Manual UUID v4 generator\nfunction generateUUIDv4() {\n  const hex = '0123456789abcdef';\n  let uuid = '';\n  for (let i = 0; i < 36; i++) {\n    if (i === 8 || i === 13 || i === 18 || i === 23) {\n      uuid += '-';\n    } else if (i === 14) {\n      uuid += '4';\n    } else if (i === 19) {\n      uuid += hex[(Math.random() * 4 | 8)];\n    } else {\n      uuid += hex[Math.random() * 16 | 0];\n    }\n  }\n  return uuid;\n}\n\nreturn {\n  json: {\n    success: true,\n    message: 'Chat deleted successfully',\n    traceId: generateUUIDv4()\n  }\n};"
+      },
+      "id": "build-response",
+      "name": "Build Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2050, 700]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "response-success",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [2250, 700]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Extract & Validate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract & Validate": {
+      "main": [
+        [
+          {
+            "node": "IF Validation Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Validation Error": {
+      "main": [
+        [
+          {
+            "node": "Respond Validation Error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Call auth.validate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call auth.validate": {
+      "main": [
+        [
+          {
+            "node": "Parse Auth Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Auth Response": {
+      "main": [
+        [
+          {
+            "node": "IF Auth Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Auth Success": {
+      "main": [
+        [
+          {
+            "node": "Check Chat Ownership",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Auth Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Chat Ownership": {
+      "main": [
+        [
+          {
+            "node": "IF Chat Found",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Chat Found": {
+      "main": [
+        [
+          {
+            "node": "Delete Chat",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Access Denied",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete Chat": {
+      "main": [
+        [
+          {
+            "node": "Log Audit Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Audit Event": {
+      "main": [
+        [
+          {
+            "node": "Build Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Response": {
+      "main": [
+        [
+          {
+            "node": "Respond Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2025-11-12T00:00:00.000Z",
+  "versionId": "1"
+}

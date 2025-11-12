@@ -14,7 +14,7 @@ import { QuickCommands } from "./QuickCommands";
 import { InputArea } from "./InputArea";
 import { ChatHistory } from "./ChatHistory";
 import { useViewerGenerationLimit } from "../../hooks/useViewerGenerationLimit";
-import { getChatHistory, type Message as ApiMessage } from "../../utils/api";
+import { getChatHistory, deleteChat, type Message as ApiMessage } from "../../utils/api";
 
 function useAutoResizeTextarea({
     value,
@@ -539,11 +539,27 @@ export function AnimatedAIChat({
         }
     };
 
-    const handleDeleteChat = (chatId: string) => {
-        console.log('Удален чат:', chatId);
-        // В реальном приложении здесь будет API вызов для удаления чата
-        // Пока просто показываем уведомление
-        alert(`Чат "${chatId}" будет удален (в реальном приложении)`);
+    const handleDeleteChat = async (deletedChatId: string) => {
+        console.log('[AnimatedAIChat] Deleting chat:', deletedChatId);
+
+        try {
+            const result = await deleteChat(deletedChatId);
+
+            if (result.success) {
+                console.log('[AnimatedAIChat] Chat deleted successfully:', deletedChatId);
+
+                // Если удалили текущий открытый чат - очищаем UI
+                if (deletedChatId === chatId) {
+                    handleCreateNewChat();
+                }
+            } else {
+                console.error('[AnimatedAIChat] Failed to delete chat:', result.error);
+                alert(`Ошибка удаления чата: ${result.error}`);
+            }
+        } catch (error) {
+            console.error('[AnimatedAIChat] Error deleting chat:', error);
+            alert(`Ошибка удаления чата: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
     };
 
     const handleCreateNewChat = () => {

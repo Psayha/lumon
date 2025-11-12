@@ -544,6 +544,48 @@ export const getChatHistory = async (chatId: string): Promise<ApiResponse<Messag
   }
 };
 
+// Delete chat
+export const deleteChat = async (chatId: string): Promise<ApiResponse<void>> => {
+  try {
+    const response = await fetchWithRetry(
+      getApiUrl(API_CONFIG.endpoints.chatDelete),
+      {
+        method: 'POST',
+        headers: getDefaultHeaders(),
+        body: JSON.stringify({ chat_id: chatId }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      let errorMessage = `HTTP error! status: ${response.status}`;
+      try {
+        const errorJson = JSON.parse(errorText) as ApiErrorResponse;
+        errorMessage = errorJson.message || errorJson.error || errorMessage;
+      } catch {
+        errorMessage = errorText || errorMessage;
+      }
+      throw new Error(errorMessage);
+    }
+
+    const data = await response.json() as { success: boolean; message?: string };
+
+    if (!data.success) {
+      throw new Error(data.message || 'Failed to delete chat');
+    }
+
+    return { success: true, data: undefined };
+  } catch (error) {
+    const errorMessage = getErrorMessage(error, 'Не удалось удалить чат');
+    logger.error('Error deleting chat:', error);
+    return {
+      success: false,
+      error: errorMessage,
+      data: undefined,
+    };
+  }
+};
+
 // Create or update user
 export const createUser = async (user: User): Promise<ApiResponse<User>> => {
   try {
