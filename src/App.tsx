@@ -18,7 +18,6 @@ const AnalyticsPage = lazy(() => import('../front/AnalyticsPage'));
 const KnowledgeBasePage = lazy(() => import('../front/KnowledgeBasePage'));
 const PricingPage = lazy(() => import('../front/PricingPage'));
 const ApiTestPage = lazy(() => import('../front/ApiTestPage'));
-const AdminPage = lazy(() => import('../front/AdminPage'));
 
 // Fallback компонент для Suspense
 const LoadingFallback: React.FC = () => (
@@ -481,7 +480,6 @@ const App: React.FC = () => {
                 <Routes>
                   <Route path="/" element={<MenuPage />} />
                   <Route path="/voice-assistant" element={<VoiceAssistantPage />} />
-                  <Route path="/admin" element={<AdminPage />} />
                     <Route
                       path="/app/crm"
                       element={
