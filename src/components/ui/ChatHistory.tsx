@@ -33,6 +33,7 @@ export const ChatHistory: React.FC<ChatHistoryProps> = ({
   const [chatHistory, setChatHistory] = useState<ChatHistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [deleteConfirmChat, setDeleteConfirmChat] = useState<{ id: string; title: string } | null>(null);
 
   // Загружаем список чатов при открытии
   useEffect(() => {
@@ -91,9 +92,26 @@ export const ChatHistory: React.FC<ChatHistoryProps> = ({
   };
 
   // Обработчик удаления чата с haptic feedback
-  const handleDeleteChat = (chatId: string) => {
-    triggerHaptic('heavy');
-    onDeleteChat(chatId);
+  const handleDeleteChat = (chatId: string, title: string) => {
+    triggerHaptic('medium');
+    setDeleteConfirmChat({ id: chatId, title });
+  };
+
+  // Подтверждение удаления
+  const confirmDelete = () => {
+    if (deleteConfirmChat) {
+      triggerHaptic('heavy');
+      onDeleteChat(deleteConfirmChat.id);
+      // Удаляем чат из локального состояния
+      setChatHistory(prev => prev.filter(chat => chat.id !== deleteConfirmChat.id));
+      setDeleteConfirmChat(null);
+    }
+  };
+
+  // Отмена удаления
+  const cancelDelete = () => {
+    triggerHaptic('light');
+    setDeleteConfirmChat(null);
   };
 
   // Обработчик создания нового чата с haptic feedback
@@ -285,7 +303,7 @@ export const ChatHistory: React.FC<ChatHistoryProps> = ({
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleDeleteChat(chat.id);
+                            handleDeleteChat(chat.id, chat.title);
                           }}
                           className="opacity-0 group-hover:opacity-100 p-1 rounded transition-all"
                           style={{
@@ -352,6 +370,72 @@ export const ChatHistory: React.FC<ChatHistoryProps> = ({
               </p>
             </div>
           </motion.div>
+
+          {/* Delete Confirmation Modal */}
+          {deleteConfirmChat && (
+            <motion.div
+              className="fixed inset-0 flex items-center justify-center z-[70]"
+              style={{
+                backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                backdropFilter: 'blur(4px)'
+              }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={cancelDelete}
+            >
+              <motion.div
+                className="rounded-2xl shadow-2xl max-w-sm mx-4"
+                style={{
+                  backgroundColor: themeParams.secondary_bg_color || themeParams.bg_color || '#ffffff',
+                  padding: '1.5rem'
+                }}
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <h3
+                  className="text-lg font-semibold mb-2"
+                  style={{
+                    color: themeParams.text_color || '#000000'
+                  }}
+                >
+                  Удалить чат?
+                </h3>
+                <p
+                  className="mb-6"
+                  style={{
+                    color: themeParams.hint_color || '#6B7280'
+                  }}
+                >
+                  Вы уверены, что хотите удалить чат "{deleteConfirmChat.title}"? Это действие нельзя отменить.
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={cancelDelete}
+                    className="flex-1 py-2 px-4 rounded-lg font-medium transition-colors"
+                    style={{
+                      backgroundColor: themeParams.secondary_bg_color || '#F3F4F6',
+                      color: themeParams.text_color || '#000000'
+                    }}
+                  >
+                    Отмена
+                  </button>
+                  <button
+                    onClick={confirmDelete}
+                    className="flex-1 py-2 px-4 rounded-lg font-medium transition-colors"
+                    style={{
+                      backgroundColor: '#DC2626',
+                      color: '#ffffff'
+                    }}
+                  >
+                    Удалить
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
         </>
       )}
     </AnimatePresence>
