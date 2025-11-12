@@ -27,7 +27,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://n8n.psayha.ru/webhook/admin/validate",
+        "url": "https://n8n.psayha.ru/webhook/admin-validate",
         "authentication": "none",
         "sendBody": true,
         "contentType": "json",
