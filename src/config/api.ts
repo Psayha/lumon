@@ -23,6 +23,7 @@ export const API_CONFIG = {
     chatList: '/webhook/chat-list',
     chatGetHistory: '/webhook/chat-get-history',
     chatSaveMessage: '/webhook/chat-save-message',
+    chatDelete: '/webhook/chat-delete',
     
     // Analytics (обновлено с auth.validate)
     analyticsLogEvent: '/webhook/analytics-log-event',
