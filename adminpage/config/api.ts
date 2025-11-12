@@ -39,6 +39,7 @@ export const ADMIN_API_CONFIG = {
     adminUsersList: '/webhook/admin-users-list',
     adminUserLimitsList: '/webhook/admin-user-limits-list',
     adminUserLimitsUpdate: '/webhook/admin-user-limits-update',
+    adminUserHistoryClear: '/webhook/admin/user-history-clear',
     
     // Admin Analytics
     adminStatsPlatform: '/webhook/admin-stats-platform',
