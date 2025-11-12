@@ -319,7 +319,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "=SELECT c.id, c.user_id, c.company_id\nFROM chats c\nWHERE c.id = '{{ $('Extract & Validate').item.json.chat_id }}'\n  AND (\n    c.user_id = '{{ $json.data.user.id }}'\n    OR {{ $json.data.user.company_id ? \"c.company_id = '\" + $json.data.user.company_id + \"'\" : \"FALSE\" }}\n  )\nLIMIT 1;",
+        "query": "=SELECT c.id, c.user_id, c.company_id\nFROM chats c\nWHERE c.id = '{{ $('Extract & Validate').item.json.chat_id }}'\n  AND (\n    c.user_id = '{{ $json.data.user.id }}'\n    OR {{ $json.data.companyId ? \"c.company_id = '\" + $json.data.companyId + \"'\" : \"FALSE\" }}\n  )\nLIMIT 1;",
         "options": {}
       },
       "id": "check-chat-access",
@@ -636,14 +636,14 @@
       "main": [
         [
           {
-            "node": "Respond Auth Error",
+            "node": "Check Chat Access",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "Check Chat Access",
+            "node": "Respond Auth Error",
             "type": "main",
             "index": 0
           }
@@ -665,14 +665,14 @@
       "main": [
         [
           {
-            "node": "Respond Access Denied",
+            "node": "Insert Message",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "Insert Message",
+            "node": "Respond Access Denied",
             "type": "main",
             "index": 0
           }

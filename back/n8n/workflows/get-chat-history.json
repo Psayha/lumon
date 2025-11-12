@@ -260,14 +260,14 @@
       "main": [
         [
           {
-            "node": "Respond Auth Error",
+            "node": "Select Messages",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "Select Messages",
+            "node": "Respond Auth Error",
             "type": "main",
             "index": 0
           }

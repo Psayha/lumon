@@ -386,12 +386,11 @@ export const authInit = async (initData: string, appVersion: string = '1.0.0'): 
 // Save message to database
 export const saveMessage = async (message: Message): Promise<ApiResponse<Message>> => {
   try {
-    const token = localStorage.getItem('session_token');
+    // Token is sent via Authorization header (getIdempotentHeaders), not in body
     const payload = {
-      ...message,
-      ...(token ? { session_token: token } : {})
+      ...message
     };
-    
+
     const response = await fetchWithRetry(
       getApiUrl(API_CONFIG.endpoints.chatSaveMessage),
       {
