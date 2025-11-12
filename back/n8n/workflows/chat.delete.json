@@ -86,7 +86,7 @@
         "options": {
           "response": {
             "response": {
-              "responseFormat": "text"
+              "responseFormat": "json"
             }
           }
         }
@@ -99,7 +99,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Parse JSON from text response\nconst input = $input.item.json;\nlet responseText = input.data || input;\n\nlet parsedData;\nif (typeof responseText === 'string') {\n  try {\n    parsedData = JSON.parse(responseText);\n  } catch (e) {\n    return { json: { success: false, error: 'Failed to parse auth response' } };\n  }\n} else {\n  parsedData = responseText;\n}\n\nif (!parsedData || Object.keys(parsedData).length === 0) {\n  return { json: { success: false, error: 'Empty auth response' } };\n}\n\nif (parsedData.success === undefined) {\n  return { json: { success: false, error: 'Invalid auth response format' } };\n}\n\nreturn { json: parsedData };"
+        "jsCode": "// Validate auth response (already parsed as JSON)\nconst authData = $input.item.json;\n\n// Check if response is empty\nif (!authData || Object.keys(authData).length === 0) {\n  return { json: { success: false, error: 'Empty auth response' } };\n}\n\n// Check if response has success field\nif (authData.success === undefined) {\n  return { json: { success: false, error: 'Invalid auth response format' } };\n}\n\nreturn { json: authData };"
       },
       "id": "parse-auth-response",
       "name": "Parse Auth Response",
@@ -161,6 +161,7 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.4,
       "position": [1250, 600],
+      "alwaysOutputData": true,
       "credentials": {
         "postgres": {
           "id": "supabase_postgres",
