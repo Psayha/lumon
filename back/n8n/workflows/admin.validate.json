@@ -237,14 +237,14 @@
       "main": [
         [
           {
-            "node": "Respond Unauthorized",
+            "node": "Build Response",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "Build Response",
+            "node": "Respond Unauthorized",
             "type": "main",
             "index": 0
           }
