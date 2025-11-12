@@ -40,7 +40,18 @@
       "name": "Validate Admin",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [650, 400]
+      "position": [650, 400],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Handle both success and error cases from HTTP request\nconst httpResponse = $input.item.json;\n\n// Check if this is an error response\nif (httpResponse.error || httpResponse.statusCode >= 400) {\n  return { json: { success: false, error: httpResponse.error?.message || 'Admin validation request failed' } };\n}\n\nconst responseText = httpResponse.data;\n\nlet parsedData;\nif (typeof responseText === 'string') {\n  try {\n    parsedData = JSON.parse(responseText);\n  } catch (e) {\n    return { json: { success: false, error: 'Failed to parse admin response' } };\n  }\n} else {\n  parsedData = responseText;\n}\n\nif (!parsedData || Object.keys(parsedData).length === 0) {\n  return { json: { success: false, error: 'Empty admin response' } };\n}\n\nif (parsedData.success === undefined) {\n  return { json: { success: false, error: 'Invalid admin response format' } };\n}\n\nreturn { json: parsedData };"
+      },
+      "id": "parse-admin-response",
+      "name": "Parse Admin Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [750, 400]
     },
     {
       "parameters": {
@@ -54,7 +65,7 @@
       "name": "IF Admin",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [850, 400]
+      "position": [950, 400]
     },
     {
       "parameters": {
@@ -97,7 +108,8 @@
   "connections": {
     "Webhook": { "main": [[{ "node": "Extract & Validate", "type": "main", "index": 0 }]] },
     "Extract & Validate": { "main": [[{ "node": "Validate Admin", "type": "main", "index": 0 }]] },
-    "Validate Admin": { "main": [[{ "node": "IF Admin", "type": "main", "index": 0 }]] },
+    "Validate Admin": { "main": [[{ "node": "Parse Admin Response", "type": "main", "index": 0 }]] },
+    "Parse Admin Response": { "main": [[{ "node": "IF Admin", "type": "main", "index": 0 }]] },
     "IF Admin": {
       "main": [
         [{ "node": "Clear History", "type": "main", "index": 0 }],
