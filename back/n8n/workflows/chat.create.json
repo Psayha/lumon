@@ -1,3 +1,4 @@
+Fixed node: Call auth.validate
 {
   "name": "chat.create",
   "active": true,
@@ -13,18 +14,24 @@
       "name": "Webhook Trigger",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [250, 400],
+      "position": [
+        250,
+        400
+      ],
       "webhookId": "chat-create"
     },
     {
       "parameters": {
-        "jsCode": "// Extract token from Authorization header, body, or query (fallback)\n// Проблема: заголовок Authorization может не прийти в webhook, используем fallback\nconst input = $input.item.json;\n\n// В n8n webhook body может быть в разных форматах:\n// 1. input.body (если это объект)\n// 2. input (если body уже распарсен)\n// 3. JSON.parse(input.body) если body это строка\nlet body = input.body || input;\n\n// Если body это строка, пытаемся распарсить\nif (typeof body === 'string') {\n  try {\n    body = JSON.parse(body);\n  } catch (e) {\n    // Если не JSON, оставляем как есть\n  }\n}\n\n// Если body все еще не объект, используем весь input\nif (typeof body !== 'object' || body === null) {\n  body = input;\n}\n\nconst headers = input.headers || {};\nconst query = input.query || {};\n\n// ПРИОРИТЕТ 1: Пробуем получить токен из body (для n8n webhooks это надежнее)\nlet authHeader = '';\nlet tokenSource = 'none';\nif (body && typeof body === 'object') {\n  if (body.session_token && typeof body.session_token === 'string' && body.session_token.trim().length > 0) {\n    authHeader = `Bearer ${body.session_token.trim()}`;\n    tokenSource = 'body.session_token';\n  } else if (body.token && typeof body.token === 'string' && body.token.trim().length > 0) {\n    authHeader = `Bearer ${body.token.trim()}`;\n    tokenSource = 'body.token';\n  } else if (body.authorization && typeof body.authorization === 'string' && body.authorization.trim().length > 0) {\n    const authValue = body.authorization.trim();\n    authHeader = authValue.startsWith('Bearer ') ? authValue : `Bearer ${authValue}`;\n    tokenSource = 'body.authorization';\n  }\n}\n\n// ПРИОРИТЕТ 2: Если токена нет в body, пробуем из заголовка Authorization\nif (!authHeader || !authHeader.startsWith('Bearer ')) {\n  const headerAuth = headers.authorization || headers.Authorization || headers['authorization'] || headers['Authorization'] || '';\n  if (headerAuth && headerAuth.startsWith('Bearer ')) {\n    authHeader = headerAuth;\n    tokenSource = 'header.Authorization';\n  }\n}\n\n// ПРИОРИТЕТ 3: Если токена нет в body и заголовке, пробуем из query параметров\nif (!authHeader || !authHeader.startsWith('Bearer ')) {\n  if (query.token && typeof query.token === 'string' && query.token.trim().length > 0) {\n    authHeader = `Bearer ${query.token.trim()}`;\n    tokenSource = 'query.token';\n  } else if (query.session_token && typeof query.session_token === 'string' && query.session_token.trim().length > 0) {\n    authHeader = `Bearer ${query.session_token.trim()}`;\n    tokenSource = 'query.session_token';\n  } else if (query.authorization && typeof query.authorization === 'string' && query.authorization.trim().length > 0) {\n    const authValue = query.authorization.trim();\n    authHeader = authValue.startsWith('Bearer ') ? authValue : `Bearer ${authValue}`;\n    tokenSource = 'query.authorization';\n  }\n}\n\nif (!authHeader || !authHeader.startsWith('Bearer ')) {\n  return {\n    json: {\n      error: 'unauthorized',\n      status: 401,\n      message: 'Missing or invalid Authorization header or token. Please ensure you are logged in.',\n      debug: {\n        headersKeys: Object.keys(headers),\n        hasAuth: !!authHeader,\n        authHeaderStart: authHeader ? authHeader.substring(0, 20) : 'null',\n        bodyType: typeof body,\n        bodyIsObject: typeof body === 'object' && body !== null,\n        bodyKeys: body && typeof body === 'object' ? Object.keys(body) : [],\n        queryKeys: Object.keys(query),\n        hasSessionToken: !!(body && typeof body === 'object' && body.session_token),\n        hasToken: !!(body && typeof body === 'object' && body.token),\n        hasAuthorization: !!(body && typeof body === 'object' && body.authorization),\n        hasHeaderAuth: !!(headers.authorization || headers.Authorization),\n        hasQueryToken: !!(query.token || query.session_token),\n        tokenSource: tokenSource,\n        inputKeys: Object.keys(input)\n      }\n    }\n  };\n}\n\nconst token = authHeader.replace('Bearer ', '').trim();\nconst title = (body && typeof body === 'object' && body.title) ? body.title : 'New Chat';\n\nreturn {\n  json: {\n    token: token,\n    title: title,\n    tokenSource: tokenSource,\n    ip: headers['x-forwarded-for'] || headers['x-real-ip'] || 'unknown',\n    user_agent: headers['user-agent'] || 'unknown'\n  }\n};"
+        "jsCode": "// Extract token from Authorization header, body, or query (fallback)\n// \u041f\u0440\u043e\u0431\u043b\u0435\u043c\u0430: \u0437\u0430\u0433\u043e\u043b\u043e\u0432\u043e\u043a Authorization \u043c\u043e\u0436\u0435\u0442 \u043d\u0435 \u043f\u0440\u0438\u0439\u0442\u0438 \u0432 webhook, \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u0435\u043c fallback\nconst input = $input.item.json;\n\n// \u0412 n8n webhook body \u043c\u043e\u0436\u0435\u0442 \u0431\u044b\u0442\u044c \u0432 \u0440\u0430\u0437\u043d\u044b\u0445 \u0444\u043e\u0440\u043c\u0430\u0442\u0430\u0445:\n// 1. input.body (\u0435\u0441\u043b\u0438 \u044d\u0442\u043e \u043e\u0431\u044a\u0435\u043a\u0442)\n// 2. input (\u0435\u0441\u043b\u0438 body \u0443\u0436\u0435 \u0440\u0430\u0441\u043f\u0430\u0440\u0441\u0435\u043d)\n// 3. JSON.parse(input.body) \u0435\u0441\u043b\u0438 body \u044d\u0442\u043e \u0441\u0442\u0440\u043e\u043a\u0430\nlet body = input.body || input;\n\n// \u0415\u0441\u043b\u0438 body \u044d\u0442\u043e \u0441\u0442\u0440\u043e\u043a\u0430, \u043f\u044b\u0442\u0430\u0435\u043c\u0441\u044f \u0440\u0430\u0441\u043f\u0430\u0440\u0441\u0438\u0442\u044c\nif (typeof body === 'string') {\n  try {\n    body = JSON.parse(body);\n  } catch (e) {\n    // \u0415\u0441\u043b\u0438 \u043d\u0435 JSON, \u043e\u0441\u0442\u0430\u0432\u043b\u044f\u0435\u043c \u043a\u0430\u043a \u0435\u0441\u0442\u044c\n  }\n}\n\n// \u0415\u0441\u043b\u0438 body \u0432\u0441\u0435 \u0435\u0449\u0435 \u043d\u0435 \u043e\u0431\u044a\u0435\u043a\u0442, \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u0435\u043c \u0432\u0435\u0441\u044c input\nif (typeof body !== 'object' || body === null) {\n  body = input;\n}\n\nconst headers = input.headers || {};\nconst query = input.query || {};\n\n// \u041f\u0420\u0418\u041e\u0420\u0418\u0422\u0415\u0422 1: \u041f\u0440\u043e\u0431\u0443\u0435\u043c \u043f\u043e\u043b\u0443\u0447\u0438\u0442\u044c \u0442\u043e\u043a\u0435\u043d \u0438\u0437 body (\u0434\u043b\u044f n8n webhooks \u044d\u0442\u043e \u043d\u0430\u0434\u0435\u0436\u043d\u0435\u0435)\nlet authHeader = '';\nlet tokenSource = 'none';\nif (body && typeof body === 'object') {\n  if (body.session_token && typeof body.session_token === 'string' && body.session_token.trim().length > 0) {\n    authHeader = `Bearer ${body.session_token.trim()}`;\n    tokenSource = 'body.session_token';\n  } else if (body.token && typeof body.token === 'string' && body.token.trim().length > 0) {\n    authHeader = `Bearer ${body.token.trim()}`;\n    tokenSource = 'body.token';\n  } else if (body.authorization && typeof body.authorization === 'string' && body.authorization.trim().length > 0) {\n    const authValue = body.authorization.trim();\n    authHeader = authValue.startsWith('Bearer ') ? authValue : `Bearer ${authValue}`;\n    tokenSource = 'body.authorization';\n  }\n}\n\n// \u041f\u0420\u0418\u041e\u0420\u0418\u0422\u0415\u0422 2: \u0415\u0441\u043b\u0438 \u0442\u043e\u043a\u0435\u043d\u0430 \u043d\u0435\u0442 \u0432 body, \u043f\u0440\u043e\u0431\u0443\u0435\u043c \u0438\u0437 \u0437\u0430\u0433\u043e\u043b\u043e\u0432\u043a\u0430 Authorization\nif (!authHeader || !authHeader.startsWith('Bearer ')) {\n  const headerAuth = headers.authorization || headers.Authorization || headers['authorization'] || headers['Authorization'] || '';\n  if (headerAuth && headerAuth.startsWith('Bearer ')) {\n    authHeader = headerAuth;\n    tokenSource = 'header.Authorization';\n  }\n}\n\n// \u041f\u0420\u0418\u041e\u0420\u0418\u0422\u0415\u0422 3: \u0415\u0441\u043b\u0438 \u0442\u043e\u043a\u0435\u043d\u0430 \u043d\u0435\u0442 \u0432 body \u0438 \u0437\u0430\u0433\u043e\u043b\u043e\u0432\u043a\u0435, \u043f\u0440\u043e\u0431\u0443\u0435\u043c \u0438\u0437 query \u043f\u0430\u0440\u0430\u043c\u0435\u0442\u0440\u043e\u0432\nif (!authHeader || !authHeader.startsWith('Bearer ')) {\n  if (query.token && typeof query.token === 'string' && query.token.trim().length > 0) {\n    authHeader = `Bearer ${query.token.trim()}`;\n    tokenSource = 'query.token';\n  } else if (query.session_token && typeof query.session_token === 'string' && query.session_token.trim().length > 0) {\n    authHeader = `Bearer ${query.session_token.trim()}`;\n    tokenSource = 'query.session_token';\n  } else if (query.authorization && typeof query.authorization === 'string' && query.authorization.trim().length > 0) {\n    const authValue = query.authorization.trim();\n    authHeader = authValue.startsWith('Bearer ') ? authValue : `Bearer ${authValue}`;\n    tokenSource = 'query.authorization';\n  }\n}\n\nif (!authHeader || !authHeader.startsWith('Bearer ')) {\n  return {\n    json: {\n      error: 'unauthorized',\n      status: 401,\n      message: 'Missing or invalid Authorization header or token. Please ensure you are logged in.',\n      debug: {\n        headersKeys: Object.keys(headers),\n        hasAuth: !!authHeader,\n        authHeaderStart: authHeader ? authHeader.substring(0, 20) : 'null',\n        bodyType: typeof body,\n        bodyIsObject: typeof body === 'object' && body !== null,\n        bodyKeys: body && typeof body === 'object' ? Object.keys(body) : [],\n        queryKeys: Object.keys(query),\n        hasSessionToken: !!(body && typeof body === 'object' && body.session_token),\n        hasToken: !!(body && typeof body === 'object' && body.token),\n        hasAuthorization: !!(body && typeof body === 'object' && body.authorization),\n        hasHeaderAuth: !!(headers.authorization || headers.Authorization),\n        hasQueryToken: !!(query.token || query.session_token),\n        tokenSource: tokenSource,\n        inputKeys: Object.keys(input)\n      }\n    }\n  };\n}\n\nconst token = authHeader.replace('Bearer ', '').trim();\nconst title = (body && typeof body === 'object' && body.title) ? body.title : 'New Chat';\n\nreturn {\n  json: {\n    token: token,\n    title: title,\n    tokenSource: tokenSource,\n    ip: headers['x-forwarded-for'] || headers['x-real-ip'] || 'unknown',\n    user_agent: headers['user-agent'] || 'unknown'\n  }\n};"
       },
       "id": "extract-token",
       "name": "Extract Token",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [450, 400]
+      "position": [
+        450,
+        400
+      ]
     },
     {
       "parameters": {
@@ -53,7 +60,10 @@
       "name": "IF Extract Error",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [650, 400]
+      "position": [
+        650,
+        400
+      ]
     },
     {
       "parameters": {
@@ -67,36 +77,41 @@
       "name": "Respond Extract Error",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [850, 300]
+      "position": [
+        850,
+        300
+      ]
     },
     {
       "parameters": {
         "method": "POST",
         "url": "https://n8n.psayha.ru/webhook/auth-validate-v2",
         "authentication": "none",
-        "sendBody": true,
-        "contentType": "json",
-        "bodyParameters": {
-          "parameters": [
-            {
-              "name": "token",
-              "value": "={{ $('Extract Token').item.json.token }}"
-            }
-          ]
-        },
         "options": {
           "response": {
             "response": {
               "responseFormat": "text"
             }
           }
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer $('Extract Token').item.json.token"
+            }
+          ]
         }
       },
       "id": "call-auth-validate",
       "name": "Call auth.validate",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [850, 500],
+      "position": [
+        850,
+        500
+      ],
       "continueOnFail": true
     },
     {
@@ -107,7 +122,10 @@
       "name": "Parse Auth Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1050, 500]
+      "position": [
+        1050,
+        500
+      ]
     },
     {
       "parameters": {
@@ -130,7 +148,10 @@
       "name": "Call Rate Limit",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1,
-      "position": [1250, 500]
+      "position": [
+        1250,
+        500
+      ]
     },
     {
       "parameters": {
@@ -159,7 +180,10 @@
       "name": "IF Rate Limit OK",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [1450, 500]
+      "position": [
+        1450,
+        500
+      ]
     },
     {
       "parameters": {
@@ -173,7 +197,10 @@
       "name": "Respond Rate Limit",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [1650, 300]
+      "position": [
+        1650,
+        300
+      ]
     },
     {
       "parameters": {
@@ -211,7 +238,10 @@
       "name": "IF Auth Success",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [1650, 500]
+      "position": [
+        1650,
+        500
+      ]
     },
     {
       "parameters": {
@@ -225,7 +255,10 @@
       "name": "Respond Auth Error",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [1650, 400]
+      "position": [
+        1650,
+        400
+      ]
     },
     {
       "parameters": {
@@ -235,7 +268,10 @@
       "name": "Prepare Chat Data",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1850, 600]
+      "position": [
+        1850,
+        600
+      ]
     },
     {
       "parameters": {
@@ -249,7 +285,10 @@
       "name": "Create Chat",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.4,
-      "position": [2050, 600],
+      "position": [
+        2050,
+        600
+      ],
       "credentials": {
         "postgres": {
           "id": "supabase_postgres",
@@ -259,13 +298,16 @@
     },
     {
       "parameters": {
-        "jsCode": "// Prepare audit event data\nconst authData = $('Parse Auth Response').item.json;\nconst chatData = $('Create Chat').item.json;\nconst extractData = $('Extract Token').item.json;\n\n// Debug: проверяем наличие данных\nif (!authData || !authData.data || !authData.data.user) {\n  throw new Error('Auth data missing: ' + JSON.stringify(authData));\n}\n\nif (!chatData || !chatData.id) {\n  throw new Error('Chat data missing: ' + JSON.stringify(chatData));\n}\n\nconst userId = authData.data.user.id;\nconst chatId = chatData.id;\nconst title = extractData?.title || 'New Chat';\nconst ip = extractData?.ip || 'unknown';\nconst userAgent = extractData?.user_agent || 'unknown';\n\nreturn {\n  json: {\n    user_id: userId,\n    action: 'chat.created',\n    resource_type: 'chat',\n    resource_id: chatId,\n    metadata: JSON.stringify({ title: title }),\n    ip: ip,\n    user_agent: userAgent\n  }\n};"
+        "jsCode": "// Prepare audit event data\nconst authData = $('Parse Auth Response').item.json;\nconst chatData = $('Create Chat').item.json;\nconst extractData = $('Extract Token').item.json;\n\n// Debug: \u043f\u0440\u043e\u0432\u0435\u0440\u044f\u0435\u043c \u043d\u0430\u043b\u0438\u0447\u0438\u0435 \u0434\u0430\u043d\u043d\u044b\u0445\nif (!authData || !authData.data || !authData.data.user) {\n  throw new Error('Auth data missing: ' + JSON.stringify(authData));\n}\n\nif (!chatData || !chatData.id) {\n  throw new Error('Chat data missing: ' + JSON.stringify(chatData));\n}\n\nconst userId = authData.data.user.id;\nconst chatId = chatData.id;\nconst title = extractData?.title || 'New Chat';\nconst ip = extractData?.ip || 'unknown';\nconst userAgent = extractData?.user_agent || 'unknown';\n\nreturn {\n  json: {\n    user_id: userId,\n    action: 'chat.created',\n    resource_type: 'chat',\n    resource_id: chatId,\n    metadata: JSON.stringify({ title: title }),\n    ip: ip,\n    user_agent: userAgent\n  }\n};"
       },
       "id": "prepare-audit-data",
       "name": "Prepare Audit Data",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2250, 600]
+      "position": [
+        2250,
+        600
+      ]
     },
     {
       "parameters": {
@@ -279,7 +321,10 @@
       "name": "Log Audit Event",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.4,
-      "position": [2450, 600],
+      "position": [
+        2450,
+        600
+      ],
       "continueOnFail": true,
       "credentials": {
         "postgres": {
@@ -296,17 +341,23 @@
       "name": "Check Audit Log",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2650, 600]
+      "position": [
+        2650,
+        600
+      ]
     },
     {
       "parameters": {
-        "jsCode": "// Manual UUID v4 generator\nfunction generateUUIDv4() {\n  const hex = '0123456789abcdef';\n  let uuid = '';\n  for (let i = 0; i < 36; i++) {\n    if (i === 8 || i === 13 || i === 18 || i === 23) {\n      uuid += '-';\n    } else if (i === 14) {\n      uuid += '4';\n    } else if (i === 19) {\n      uuid += hex[(Math.random() * 4 | 8)];\n    } else {\n      uuid += hex[Math.random() * 16 | 0];\n    }\n  }\n  return uuid;\n}\n\n// FIX: Берем данные напрямую из Create Chat, а не из Check Audit Log\nconst chatData = $('Create Chat').item.json;\n\nif (!chatData || !chatData.id) {\n  throw new Error('Chat data missing from Create Chat node');\n}\n\nreturn {\n  json: {\n    success: true,\n    data: {\n      id: chatData.id,\n      user_id: chatData.user_id,\n      company_id: chatData.company_id,\n      title: chatData.title,\n      created_at: chatData.created_at\n    },\n    traceId: generateUUIDv4()\n  }\n};"
+        "jsCode": "// Manual UUID v4 generator\nfunction generateUUIDv4() {\n  const hex = '0123456789abcdef';\n  let uuid = '';\n  for (let i = 0; i < 36; i++) {\n    if (i === 8 || i === 13 || i === 18 || i === 23) {\n      uuid += '-';\n    } else if (i === 14) {\n      uuid += '4';\n    } else if (i === 19) {\n      uuid += hex[(Math.random() * 4 | 8)];\n    } else {\n      uuid += hex[Math.random() * 16 | 0];\n    }\n  }\n  return uuid;\n}\n\n// FIX: \u0411\u0435\u0440\u0435\u043c \u0434\u0430\u043d\u043d\u044b\u0435 \u043d\u0430\u043f\u0440\u044f\u043c\u0443\u044e \u0438\u0437 Create Chat, \u0430 \u043d\u0435 \u0438\u0437 Check Audit Log\nconst chatData = $('Create Chat').item.json;\n\nif (!chatData || !chatData.id) {\n  throw new Error('Chat data missing from Create Chat node');\n}\n\nreturn {\n  json: {\n    success: true,\n    data: {\n      id: chatData.id,\n      user_id: chatData.user_id,\n      company_id: chatData.company_id,\n      title: chatData.title,\n      created_at: chatData.created_at\n    },\n    traceId: generateUUIDv4()\n  }\n};"
       },
       "id": "format-response",
       "name": "Build Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2650, 600]
+      "position": [
+        2650,
+        600
+      ]
     },
     {
       "parameters": {
@@ -320,7 +371,10 @@
       "name": "Respond Success",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [2850, 600]
+      "position": [
+        2850,
+        600
+      ]
     },
     {
       "parameters": {
@@ -330,7 +384,10 @@
       "name": "Handle DB Error",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1850, 700]
+      "position": [
+        1850,
+        700
+      ]
     },
     {
       "parameters": {
@@ -344,7 +401,10 @@
       "name": "Respond DB Error",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [2850, 700]
+      "position": [
+        2850,
+        700
+      ]
     }
   ],
   "connections": {

@@ -1,3 +1,4 @@
+Fixed node: Validate Session
 {
   "name": "auth.set-viewer-role",
   "nodes": [
@@ -12,7 +13,10 @@
       "name": "Webhook Trigger",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 1.1,
-      "position": [250, 300],
+      "position": [
+        250,
+        300
+      ],
       "webhookId": "auth-set-viewer-role"
     },
     {
@@ -23,34 +27,41 @@
       "name": "Extract Token",
       "type": "n8n-nodes-base.function",
       "typeVersion": 1,
-      "position": [450, 300]
+      "position": [
+        450,
+        300
+      ]
     },
     {
       "parameters": {
         "url": "https://n8n.psayha.ru/webhook/auth-validate-v2",
         "method": "POST",
-        "sendBody": true,
-        "bodyParameters": {
-          "parameters": [
-            {
-              "name": "token",
-              "value": "={{ $json.token }}"
-            }
-          ]
-        },
         "options": {
           "response": {
             "response": {
               "responseFormat": "text"
             }
           }
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer $json.token"
+            }
+          ]
         }
       },
       "id": "validate-session",
       "name": "Validate Session",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [650, 300]
+      "position": [
+        650,
+        300
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -60,7 +71,10 @@
       "name": "Parse Auth Response",
       "type": "n8n-nodes-base.function",
       "typeVersion": 1,
-      "position": [850, 300]
+      "position": [
+        850,
+        300
+      ]
     },
     {
       "parameters": {
@@ -72,7 +86,10 @@
       "name": "Update Session Role",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.4,
-      "position": [1050, 300],
+      "position": [
+        1050,
+        300
+      ],
       "credentials": {
         "postgres": {
           "id": "supabase-postgres",
@@ -88,7 +105,10 @@
       "name": "Format Response",
       "type": "n8n-nodes-base.function",
       "typeVersion": 1,
-      "position": [1250, 300]
+      "position": [
+        1250,
+        300
+      ]
     },
     {
       "parameters": {
@@ -100,7 +120,10 @@
       "name": "Response Success",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [1450, 300]
+      "position": [
+        1450,
+        300
+      ]
     },
     {
       "parameters": {
@@ -110,7 +133,10 @@
       "name": "Format Error",
       "type": "n8n-nodes-base.function",
       "typeVersion": 1,
-      "position": [1050, 500],
+      "position": [
+        1050,
+        500
+      ],
       "onError": "continueRegularOutput"
     },
     {
@@ -124,7 +150,10 @@
       "name": "Response Error",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [1250, 500]
+      "position": [
+        1250,
+        500
+      ]
     }
   ],
   "connections": {
@@ -216,4 +245,3 @@
   "updatedAt": "2025-11-04T00:00:00.000Z",
   "versionId": "1"
 }
-

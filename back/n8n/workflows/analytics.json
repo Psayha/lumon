@@ -1,3 +1,4 @@
+Fixed node: Call auth.validate
 {
   "name": "analytics.log-event",
   "nodes": [
@@ -12,7 +13,10 @@
       "name": "Webhook Trigger",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [250, 400],
+      "position": [
+        250,
+        400
+      ],
       "webhookId": "analytics-log-event"
     },
     {
@@ -23,7 +27,10 @@
       "name": "Extract & Validate",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [450, 400]
+      "position": [
+        450,
+        400
+      ]
     },
     {
       "parameters": {
@@ -52,7 +59,10 @@
       "name": "IF Validation Error",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [650, 400]
+      "position": [
+        650,
+        400
+      ]
     },
     {
       "parameters": {
@@ -66,36 +76,42 @@
       "name": "Respond Validation Error",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [850, 300]
+      "position": [
+        850,
+        300
+      ]
     },
     {
       "parameters": {
         "method": "POST",
         "url": "https://n8n.psayha.ru/webhook/auth-validate-v2",
         "authentication": "none",
-        "sendBody": true,
-        "contentType": "json",
-        "bodyParameters": {
-          "parameters": [
-            {
-              "name": "token",
-              "value": "={{ $json.token }}"
-            }
-          ]
-        },
         "options": {
           "response": {
             "response": {
               "responseFormat": "text"
             }
           }
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer $json.token"
+            }
+          ]
         }
       },
       "id": "call-auth-validate",
       "name": "Call auth.validate",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [850, 500]
+      "position": [
+        850,
+        500
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -105,7 +121,10 @@
       "name": "Parse Auth Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1050, 500]
+      "position": [
+        1050,
+        500
+      ]
     },
     {
       "parameters": {
@@ -115,7 +134,10 @@
       "name": "Simplified Rate Check",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1250, 500]
+      "position": [
+        1250,
+        500
+      ]
     },
     {
       "parameters": {
@@ -144,7 +166,10 @@
       "name": "IF Rate Limit OK",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [1450, 500]
+      "position": [
+        1450,
+        500
+      ]
     },
     {
       "parameters": {
@@ -158,7 +183,10 @@
       "name": "Respond Rate Limit",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [1650, 300]
+      "position": [
+        1650,
+        300
+      ]
     },
     {
       "parameters": {
@@ -187,7 +215,10 @@
       "name": "IF Auth Success",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [1650, 500]
+      "position": [
+        1650,
+        500
+      ]
     },
     {
       "parameters": {
@@ -201,7 +232,10 @@
       "name": "Respond Auth Error",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [1250, 400]
+      "position": [
+        1250,
+        400
+      ]
     },
     {
       "parameters": {
@@ -213,7 +247,10 @@
       "name": "Insert Audit Event",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.4,
-      "position": [1250, 600],
+      "position": [
+        1250,
+        600
+      ],
       "credentials": {
         "postgres": {
           "id": "supabase_postgres",
@@ -229,7 +266,10 @@
       "name": "Build Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1450, 600]
+      "position": [
+        1450,
+        600
+      ]
     },
     {
       "parameters": {
@@ -243,7 +283,10 @@
       "name": "Respond Success",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [1650, 600]
+      "position": [
+        1650,
+        600
+      ]
     }
   ],
   "connections": {

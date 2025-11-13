@@ -174,13 +174,12 @@
         "method": "POST",
         "url": "https://n8n.psayha.ru/webhook/auth-validate-v2",
         "authentication": "none",
-        "sendBody": true,
-        "contentType": "json",
-        "bodyParameters": {
+        "sendHeaders": true,
+        "headerParameters": {
           "parameters": [
             {
-              "name": "token",
-              "value": "={{ $json.token }}"
+              "name": "Authorization",
+              "value": "=Bearer {{ $json.token }}"
             }
           ]
         },
@@ -196,11 +195,12 @@
       "name": "Call auth.validate",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [850, 500]
+      "position": [850, 500],
+      "continueOnFail": true
     },
     {
       "parameters": {
-        "jsCode": "// Validate auth response (already parsed as JSON)\nconst authData = $input.item.json;\n\n// Check if response is empty\nif (!authData || Object.keys(authData).length === 0) {\n  return { json: { success: false, error: 'Empty auth response' } };\n}\n\n// Check if response has success field\nif (authData.success === undefined) {\n  return { json: { success: false, error: 'Invalid auth response format' } };\n}\n\nreturn { json: authData };"
+        "jsCode": "// Handle both success and error cases from HTTP request\nconst httpResponse = $input.item.json;\n\n// Check if this is an error response (continueOnFail format)\nif (httpResponse.error || httpResponse.statusCode >= 400) {\n  return { json: { success: false, error: httpResponse.error?.message || 'Auth validation request failed' } };\n}\n\n// Get response data\nconst responseText = httpResponse.data;\n\nlet parsedData;\nif (typeof responseText === 'string') {\n  try {\n    parsedData = JSON.parse(responseText);\n  } catch (e) {\n    return { json: { success: false, error: 'Failed to parse auth response' } };\n  }\n} else {\n  parsedData = responseText;\n}\n\n// Check if response is empty\nif (!parsedData || Object.keys(parsedData).length === 0) {\n  return { json: { success: false, error: 'Empty auth response' } };\n}\n\n// Check if response has success field\nif (parsedData.success === undefined) {\n  return { json: { success: false, error: 'Invalid auth response format' } };\n}\n\nreturn { json: parsedData };"
       },
       "id": "parse-auth-response",
       "name": "Parse Auth Response",
