@@ -17,13 +17,42 @@
     },
     {
       "parameters": {
-        "functionCode": "// Extract token from webhook body\nconst body = $input.item.json.body || $input.item.json;\nconst token = body.token;\n\nif (!token) {\n  throw new Error('Session token is required');\n}\n\nreturn {\n  json: {\n    old_token: token\n  }\n};"
+        "functionCode": "// Extract token from webhook body or Authorization header\nconst input = $input.item.json;\nconst body = input.body || input;\nconst headers = input.headers || {};\n\n// Try to get token from Authorization header first\nconst authHeader = headers.authorization || headers.Authorization || '';\nlet token = null;\n\nif (authHeader && authHeader.startsWith('Bearer ')) {\n  token = authHeader.replace('Bearer ', '').trim();\n} else if (body.token) {\n  // Fallback to body.token for backward compatibility\n  token = body.token;\n}\n\nif (!token) {\n  return {\n    json: {\n      error: true,\n      code: 'MISSING_TOKEN',\n      message: 'Session token is required',\n      status: 400\n    }\n  };\n}\n\nreturn {\n  json: {\n    old_token: token\n  }\n};"
       },
       "id": "extract-token",
       "name": "Extract Token",
       "type": "n8n-nodes-base.function",
       "typeVersion": 1,
       "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "check-error",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-extract-error",
+      "name": "IF Extract Error",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [550, 300]
     },
     {
       "parameters": {
@@ -35,7 +64,7 @@
       "name": "Get Old Session",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.4,
-      "position": [650, 300],
+      "position": [750, 400],
       "credentials": {
         "postgres": {
           "id": "supabase-postgres",
@@ -45,13 +74,42 @@
     },
     {
       "parameters": {
-        "functionCode": "// Check if old session exists\nconst session = $input.item.json;\n\nif (!session.id) {\n  throw new Error('SESSION_NOT_FOUND: Invalid session token');\n}\n\n// Check if session is expired\nconst now = new Date();\nconst expiresAt = new Date(session.expires_at);\n\nif (now > expiresAt) {\n  throw new Error('SESSION_EXPIRED: Cannot refresh expired session');\n}\n\n// Pass through session data\nreturn {\n  json: session\n};"
+        "functionCode": "// Check if old session exists\nconst session = $input.item.json;\n\nif (!session.id) {\n  return {\n    json: {\n      error: true,\n      code: 'SESSION_NOT_FOUND',\n      message: 'Invalid session token',\n      status: 401\n    }\n  };\n}\n\n// Check if session is expired\nconst now = new Date();\nconst expiresAt = new Date(session.expires_at);\n\nif (now > expiresAt) {\n  return {\n    json: {\n      error: true,\n      code: 'SESSION_EXPIRED',\n      message: 'Cannot refresh expired session',\n      status: 401\n    }\n  };\n}\n\n// Pass through session data\nreturn {\n  json: session\n};"
       },
       "id": "validate-old-session",
       "name": "Validate Old Session",
       "type": "n8n-nodes-base.function",
       "typeVersion": 1,
-      "position": [850, 300]
+      "position": [950, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "check-validation-error",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-validation-error",
+      "name": "IF Validation Error",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1150, 400]
     },
     {
       "parameters": {
@@ -61,7 +119,7 @@
       "name": "Generate New Token",
       "type": "n8n-nodes-base.function",
       "typeVersion": 1,
-      "position": [1050, 300]
+      "position": [1350, 500]
     },
     {
       "parameters": {
@@ -73,7 +131,7 @@
       "name": "Deactivate Old Session",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.4,
-      "position": [1250, 300],
+      "position": [1550, 500],
       "credentials": {
         "postgres": {
           "id": "supabase-postgres",
@@ -143,8 +201,8 @@
     {
       "parameters": {
         "respondWith": "text",
-        "responseCode": 401,
-        "responseBody": "={{ JSON.stringify({success: false, error: {code: 'UNAUTHORIZED', message: $json.message || 'Cannot refresh session'}}) }}",
+        "responseCode": "={{ $json.status || 401 }}",
+        "responseBody": "={{ JSON.stringify({success: false, error: $json.code, message: $json.message}) }}",
         "options": {
           "responseHeaders": {
             "entries": [
@@ -160,108 +218,48 @@
       "name": "Respond Error",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [850, 500]
+      "position": [1350, 300]
     }
   ],
   "connections": {
     "Webhook Trigger": {
-      "main": [
-        [
-          {
-            "node": "Extract Token",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Extract Token", "type": "main", "index": 0 }]]
     },
     "Extract Token": {
+      "main": [[{ "node": "IF Extract Error", "type": "main", "index": 0 }]]
+    },
+    "IF Extract Error": {
       "main": [
-        [
-          {
-            "node": "Get Old Session",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        [{ "node": "Respond Error", "type": "main", "index": 0 }],
+        [{ "node": "Get Old Session", "type": "main", "index": 0 }]
       ]
     },
     "Get Old Session": {
-      "main": [
-        [
-          {
-            "node": "Validate Old Session",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Validate Old Session", "type": "main", "index": 0 }]]
     },
     "Validate Old Session": {
+      "main": [[{ "node": "IF Validation Error", "type": "main", "index": 0 }]]
+    },
+    "IF Validation Error": {
       "main": [
-        [
-          {
-            "node": "Generate New Token",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        [{ "node": "Respond Error", "type": "main", "index": 0 }],
+        [{ "node": "Generate New Token", "type": "main", "index": 0 }]
       ]
     },
     "Generate New Token": {
-      "main": [
-        [
-          {
-            "node": "Deactivate Old Session",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Deactivate Old Session", "type": "main", "index": 0 }]]
     },
     "Deactivate Old Session": {
-      "main": [
-        [
-          {
-            "node": "Prepare Session Data",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Prepare Session Data", "type": "main", "index": 0 }]]
     },
     "Prepare Session Data": {
-      "main": [
-        [
-          {
-            "node": "Create New Session",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Create New Session", "type": "main", "index": 0 }]]
     },
     "Create New Session": {
-      "main": [
-        [
-          {
-            "node": "Build Response",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Build Response", "type": "main", "index": 0 }]]
     },
     "Build Response": {
-      "main": [
-        [
-          {
-            "node": "Respond to Webhook",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Respond to Webhook", "type": "main", "index": 0 }]]
     }
   },
   "settings": {
