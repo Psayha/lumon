@@ -1,3 +1,4 @@
+Fixed node: Call auth.validate
 {
   "name": "chat.get-history",
   "nodes": [
@@ -12,7 +13,10 @@
       "name": "Webhook Trigger",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [250, 400],
+      "position": [
+        250,
+        400
+      ],
       "webhookId": "chat-get-history"
     },
     {
@@ -23,7 +27,10 @@
       "name": "Extract & Validate",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [450, 400]
+      "position": [
+        450,
+        400
+      ]
     },
     {
       "parameters": {
@@ -52,7 +59,10 @@
       "name": "IF Validation Error",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [650, 400]
+      "position": [
+        650,
+        400
+      ]
     },
     {
       "parameters": {
@@ -66,36 +76,42 @@
       "name": "Respond Validation Error",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [850, 300]
+      "position": [
+        850,
+        300
+      ]
     },
     {
       "parameters": {
         "method": "POST",
         "url": "https://n8n.psayha.ru/webhook/auth-validate-v2",
         "authentication": "none",
-        "sendBody": true,
-        "contentType": "json",
-        "bodyParameters": {
-          "parameters": [
-            {
-              "name": "token",
-              "value": "={{ $json.token }}"
-            }
-          ]
-        },
         "options": {
           "response": {
             "response": {
               "responseFormat": "json"
             }
           }
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer $json.token"
+            }
+          ]
         }
       },
       "id": "call-auth-validate",
       "name": "Call auth.validate",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [850, 500]
+      "position": [
+        850,
+        500
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -105,7 +121,10 @@
       "name": "Parse Auth Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1050, 500]
+      "position": [
+        1050,
+        500
+      ]
     },
     {
       "parameters": {
@@ -134,7 +153,10 @@
       "name": "IF Auth Success",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [1250, 500]
+      "position": [
+        1250,
+        500
+      ]
     },
     {
       "parameters": {
@@ -148,7 +170,10 @@
       "name": "Respond Auth Error",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [1250, 400]
+      "position": [
+        1250,
+        400
+      ]
     },
     {
       "parameters": {
@@ -160,7 +185,10 @@
       "name": "Select Messages",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.4,
-      "position": [1250, 600],
+      "position": [
+        1250,
+        600
+      ],
       "alwaysOutputData": true,
       "credentials": {
         "postgres": {
@@ -177,7 +205,10 @@
       "name": "Build Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1450, 600]
+      "position": [
+        1450,
+        600
+      ]
     },
     {
       "parameters": {
@@ -191,7 +222,10 @@
       "name": "Respond Success",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [1650, 600]
+      "position": [
+        1650,
+        600
+      ]
     }
   ],
   "connections": {

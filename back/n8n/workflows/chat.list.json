@@ -1,3 +1,4 @@
+Fixed node: Call auth.validate
 {
   "name": "chat.list",
   "nodes": [
@@ -12,7 +13,10 @@
       "name": "Webhook Trigger",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [250, 400],
+      "position": [
+        250,
+        400
+      ],
       "webhookId": "chat-list"
     },
     {
@@ -23,7 +27,10 @@
       "name": "Extract Token",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [450, 400]
+      "position": [
+        450,
+        400
+      ]
     },
     {
       "parameters": {
@@ -52,7 +59,10 @@
       "name": "IF Extract Error",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [650, 400]
+      "position": [
+        650,
+        400
+      ]
     },
     {
       "parameters": {
@@ -66,36 +76,41 @@
       "name": "Respond Extract Error",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [850, 300]
+      "position": [
+        850,
+        300
+      ]
     },
     {
       "parameters": {
         "method": "POST",
         "url": "https://n8n.psayha.ru/webhook/auth-validate-v2",
         "authentication": "none",
-        "sendBody": true,
-        "contentType": "json",
-        "bodyParameters": {
-          "parameters": [
-            {
-              "name": "token",
-              "value": "={{ $('Extract Token').item.json.token }}"
-            }
-          ]
-        },
         "options": {
           "response": {
             "response": {
               "responseFormat": "text"
             }
           }
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer $('Extract Token').item.json.token"
+            }
+          ]
         }
       },
       "id": "call-auth-validate",
       "name": "Call auth.validate",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [850, 500],
+      "position": [
+        850,
+        500
+      ],
       "continueOnFail": true
     },
     {
@@ -106,7 +121,10 @@
       "name": "Parse Auth Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1050, 500]
+      "position": [
+        1050,
+        500
+      ]
     },
     {
       "parameters": {
@@ -135,7 +153,10 @@
       "name": "IF Auth Success",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [1250, 500]
+      "position": [
+        1250,
+        500
+      ]
     },
     {
       "parameters": {
@@ -149,7 +170,10 @@
       "name": "Respond Auth Error",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [1250, 400]
+      "position": [
+        1250,
+        400
+      ]
     },
     {
       "parameters": {
@@ -159,7 +183,10 @@
       "name": "Prepare Query Data",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1450, 600]
+      "position": [
+        1450,
+        600
+      ]
     },
     {
       "parameters": {
@@ -171,7 +198,10 @@
       "name": "Get Chats List",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.4,
-      "position": [1650, 600],
+      "position": [
+        1650,
+        600
+      ],
       "credentials": {
         "postgres": {
           "id": "supabase_postgres",
@@ -181,13 +211,16 @@
     },
     {
       "parameters": {
-        "jsCode": "// Manual UUID v4 generator\nfunction generateUUIDv4() {\n  const hex = '0123456789abcdef';\n  let uuid = '';\n  for (let i = 0; i < 36; i++) {\n    if (i === 8 || i === 13 || i === 18 || i === 23) {\n      uuid += '-';\n    } else if (i === 14) {\n      uuid += '4';\n    } else if (i === 19) {\n      uuid += hex[(Math.random() * 4 | 8)];\n    } else {\n      uuid += hex[Math.random() * 16 | 0];\n    }\n  }\n  return uuid;\n}\n\nconst chats = $input.all();\n\n// Frontend expects snake_case field names for consistency\nconst formattedChats = chats.map(item => {\n  const chat = item.json;\n  return {\n    id: chat.id,\n    user_id: chat.user_id,\n    title: chat.title || 'Без названия',\n    created_at: chat.created_at,\n    updated_at: chat.updated_at,\n    messageCount: parseInt(chat.message_count) || 0,\n    lastMessageAt: chat.last_message_at,\n    lastMessage: chat.last_message || null\n  };\n});\n\nreturn {\n  json: {\n    success: true,\n    data: formattedChats,\n    count: formattedChats.length,\n    traceId: generateUUIDv4()\n  }\n};"
+        "jsCode": "// Manual UUID v4 generator\nfunction generateUUIDv4() {\n  const hex = '0123456789abcdef';\n  let uuid = '';\n  for (let i = 0; i < 36; i++) {\n    if (i === 8 || i === 13 || i === 18 || i === 23) {\n      uuid += '-';\n    } else if (i === 14) {\n      uuid += '4';\n    } else if (i === 19) {\n      uuid += hex[(Math.random() * 4 | 8)];\n    } else {\n      uuid += hex[Math.random() * 16 | 0];\n    }\n  }\n  return uuid;\n}\n\nconst chats = $input.all();\n\n// Frontend expects snake_case field names for consistency\nconst formattedChats = chats.map(item => {\n  const chat = item.json;\n  return {\n    id: chat.id,\n    user_id: chat.user_id,\n    title: chat.title || '\u0411\u0435\u0437 \u043d\u0430\u0437\u0432\u0430\u043d\u0438\u044f',\n    created_at: chat.created_at,\n    updated_at: chat.updated_at,\n    messageCount: parseInt(chat.message_count) || 0,\n    lastMessageAt: chat.last_message_at,\n    lastMessage: chat.last_message || null\n  };\n});\n\nreturn {\n  json: {\n    success: true,\n    data: formattedChats,\n    count: formattedChats.length,\n    traceId: generateUUIDv4()\n  }\n};"
       },
       "id": "format-response",
       "name": "Build Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1450, 600]
+      "position": [
+        1450,
+        600
+      ]
     },
     {
       "parameters": {
@@ -201,7 +234,10 @@
       "name": "Respond Success",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [1650, 600]
+      "position": [
+        1650,
+        600
+      ]
     },
     {
       "parameters": {
@@ -211,7 +247,10 @@
       "name": "Handle DB Error",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1450, 700]
+      "position": [
+        1450,
+        700
+      ]
     },
     {
       "parameters": {
@@ -225,7 +264,10 @@
       "name": "Respond DB Error",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [1650, 700]
+      "position": [
+        1650,
+        700
+      ]
     }
   ],
   "connections": {
@@ -370,4 +412,3 @@
   "updatedAt": "2025-11-06T19:30:00.000Z",
   "versionId": "1"
 }
-
