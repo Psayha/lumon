@@ -179,7 +179,7 @@
           "parameters": [
             {
               "name": "Authorization",
-              "value": "=Bearer {{ $json.token }}"
+              "value": "=Bearer {{ $('Extract & Validate').item.json.token }}"
             }
           ]
         },
@@ -200,7 +200,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Handle both success and error cases from HTTP request\nconst httpResponse = $input.item.json;\n\n// Check if this is an error response (continueOnFail format)\nif (httpResponse.error || httpResponse.statusCode >= 400) {\n  return { json: { success: false, error: httpResponse.error?.message || 'Auth validation request failed' } };\n}\n\n// Get response data\nconst responseText = httpResponse.data;\n\nlet parsedData;\nif (typeof responseText === 'string') {\n  try {\n    parsedData = JSON.parse(responseText);\n  } catch (e) {\n    return { json: { success: false, error: 'Failed to parse auth response' } };\n  }\n} else {\n  parsedData = responseText;\n}\n\n// Check if response is empty\nif (!parsedData || Object.keys(parsedData).length === 0) {\n  return { json: { success: false, error: 'Empty auth response' } };\n}\n\n// Check if response has success field\nif (parsedData.success === undefined) {\n  return { json: { success: false, error: 'Invalid auth response format' } };\n}\n\nreturn { json: parsedData };"
+        "jsCode": "// Handle both success and error cases from HTTP request\nconst httpResponse = $input.item.json;\n\n// Check if this is an error response (continueOnFail format)\nif (httpResponse.error) {\n  return { json: { success: false, error: httpResponse.error?.message || 'Auth validation request failed' } };\n}\n\n// In HTTP Request v4.2, the response is directly in json, not in a 'data' field\nconst responseData = httpResponse;\n\n// Check if response is empty\nif (!responseData || Object.keys(responseData).length === 0) {\n  return { json: { success: false, error: 'Empty auth response' } };\n}\n\n// Check if response has success field\nif (responseData.success === undefined) {\n  return { json: { success: false, error: 'Invalid auth response format' } };\n}\n\nreturn { json: responseData };"
       },
       "id": "parse-auth-response",
       "name": "Parse Auth Response",
