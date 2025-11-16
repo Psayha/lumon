@@ -49,7 +49,7 @@ Auth (4):
 
 Chat (5):
   POST   /webhook/chat-create
-  POST   /webhook/chat-list
+  GET    /webhook/chat-list
   POST   /webhook/chat-delete
   POST   /webhook/chat-save-message
   POST   /webhook/chat-get-history
