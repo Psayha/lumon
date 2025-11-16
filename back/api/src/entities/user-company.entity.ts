@@ -30,6 +30,7 @@ export class UserCompany {
   @Column({
     type: 'enum',
     enum: UserRole,
+    enumName: 'user_role',
   })
   role: UserRole;
 
