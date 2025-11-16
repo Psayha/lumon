@@ -2,10 +2,7 @@ import {
   Controller,
   Post,
   Get,
-  Delete,
-  Put,
   Body,
-  Param,
   Query,
   UseGuards,
   Headers,
@@ -26,7 +23,6 @@ class AdminGuard {
 
     const token = authHeader.replace('Bearer ', '').trim();
 
-    // Simple validation - в production лучше проверять через AdminService
     if (!token || token.length < 10) {
       throw new UnauthorizedException('Invalid admin token');
     }
@@ -39,19 +35,13 @@ class AdminGuard {
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
 
-  /**
-   * POST /webhook/admin/login
-   * Replaces: admin.login.json
-   */
+  // ============ Auth Endpoints ============
+
   @Post('login')
   async login(@Body() dto: AdminLoginDto) {
     return this.adminService.login(dto.username, dto.password);
   }
 
-  /**
-   * POST /webhook/admin/validate
-   * Replaces: admin.validate.json
-   */
   @Post('validate')
   async validate(@Headers('authorization') authHeader: string) {
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -62,52 +52,45 @@ export class AdminController {
     return this.adminService.validateAdminSession(token);
   }
 
-  /**
-   * POST /webhook/admin/users-list
-   * Replaces: admin.users-list.json
-   */
-  @Post('users-list')
+  // ============ User Management ============
+
+  @Get('users-list')
   @UseGuards(AdminGuard)
   async listUsers(
-    @Body() body: { page?: number; limit?: number },
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
   ) {
-    return this.adminService.listUsers(body.page, body.limit);
+    return this.adminService.listUsers(page, limit);
   }
 
-  /**
-   * POST /webhook/admin/companies-list
-   * Replaces: admin.companies-list.json
-   */
-  @Post('companies-list')
-  @UseGuards(AdminGuard)
-  async listCompanies() {
-    return this.adminService.listCompanies();
-  }
-
-  /**
-   * POST /webhook/admin/user-delete
-   * Replaces: admin.user-delete.json
-   */
   @Post('user-delete')
   @UseGuards(AdminGuard)
   async deleteUser(@Body() body: { user_id: string }) {
     return this.adminService.deleteUser(body.user_id);
   }
 
-  /**
-   * POST /webhook/admin/user-limits-list
-   * Replaces: admin.user-limits-list.json
-   */
-  @Post('user-limits-list')
+  @Post('user-history-clear')
   @UseGuards(AdminGuard)
-  async listUserLimits(@Body() body: { user_id?: string }) {
-    return this.adminService.listUserLimits(body.user_id);
+  async clearUserHistory(@Body() body: { user_id: string }) {
+    return this.adminService.clearUserHistory(body.user_id);
   }
 
-  /**
-   * POST /webhook/admin/user-limits-update
-   * Replaces: admin.user-limits-update.json
-   */
+  // ============ Company Management ============
+
+  @Get('companies-list')
+  @UseGuards(AdminGuard)
+  async listCompanies() {
+    return this.adminService.listCompanies();
+  }
+
+  // ============ User Limits ============
+
+  @Get('user-limits-list')
+  @UseGuards(AdminGuard)
+  async listUserLimits(@Query('user_id') userId?: string) {
+    return this.adminService.listUserLimits(userId);
+  }
+
   @Post('user-limits-update')
   @UseGuards(AdminGuard)
   async updateUserLimits(@Body() dto: UpdateUserLimitsDto) {
@@ -118,88 +101,103 @@ export class AdminController {
     );
   }
 
-  /**
-   * POST /webhook/admin/user-limits-reset
-   */
   @Post('user-limits-reset')
   @UseGuards(AdminGuard)
   async resetUserLimits(@Body() body: { user_id: string }) {
     return this.adminService.resetUserLimits(body.user_id);
   }
 
-  /**
-   * POST /webhook/admin/stats-platform
-   * Replaces: admin.stats-platform.json
-   */
-  @Post('stats-platform')
+  // ============ Platform Stats ============
+
+  @Get('stats-platform')
   @UseGuards(AdminGuard)
   async getPlatformStats() {
     return this.adminService.getPlatformStats();
   }
 
-  /**
-   * POST /webhook/admin/logs-list
-   * Replaces: admin.logs-list.json
-   */
-  @Post('logs-list')
+  // ============ Logs ============
+
+  @Get('logs-list')
   @UseGuards(AdminGuard)
   async listLogs(
-    @Body() body: { page?: number; limit?: number; action?: string; user_id?: string },
+    @Query('limit') limit?: number,
+    @Query('offset') offset?: number,
+    @Query('action') action?: string,
+    @Query('user_id') userId?: string,
   ) {
-    return this.adminService.listLogs(
-      body.page,
-      body.limit,
-      body.action,
-      body.user_id,
-    );
+    // Convert offset to page number
+    const page = offset && limit ? Math.floor(offset / limit) + 1 : undefined;
+
+    return this.adminService.listLogs(page, limit, action, userId);
   }
 
-  /**
-   * POST /webhook/admin/ab-experiments-list
-   * Replaces: admin.ab-experiments-list.json
-   */
-  @Post('ab-experiments-list')
+  // ============ A/B Testing ============
+
+  @Get('ab-experiments-list')
   @UseGuards(AdminGuard)
   async listAbExperiments() {
     return this.adminService.listAbExperiments();
   }
 
-  /**
-   * POST /webhook/admin/ab-experiment-create
-   * Replaces: admin.ab-experiment-create.json
-   */
   @Post('ab-experiment-create')
   @UseGuards(AdminGuard)
   async createAbExperiment(@Body() body: any) {
     return this.adminService.createAbExperiment(body);
   }
 
-  /**
-   * POST /webhook/admin/ab-experiment-update
-   * Replaces: admin.ab-experiment-update.json
-   */
   @Post('ab-experiment-update')
   @UseGuards(AdminGuard)
   async updateAbExperiment(@Body() body: any) {
     return this.adminService.updateAbExperiment(body.experiment_id, body);
   }
 
-  /**
-   * POST /webhook/admin/user-history-clear
-   * Replaces: admin.user-history-clear.json
-   */
-  @Post('user-history-clear')
-  @UseGuards(AdminGuard)
-  async clearUserHistory(@Body() body: { user_id: string }) {
-    return this.adminService.clearUserHistory(body.user_id);
-  }
-
-  /**
-   * POST /webhook/admin/ab-experiment-stats
-   */
   @Post('ab-experiment-stats')
   @UseGuards(AdminGuard)
   async getAbExperimentStats(@Body() body: { experiment_id: string }) {
     return this.adminService.getAbExperimentStats(body.experiment_id);
+  }
+
+  // ============ Document Management (Stubs - Not Yet Migrated) ============
+
+  @Get('legal-docs-list')
+  @UseGuards(AdminGuard)
+  async listLegalDocs() {
+    return {
+      success: true,
+      data: [],
+      message: 'Legal docs management not yet migrated from n8n',
+    };
+  }
+
+  @Get('ai-docs-list')
+  @UseGuards(AdminGuard)
+  async listAiDocs() {
+    return {
+      success: true,
+      data: [],
+      message: 'AI docs management not yet migrated from n8n',
+    };
+  }
+
+  // ============ System Management (Stubs - Not Yet Migrated) ============
+
+  @Get('backup-list')
+  @UseGuards(AdminGuard)
+  async listBackups() {
+    return {
+      success: true,
+      data: [],
+      message: 'Backup management not yet migrated from n8n',
+    };
+  }
+
+  @Get('health-check-list')
+  @UseGuards(AdminGuard)
+  async listHealthChecks() {
+    return {
+      success: true,
+      data: [],
+      message: 'Health check monitoring not yet migrated from n8n',
+    };
   }
 }
