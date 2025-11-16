@@ -60,8 +60,8 @@ export class AdminController {
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
-    const pageNum = page ? parseInt(page, 10) : undefined;
-    const limitNum = limit ? parseInt(limit, 10) : undefined;
+    const pageNum = page ? parseInt(page, 10) || undefined : undefined;
+    const limitNum = limit ? parseInt(limit, 10) || undefined : undefined;
     return this.adminService.listUsers(pageNum, limitNum);
   }
 
@@ -127,8 +127,8 @@ export class AdminController {
     @Query('action') action?: string,
     @Query('user_id') userId?: string,
   ) {
-    const limitNum = limit ? parseInt(limit, 10) : undefined;
-    const offsetNum = offset ? parseInt(offset, 10) : undefined;
+    const limitNum = limit ? parseInt(limit, 10) || undefined : undefined;
+    const offsetNum = offset ? parseInt(offset, 10) || undefined : undefined;
     // Convert offset to page number
     const page = offsetNum && limitNum ? Math.floor(offsetNum / limitNum) + 1 : undefined;
 
