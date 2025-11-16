@@ -57,10 +57,12 @@ export class AdminController {
   @Get('users-list')
   @UseGuards(AdminGuard)
   async listUsers(
-    @Query('page') page?: number,
-    @Query('limit') limit?: number,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
   ) {
-    return this.adminService.listUsers(page, limit);
+    const pageNum = page ? parseInt(page, 10) : undefined;
+    const limitNum = limit ? parseInt(limit, 10) : undefined;
+    return this.adminService.listUsers(pageNum, limitNum);
   }
 
   @Post('user-delete')
@@ -120,15 +122,17 @@ export class AdminController {
   @Get('logs-list')
   @UseGuards(AdminGuard)
   async listLogs(
-    @Query('limit') limit?: number,
-    @Query('offset') offset?: number,
+    @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
     @Query('action') action?: string,
     @Query('user_id') userId?: string,
   ) {
+    const limitNum = limit ? parseInt(limit, 10) : undefined;
+    const offsetNum = offset ? parseInt(offset, 10) : undefined;
     // Convert offset to page number
-    const page = offset && limit ? Math.floor(offset / limit) + 1 : undefined;
+    const page = offsetNum && limitNum ? Math.floor(offsetNum / limitNum) + 1 : undefined;
 
-    return this.adminService.listLogs(page, limit, action, userId);
+    return this.adminService.listLogs(page, limitNum, action, userId);
   }
 
   // ============ A/B Testing ============
