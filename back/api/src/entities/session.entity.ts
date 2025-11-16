@@ -37,6 +37,7 @@ export class Session {
   @Column({
     type: 'enum',
     enum: UserRole,
+    enumName: 'user_role',
     default: UserRole.VIEWER,
   })
   role: UserRole;

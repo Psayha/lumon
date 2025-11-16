@@ -29,6 +29,7 @@ export class AbEvent {
   @Column({
     type: 'enum',
     enum: AbVariant,
+    enumName: 'ab_variant',
   })
   variant: AbVariant;
 

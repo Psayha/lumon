@@ -36,10 +36,10 @@ export class ChatController {
   }
 
   /**
-   * POST /webhook/chat-list
+   * GET /webhook/chat-list
    * Replaces: chat.list.json workflow
    */
-  @Post('chat-list')
+  @Get('chat-list')
   async listChats(@CurrentUser() user: CurrentUserData) {
     return this.chatService.listChats(user);
   }

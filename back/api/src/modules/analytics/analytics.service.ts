@@ -24,9 +24,10 @@ export class AnalyticsService {
   ) {
     const event = await this.auditRepository.save({
       user_id: user.id,
-      action: `analytics.${dto.event_name}`,
-      resource_type: dto.category || 'analytics',
-      metadata: dto.properties || {},
+      action: dto.action,
+      resource_type: dto.resource || 'analytics',
+      resource_id: dto.resource_id || null,
+      metadata: dto.meta || {},
       ip,
       user_agent: userAgent,
     });
@@ -35,7 +36,7 @@ export class AnalyticsService {
       success: true,
       data: {
         event_id: event.id,
-        event_name: dto.event_name,
+        action: dto.action,
         timestamp: event.created_at,
       },
     };
