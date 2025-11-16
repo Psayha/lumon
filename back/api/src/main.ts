@@ -7,15 +7,18 @@ async function bootstrap() {
     logger: ['error', 'warn', 'log', 'debug'],
   });
 
-  // Enable CORS for frontend
+  // Enable CORS for frontend and admin panel
   app.enableCors({
     origin: [
       'http://localhost:5173',
       'http://localhost:3000',
       'https://lumon.psayha.ru',
       'https://psayha.ru',
+      'https://admin.psayha.ru', // Admin panel
     ],
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Idempotency-Key'],
   });
 
   // Global validation pipe
