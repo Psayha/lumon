@@ -5,6 +5,10 @@ import appConfig from './config/app.config';
 import { typeOrmConfig } from './config/typeorm.config';
 import { AuthModule } from './modules/auth/auth.module';
 import { ChatModule } from './modules/chat/chat.module';
+import { AdminModule } from './modules/admin/admin.module';
+import { AnalyticsModule } from './modules/analytics/analytics.module';
+import { UserLimitsModule } from './modules/user-limits/user-limits.module';
+import { HealthModule } from './modules/health/health.module';
 
 @Module({
   imports: [
@@ -21,6 +25,10 @@ import { ChatModule } from './modules/chat/chat.module';
     // Feature modules
     AuthModule,
     ChatModule,
+    AdminModule,
+    AnalyticsModule,
+    UserLimitsModule,
+    HealthModule,
   ],
 })
 export class AppModule {}
