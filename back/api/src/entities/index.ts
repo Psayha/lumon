@@ -8,6 +8,11 @@ export { Message, MessageRole } from './message.entity';
 export { AuditEvent } from './audit-event.entity';
 export { IdempotencyKey } from './idempotency-key.entity';
 export { UserLimit } from './user-limit.entity';
+export { AbExperiment } from './ab-experiment.entity';
+export { AbAssignment, AbVariant } from './ab-assignment.entity';
+export { AbEvent } from './ab-event.entity';
+export { PlatformStats } from './platform-stats.entity';
+export { RateLimit } from './rate-limit.entity';
 
 // Import for entities array
 import { User } from './user.entity';
@@ -19,6 +24,11 @@ import { Message } from './message.entity';
 import { AuditEvent } from './audit-event.entity';
 import { IdempotencyKey } from './idempotency-key.entity';
 import { UserLimit } from './user-limit.entity';
+import { AbExperiment } from './ab-experiment.entity';
+import { AbAssignment } from './ab-assignment.entity';
+import { AbEvent } from './ab-event.entity';
+import { PlatformStats } from './platform-stats.entity';
+import { RateLimit } from './rate-limit.entity';
 
 // All entities array for TypeORM configuration
 export const entities = [
@@ -31,4 +41,9 @@ export const entities = [
   AuditEvent,
   IdempotencyKey,
   UserLimit,
+  AbExperiment,
+  AbAssignment,
+  AbEvent,
+  PlatformStats,
+  RateLimit,
 ];

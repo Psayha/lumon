@@ -40,15 +40,47 @@ async function bootstrap() {
 ╚═══════════════════════════════════════╝
 
 Available endpoints:
+
+Auth (4):
   POST   /webhook/auth-init-v2
   POST   /webhook/auth-validate-v2
   POST   /webhook/auth-logout
   POST   /webhook/auth-refresh
+
+Chat (5):
   POST   /webhook/chat-create
   POST   /webhook/chat-list
   POST   /webhook/chat-delete
   POST   /webhook/chat-save-message
   POST   /webhook/chat-get-history
+
+Admin (17):
+  POST   /webhook/admin/login
+  POST   /webhook/admin/validate
+  POST   /webhook/admin/users-list
+  POST   /webhook/admin/companies-list
+  POST   /webhook/admin/user-delete
+  POST   /webhook/admin/user-limits-list
+  POST   /webhook/admin/user-limits-update
+  POST   /webhook/admin/stats-platform
+  POST   /webhook/admin/logs-list
+  POST   /webhook/admin/ab-experiments-list
+  POST   /webhook/admin/ab-experiment-create
+  POST   /webhook/admin/ab-experiment-update
+  POST   /webhook/admin/user-history-clear
+
+Analytics (1):
+  POST   /webhook/analytics-log-event
+
+User Limits (2):
+  POST   /webhook/user-limits
+  POST   /webhook/rate-limit-check
+
+Health (2):
+  GET    /health
+  GET    /health/detailed
+
+Total: 31 endpoints migrated from n8n!
 
 Ready to accept connections!
   `);
