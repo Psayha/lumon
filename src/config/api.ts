@@ -1,14 +1,14 @@
 // API Configuration for Lumon Backend
-// Backend runs on n8n webhooks
-// Production: https://n8n.psayha.ru
-// Development: http://localhost:5678 или http://91.229.10.47:5678
+// Backend: NestJS API (migrated from n8n on Nov 16, 2025)
+// Production: https://n8n.psayha.ru (NestJS API on port 3000)
+// Development: http://localhost:3000
 
 export const API_CONFIG = {
-  // Base URL for n8n webhooks
-  // В продакшене используем https://n8n.psayha.ru
-  // Локально: создай .env.local с VITE_API_URL=http://localhost:5678
-  // Или установи через: export VITE_API_URL=http://localhost:5678 (Linux/Mac) или set VITE_API_URL=http://localhost:5678 (Windows)
-  baseUrl: import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://n8n.psayha.ru' : 'http://localhost:5678'),
+  // Base URL for NestJS API
+  // Production: https://n8n.psayha.ru → nginx → NestJS (port 3000)
+  // Development: http://localhost:3000
+  // Override with VITE_API_URL environment variable if needed
+  baseUrl: import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://n8n.psayha.ru' : 'http://localhost:3000'),
   
   // API endpoints
   endpoints: {
