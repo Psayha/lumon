@@ -29,6 +29,7 @@ export class Message {
   @Column({
     type: 'enum',
     enum: MessageRole,
+    enumName: 'message_role',
   })
   role: MessageRole;
 

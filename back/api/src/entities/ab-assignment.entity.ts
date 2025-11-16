@@ -34,6 +34,7 @@ export class AbAssignment {
   @Column({
     type: 'enum',
     enum: AbVariant,
+    enumName: 'ab_variant',
   })
   variant: AbVariant;
 

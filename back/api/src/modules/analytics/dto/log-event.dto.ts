@@ -3,13 +3,17 @@ import { IsString, IsNotEmpty, IsOptional, IsObject } from 'class-validator';
 export class LogEventDto {
   @IsString()
   @IsNotEmpty()
-  event_name: string;
+  action: string;
 
   @IsString()
   @IsOptional()
-  category?: string;
+  resource?: string;
+
+  @IsString()
+  @IsOptional()
+  resource_id?: string;
 
   @IsObject()
   @IsOptional()
-  properties?: Record<string, any>;
+  meta?: Record<string, any>;
 }
