@@ -1,0 +1,27 @@
+[Unit]
+Description=Lumon NestJS API Server
+Documentation=https://github.com/Psayha/lumon
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/home/user/lumon/back/api
+Environment=NODE_ENV=production
+Environment=PORT=3000
+ExecStart=/opt/node22/bin/node dist/main.js
+Restart=on-failure
+RestartSec=10
+StandardOutput=append:/var/log/lumon-api.log
+StandardError=append:/var/log/lumon-api-error.log
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+
+# Limits
+LimitNOFILE=65536
+LimitNPROC=4096
+
+[Install]
+WantedBy=multi-user.target
