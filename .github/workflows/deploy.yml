@@ -125,8 +125,9 @@ jobs:
         run: |
           ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "bash -lc 'cd ${{ steps.backend_path.outputs.path }}/api && \
             ([ -f .env ] || ([ -f .env.server.example ] && cp .env.server.example .env) || cp .env.example .env) && \
-            npm ci --production && \
-            npx nest build'"
+            npm ci && \
+            npm run build && \
+            npm prune --production'"
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_PORT: ${{ secrets.SSH_PORT }}
