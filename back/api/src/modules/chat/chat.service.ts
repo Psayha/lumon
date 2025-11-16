@@ -1,0 +1,247 @@
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import {
+  Chat,
+  Message,
+  AuditEvent,
+  IdempotencyKey,
+  MessageRole,
+} from '@entities';
+import { CreateChatDto } from './dto/create-chat.dto';
+import { SaveMessageDto } from './dto/save-message.dto';
+import { CurrentUserData } from '@/common/decorators/current-user.decorator';
+import { v4 as uuidv4 } from 'uuid';
+
+@Injectable()
+export class ChatService {
+  constructor(
+    @InjectRepository(Chat)
+    private chatRepository: Repository<Chat>,
+    @InjectRepository(Message)
+    private messageRepository: Repository<Message>,
+    @InjectRepository(AuditEvent)
+    private auditRepository: Repository<AuditEvent>,
+    @InjectRepository(IdempotencyKey)
+    private idempotencyRepository: Repository<IdempotencyKey>,
+  ) {}
+
+  /**
+   * Create new chat
+   * Replaces: chat.create.v2.json workflow
+   */
+  async createChat(dto: CreateChatDto, user: CurrentUserData) {
+    const chat = await this.chatRepository.save({
+      user_id: user.id,
+      company_id: user.company_id,
+      title: dto.title || 'New Chat',
+    });
+
+    return {
+      success: true,
+      data: {
+        id: chat.id,
+        user_id: chat.user_id,
+        company_id: chat.company_id,
+        title: chat.title,
+        created_at: chat.created_at,
+        updated_at: chat.updated_at,
+      },
+      traceId: uuidv4(),
+    };
+  }
+
+  /**
+   * List user's chats
+   * Replaces: chat.list.json workflow
+   */
+  async listChats(user: CurrentUserData) {
+    const chats = await this.chatRepository.find({
+      where: [
+        { user_id: user.id },
+        ...(user.company_id ? [{ company_id: user.company_id }] : []),
+      ],
+      order: { created_at: 'DESC' },
+    });
+
+    return {
+      success: true,
+      data: chats,
+    };
+  }
+
+  /**
+   * Delete chat
+   * Replaces: chat.delete.json workflow
+   */
+  async deleteChat(chatId: string, user: CurrentUserData) {
+    // Check access
+    const chat = await this.chatRepository.findOne({
+      where: { id: chatId },
+    });
+
+    if (!chat) {
+      throw new NotFoundException('Chat not found');
+    }
+
+    // Check ownership (user owns chat OR user's company owns chat)
+    const hasAccess =
+      chat.user_id === user.id ||
+      (user.company_id && chat.company_id === user.company_id);
+
+    if (!hasAccess) {
+      throw new ForbiddenException('Access denied');
+    }
+
+    await this.chatRepository.delete(chatId);
+
+    return {
+      success: true,
+      message: 'Chat deleted successfully',
+    };
+  }
+
+  /**
+   * Save message with idempotency support
+   * Replaces: save-message.json workflow (the most complex one!)
+   */
+  async saveMessage(
+    dto: SaveMessageDto,
+    user: CurrentUserData,
+    idempotencyKey: string | null,
+    ip: string,
+    userAgent: string,
+  ) {
+    // Check for idempotency key (deduplication)
+    if (idempotencyKey) {
+      const cachedResponse = await this.idempotencyRepository.findOne({
+        where: {
+          key: idempotencyKey,
+        },
+      });
+
+      if (cachedResponse && cachedResponse.expires_at > new Date()) {
+        // Return cached response
+        return cachedResponse.response;
+      }
+    }
+
+    // Check chat access
+    const chat = await this.chatRepository.findOne({
+      where: { id: dto.chat_id },
+    });
+
+    if (!chat) {
+      throw new NotFoundException('Chat not found');
+    }
+
+    // Verify access (user owns OR company owns)
+    const hasAccess =
+      chat.user_id === user.id ||
+      (user.company_id && chat.company_id === user.company_id);
+
+    if (!hasAccess) {
+      throw new ForbiddenException('Chat not found or access denied');
+    }
+
+    // Insert message
+    const message = await this.messageRepository.save({
+      chat_id: dto.chat_id,
+      role: dto.role,
+      content: dto.content.trim(),
+      metadata: dto.metadata || {},
+    });
+
+    // Log audit event (fire and forget)
+    this.auditRepository
+      .save({
+        user_id: user.id,
+        action: 'message.sent',
+        resource_type: 'message',
+        resource_id: message.id,
+        metadata: {
+          chat_id: dto.chat_id,
+          role: dto.role,
+          message_length: dto.content.length,
+        },
+        ip,
+        user_agent: userAgent,
+      })
+      .catch((err) => console.error('Failed to log audit event:', err));
+
+    // Build response
+    const response = {
+      success: true,
+      data: {
+        id: message.id,
+        chat_id: message.chat_id,
+        role: message.role,
+        content: message.content,
+        metadata: message.metadata,
+        created_at: message.created_at,
+      },
+      traceId: uuidv4(),
+    };
+
+    // Save idempotency key (fire and forget)
+    if (idempotencyKey) {
+      const expiresAt = new Date();
+      expiresAt.setHours(expiresAt.getHours() + 24); // 24 hours
+
+      this.idempotencyRepository
+        .save({
+          key: idempotencyKey,
+          user_id: user.id,
+          response,
+          expires_at: expiresAt,
+        })
+        .catch((err) =>
+          console.error('Failed to save idempotency key:', err),
+        );
+    }
+
+    return response;
+  }
+
+  /**
+   * Get chat history
+   * Replaces: get-chat-history.json workflow
+   */
+  async getChatHistory(chatId: string, user: CurrentUserData) {
+    // Check access
+    const chat = await this.chatRepository.findOne({
+      where: { id: chatId },
+    });
+
+    if (!chat) {
+      throw new NotFoundException('Chat not found');
+    }
+
+    const hasAccess =
+      chat.user_id === user.id ||
+      (user.company_id && chat.company_id === user.company_id);
+
+    if (!hasAccess) {
+      throw new ForbiddenException('Access denied');
+    }
+
+    // Get messages
+    const messages = await this.messageRepository.find({
+      where: { chat_id: chatId },
+      order: { created_at: 'ASC' },
+    });
+
+    return {
+      success: true,
+      data: {
+        chat_id: chatId,
+        messages,
+      },
+    };
+  }
+}
