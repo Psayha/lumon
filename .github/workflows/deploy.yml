@@ -112,7 +112,8 @@ jobs:
           SSH_PORT: ${{ secrets.SSH_PORT }}
           SSH_USER: ${{ secrets.SSH_USER }}
 
-      - name: Deploy backend services with Docker Compose
+      - name: Deploy backend services with Docker Compose (Supabase + n8n)
+        continue-on-error: true
         run: |
           ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "cd ${{ steps.backend_path.outputs.path }} && docker compose up -d --build"
         env:
@@ -120,20 +121,36 @@ jobs:
           SSH_PORT: ${{ secrets.SSH_PORT }}
           SSH_USER: ${{ secrets.SSH_USER }}
 
-      - name: Wait for n8n to be ready
+      - name: Deploy NestJS API
         run: |
-          echo "⏳ Ждем запуска n8n (30 секунд)..."
-          sleep 30
-          ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "curl -f http://localhost:5678/healthz || echo 'n8n еще не готов'"
+          ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "cd ${{ steps.backend_path.outputs.path }}/api && \
+            ([ -f .env ] || ([ -f .env.server.example ] && cp .env.server.example .env) || cp .env.example .env) && \
+            npm ci --production && \
+            npm run build && \
+            chmod +x deploy.sh && \
+            sudo ./deploy.sh restart || sudo ./deploy.sh start"
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_PORT: ${{ secrets.SSH_PORT }}
           SSH_USER: ${{ secrets.SSH_USER }}
 
-      - name: Import n8n workflows (optional)
+      - name: Update nginx configuration
         continue-on-error: true
         run: |
-          ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "cd ${{ steps.backend_path.outputs.path }} && chmod +x import-workflows.sh && ./import-workflows.sh http://localhost:5678 || echo '⚠️ Импорт workflows пропущен (можно сделать вручную)'"
+          ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "sudo cp ${{ steps.backend_path.outputs.path }}/api/nginx-lumon-api.conf /etc/nginx/sites-available/nginx-lumon-api.conf && \
+            sudo ln -sf /etc/nginx/sites-available/nginx-lumon-api.conf /etc/nginx/sites-enabled/ && \
+            sudo nginx -t && \
+            sudo systemctl reload nginx || echo '⚠️ Nginx reload failed'"
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+
+      - name: Wait for NestJS API to be ready
+        run: |
+          echo "⏳ Ждем запуска NestJS API (30 секунд)..."
+          sleep 30
+          ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "curl -f http://localhost:3000/health || echo '⚠️ API еще не готов (будет готов через минуту)'"
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_PORT: ${{ secrets.SSH_PORT }}
