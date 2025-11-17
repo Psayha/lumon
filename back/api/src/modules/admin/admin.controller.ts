@@ -198,10 +198,12 @@ export class AdminController {
   @Get('health-check-list')
   @UseGuards(AdminGuard)
   async listHealthChecks() {
-    return {
-      success: true,
-      data: [],
-      message: 'Health check monitoring not yet migrated from n8n',
-    };
+    return this.adminService.listHealthChecks();
+  }
+
+  @Post('health-check')
+  @UseGuards(AdminGuard)
+  async runHealthCheck(@Body() body: { service?: string }) {
+    return this.adminService.runHealthCheck(body.service || 'all');
   }
 }

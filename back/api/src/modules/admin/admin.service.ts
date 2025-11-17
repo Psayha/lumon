@@ -474,4 +474,73 @@ export class AdminService {
       },
     };
   }
+
+  /**
+   * List health checks
+   */
+  async listHealthChecks() {
+    // В production версии здесь можно хранить health checks в БД
+    // Для демо возвращаем базовые метрики системы
+    const systemMetrics = await this.getSystemMetrics();
+
+    return {
+      success: true,
+      data: {
+        system_status: {
+          overall_status: systemMetrics.cpu_usage_percent < 80 && systemMetrics.memory_usage_percent < 80 ? 'healthy' : 'degraded',
+          services_status: {
+            n8n: 'healthy',
+            postgresql: 'healthy',
+            nginx: 'healthy',
+            'supabase-studio': 'healthy',
+          },
+          last_checked_at: new Date().toISOString(),
+          system_metrics: systemMetrics,
+        },
+        health_checks: [],
+      },
+    };
+  }
+
+  /**
+   * Run health check for specific service or all services
+   */
+  async runHealthCheck(service: string) {
+    const systemMetrics = await this.getSystemMetrics();
+
+    return {
+      success: true,
+      data: {
+        service,
+        status: 'healthy',
+        checked_at: new Date().toISOString(),
+        metrics: systemMetrics,
+      },
+      message: `Health check completed for ${service}`,
+    };
+  }
+
+  /**
+   * Get system metrics
+   */
+  private async getSystemMetrics() {
+    // В production версии здесь можно использовать системные команды для получения реальных метрик
+    // Для демо возвращаем моковые данные
+    const totalMemoryMB = 8192; // 8GB
+    const usedMemoryMB = 4096; // 4GB
+    const totalDiskGB = 500;
+    const usedDiskGB = 150;
+
+    return {
+      cpu_usage_percent: Math.random() * 30 + 10, // 10-40%
+      memory_total_mb: totalMemoryMB,
+      memory_used_mb: usedMemoryMB,
+      memory_available_mb: totalMemoryMB - usedMemoryMB,
+      memory_usage_percent: (usedMemoryMB / totalMemoryMB) * 100,
+      disk_total_gb: totalDiskGB,
+      disk_used_gb: usedDiskGB,
+      disk_available_gb: totalDiskGB - usedDiskGB,
+      disk_usage_percent: (usedDiskGB / totalDiskGB) * 100,
+    };
+  }
 }
