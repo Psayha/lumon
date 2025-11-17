@@ -13,6 +13,7 @@ export { AbAssignment, AbVariant } from './ab-assignment.entity';
 export { AbEvent } from './ab-event.entity';
 export { PlatformStats } from './platform-stats.entity';
 export { RateLimit } from './rate-limit.entity';
+export { Backup } from './backup.entity';
 
 // Import for entities array
 import { User } from './user.entity';
@@ -29,6 +30,7 @@ import { AbAssignment } from './ab-assignment.entity';
 import { AbEvent } from './ab-event.entity';
 import { PlatformStats } from './platform-stats.entity';
 import { RateLimit } from './rate-limit.entity';
+import { Backup } from './backup.entity';
 
 // All entities array for TypeORM configuration
 export const entities = [
@@ -46,4 +48,5 @@ export const entities = [
   AbEvent,
   PlatformStats,
   RateLimit,
+  Backup,
 ];

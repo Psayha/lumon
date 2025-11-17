@@ -13,6 +13,7 @@ import {
   AbExperiment,
   AbAssignment,
   PlatformStats,
+  Backup,
 } from '@entities';
 
 @Module({
@@ -28,6 +29,7 @@ import {
       AbExperiment,
       AbAssignment,
       PlatformStats,
+      Backup,
     ]),
   ],
   controllers: [AdminController],
