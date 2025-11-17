@@ -102,20 +102,32 @@ export class AdminService {
    */
   async listUsers(page = 1, limit = 50) {
     const [users, total] = await this.userRepository.findAndCount({
+      relations: ['chats', 'userCompanies'],
       take: limit,
       skip: (page - 1) * limit,
       order: { created_at: 'DESC' },
     });
 
+    // Transform to camelCase format expected by frontend
+    const formattedUsers = users.map(user => ({
+      id: user.id,
+      telegramId: user.telegram_id,
+      username: user.username,
+      firstName: user.first_name,
+      lastName: user.last_name,
+      createdAt: user.created_at,
+      lastLoginAt: user.last_login_at,
+      chatsCount: user.chats?.length || 0,
+      companiesCount: user.userCompanies?.length || 0,
+      companies: user.userCompanies?.map(uc => ({
+        company_id: uc.company_id,
+        role: uc.role,
+      })) || [],
+    }));
+
     return {
       success: true,
-      data: {
-        users,
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
+      data: formattedUsers,
     };
   }
 
