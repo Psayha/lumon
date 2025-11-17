@@ -18,8 +18,15 @@ import {
   AbAssignment,
   PlatformStats,
   UserRole,
+  Backup,
 } from '@entities';
 import { v4 as uuidv4 } from 'uuid';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+import * as fs from 'fs';
+import * as path from 'path';
+
+const execAsync = promisify(exec);
 
 @Injectable()
 export class AdminService {
@@ -49,6 +56,8 @@ export class AdminService {
     private abAssignmentRepository: Repository<AbAssignment>,
     @InjectRepository(PlatformStats)
     private platformStatsRepository: Repository<PlatformStats>,
+    @InjectRepository(Backup)
+    private backupRepository: Repository<Backup>,
   ) {}
 
   /**
@@ -548,38 +557,13 @@ export class AdminService {
    * List backups
    */
   async listBackups() {
-    // В production версии здесь можно хранить бекапы в файловой системе или S3
-    // Для демо возвращаем моковые данные
-    const mockBackups = [
-      {
-        id: '1',
-        filename: 'backup-2025-11-17-10-00.sql',
-        file_path: '/backups/backup-2025-11-17-10-00.sql',
-        file_size: 15728640, // 15 MB
-        created_at: new Date('2025-11-17T10:00:00Z').toISOString(),
-        status: 'completed',
-      },
-      {
-        id: '2',
-        filename: 'backup-2025-11-16-10-00.sql',
-        file_path: '/backups/backup-2025-11-16-10-00.sql',
-        file_size: 14680064, // 14 MB
-        created_at: new Date('2025-11-16T10:00:00Z').toISOString(),
-        status: 'completed',
-      },
-      {
-        id: '3',
-        filename: 'backup-2025-11-15-10-00.sql',
-        file_path: '/backups/backup-2025-11-15-10-00.sql',
-        file_size: 13631488, // 13 MB
-        created_at: new Date('2025-11-15T10:00:00Z').toISOString(),
-        status: 'completed',
-      },
-    ];
+    const backups = await this.backupRepository.find({
+      order: { created_at: 'DESC' },
+    });
 
     return {
       success: true,
-      data: mockBackups,
+      data: backups,
     };
   }
 
@@ -587,45 +571,128 @@ export class AdminService {
    * Create backup
    */
   async createBackup() {
-    // В production версии здесь можно запускать pg_dump или другие инструменты
-    // Для демо просто возвращаем успех
-    const newBackup = {
-      id: String(Date.now()),
-      filename: `backup-${new Date().toISOString().split('T')[0]}-${new Date().getHours()}-${new Date().getMinutes()}.sql`,
-      file_path: `/backups/backup-${Date.now()}.sql`,
-      file_size: Math.floor(Math.random() * 10000000) + 10000000, // 10-20 MB
-      created_at: new Date().toISOString(),
-      status: 'completed',
-    };
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('T').join('_').substring(0, 19);
+    const filename = `backup-${timestamp}.sql`;
+    const backupDir = process.env.BACKUP_DIR || '/var/backups/lumon';
+    const filePath = path.join(backupDir, filename);
 
-    return {
-      success: true,
-      data: newBackup,
-      message: 'Backup created successfully',
-    };
+    // Create backup directory if it doesn't exist
+    if (!fs.existsSync(backupDir)) {
+      fs.mkdirSync(backupDir, { recursive: true });
+    }
+
+    // Create backup record in database
+    const backup = await this.backupRepository.save({
+      filename,
+      file_path: filePath,
+      file_size: 0,
+      status: 'in_progress',
+    });
+
+    try {
+      // Get database credentials from environment
+      const dbHost = process.env.DB_HOST || 'localhost';
+      const dbPort = process.env.DB_PORT || '5432';
+      const dbName = process.env.DB_NAME || 'lumon';
+      const dbUser = process.env.DB_USER || 'postgres';
+      const dbPassword = process.env.DB_PASSWORD || '';
+
+      // Execute pg_dump command
+      const command = `PGPASSWORD="${dbPassword}" pg_dump -h ${dbHost} -p ${dbPort} -U ${dbUser} -d ${dbName} -F p -f "${filePath}"`;
+
+      await execAsync(command);
+
+      // Get file size
+      const stats = fs.statSync(filePath);
+      const fileSize = stats.size;
+
+      // Update backup record
+      backup.file_size = fileSize;
+      backup.status = 'completed';
+      backup.completed_at = new Date();
+      await this.backupRepository.save(backup);
+
+      return {
+        success: true,
+        data: backup,
+        message: 'Backup created successfully',
+      };
+    } catch (error) {
+      // Update backup record with error
+      backup.status = 'failed';
+      backup.error_message = error.message;
+      backup.completed_at = new Date();
+      await this.backupRepository.save(backup);
+
+      throw new Error(`Failed to create backup: ${error.message}`);
+    }
   }
 
   /**
    * Restore backup
    */
   async restoreBackup(backupId: string, filePath: string) {
-    // В production версии здесь можно запускать psql с восстановлением из файла
-    // Для демо просто возвращаем успех
-    return {
-      success: true,
-      message: `Backup ${backupId} restored successfully from ${filePath}`,
-    };
+    const backup = await this.backupRepository.findOne({
+      where: { id: backupId },
+    });
+
+    if (!backup) {
+      throw new NotFoundException('Backup not found');
+    }
+
+    if (!fs.existsSync(filePath)) {
+      throw new NotFoundException('Backup file not found');
+    }
+
+    try {
+      // Get database credentials from environment
+      const dbHost = process.env.DB_HOST || 'localhost';
+      const dbPort = process.env.DB_PORT || '5432';
+      const dbName = process.env.DB_NAME || 'lumon';
+      const dbUser = process.env.DB_USER || 'postgres';
+      const dbPassword = process.env.DB_PASSWORD || '';
+
+      // Execute psql command to restore database
+      const command = `PGPASSWORD="${dbPassword}" psql -h ${dbHost} -p ${dbPort} -U ${dbUser} -d ${dbName} -f "${filePath}"`;
+
+      await execAsync(command);
+
+      return {
+        success: true,
+        message: `Backup ${backupId} restored successfully from ${filePath}`,
+      };
+    } catch (error) {
+      throw new Error(`Failed to restore backup: ${error.message}`);
+    }
   }
 
   /**
    * Delete backup
    */
   async deleteBackup(backupId: string) {
-    // В production версии здесь можно удалять файл бекапа
-    // Для демо просто возвращаем успех
-    return {
-      success: true,
-      message: `Backup ${backupId} deleted successfully`,
-    };
+    const backup = await this.backupRepository.findOne({
+      where: { id: backupId },
+    });
+
+    if (!backup) {
+      throw new NotFoundException('Backup not found');
+    }
+
+    try {
+      // Delete file if it exists
+      if (fs.existsSync(backup.file_path)) {
+        fs.unlinkSync(backup.file_path);
+      }
+
+      // Delete backup record from database
+      await this.backupRepository.delete(backupId);
+
+      return {
+        success: true,
+        message: `Backup ${backupId} deleted successfully`,
+      };
+    } catch (error) {
+      throw new Error(`Failed to delete backup: ${error.message}`);
+    }
   }
 }
