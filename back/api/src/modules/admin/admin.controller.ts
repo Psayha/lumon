@@ -188,11 +188,25 @@ export class AdminController {
   @Get('backup-list')
   @UseGuards(AdminGuard)
   async listBackups() {
-    return {
-      success: true,
-      data: [],
-      message: 'Backup management not yet migrated from n8n',
-    };
+    return this.adminService.listBackups();
+  }
+
+  @Post('backup-create')
+  @UseGuards(AdminGuard)
+  async createBackup() {
+    return this.adminService.createBackup();
+  }
+
+  @Post('backup-restore')
+  @UseGuards(AdminGuard)
+  async restoreBackup(@Body() body: { backup_id: string; file_path: string }) {
+    return this.adminService.restoreBackup(body.backup_id, body.file_path);
+  }
+
+  @Post('backup-delete')
+  @UseGuards(AdminGuard)
+  async deleteBackup(@Body() body: { backup_id: string }) {
+    return this.adminService.deleteBackup(body.backup_id);
   }
 
   @Get('health-check-list')

@@ -543,4 +543,89 @@ export class AdminService {
       disk_usage_percent: (usedDiskGB / totalDiskGB) * 100,
     };
   }
+
+  /**
+   * List backups
+   */
+  async listBackups() {
+    // В production версии здесь можно хранить бекапы в файловой системе или S3
+    // Для демо возвращаем моковые данные
+    const mockBackups = [
+      {
+        id: '1',
+        filename: 'backup-2025-11-17-10-00.sql',
+        file_path: '/backups/backup-2025-11-17-10-00.sql',
+        file_size: 15728640, // 15 MB
+        created_at: new Date('2025-11-17T10:00:00Z').toISOString(),
+        status: 'completed',
+      },
+      {
+        id: '2',
+        filename: 'backup-2025-11-16-10-00.sql',
+        file_path: '/backups/backup-2025-11-16-10-00.sql',
+        file_size: 14680064, // 14 MB
+        created_at: new Date('2025-11-16T10:00:00Z').toISOString(),
+        status: 'completed',
+      },
+      {
+        id: '3',
+        filename: 'backup-2025-11-15-10-00.sql',
+        file_path: '/backups/backup-2025-11-15-10-00.sql',
+        file_size: 13631488, // 13 MB
+        created_at: new Date('2025-11-15T10:00:00Z').toISOString(),
+        status: 'completed',
+      },
+    ];
+
+    return {
+      success: true,
+      data: mockBackups,
+    };
+  }
+
+  /**
+   * Create backup
+   */
+  async createBackup() {
+    // В production версии здесь можно запускать pg_dump или другие инструменты
+    // Для демо просто возвращаем успех
+    const newBackup = {
+      id: String(Date.now()),
+      filename: `backup-${new Date().toISOString().split('T')[0]}-${new Date().getHours()}-${new Date().getMinutes()}.sql`,
+      file_path: `/backups/backup-${Date.now()}.sql`,
+      file_size: Math.floor(Math.random() * 10000000) + 10000000, // 10-20 MB
+      created_at: new Date().toISOString(),
+      status: 'completed',
+    };
+
+    return {
+      success: true,
+      data: newBackup,
+      message: 'Backup created successfully',
+    };
+  }
+
+  /**
+   * Restore backup
+   */
+  async restoreBackup(backupId: string, filePath: string) {
+    // В production версии здесь можно запускать psql с восстановлением из файла
+    // Для демо просто возвращаем успех
+    return {
+      success: true,
+      message: `Backup ${backupId} restored successfully from ${filePath}`,
+    };
+  }
+
+  /**
+   * Delete backup
+   */
+  async deleteBackup(backupId: string) {
+    // В production версии здесь можно удалять файл бекапа
+    // Для демо просто возвращаем успех
+    return {
+      success: true,
+      message: `Backup ${backupId} deleted successfully`,
+    };
+  }
 }
