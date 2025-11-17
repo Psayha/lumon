@@ -236,32 +236,55 @@ export class AdminService {
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-    const activeUsers = await this.userRepository.count({
+    const activeUsers7d = await this.userRepository.count({
       where: {
         last_login_at: Between(sevenDaysAgo, new Date()) as any,
       },
     });
 
-    // Users created today
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // Active users (logged in last 30 days)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    const newUsersToday = await this.userRepository.count({
+    const activeUsers30d = await this.userRepository.count({
       where: {
-        created_at: Between(today, new Date()) as any,
+        last_login_at: Between(thirtyDaysAgo, new Date()) as any,
+      },
+    });
+
+    // New users (created in last 30 days)
+    const newUsers30d = await this.userRepository.count({
+      where: {
+        created_at: Between(thirtyDaysAgo, new Date()) as any,
+      },
+    });
+
+    // New companies (created in last 30 days)
+    const newCompanies30d = await this.companyRepository.count({
+      where: {
+        created_at: Between(thirtyDaysAgo, new Date()) as any,
+      },
+    });
+
+    // Active sessions
+    const activeSessions = await this.sessionRepository.count({
+      where: {
+        expires_at: Between(new Date(), new Date('2099-12-31')) as any,
       },
     });
 
     return {
       success: true,
       data: {
-        total_users: totalUsers,
-        active_users: activeUsers,
-        total_companies: totalCompanies,
-        total_chats: totalChats,
-        total_messages: totalMessages,
-        new_users_today: newUsersToday,
-        timestamp: new Date(),
+        totalUsers,
+        activeUsers30d,
+        activeUsers7d,
+        totalCompanies,
+        totalChats,
+        totalMessages,
+        newUsers30d,
+        newCompanies30d,
+        activeSessions,
       },
     };
   }
@@ -283,10 +306,27 @@ export class AdminService {
       relations: ['user'],
     });
 
+    // Transform to camelCase format expected by frontend
+    const formattedLogs = logs.map(log => ({
+      id: log.id,
+      action: log.action,
+      resourceType: log.resource_type,
+      resourceId: log.resource_id,
+      metadata: log.metadata,
+      ip: log.ip,
+      userAgent: log.user_agent,
+      createdAt: log.created_at,
+      user: log.user ? {
+        username: log.user.username,
+        firstName: log.user.first_name,
+        lastName: log.user.last_name,
+      } : null,
+    }));
+
     return {
       success: true,
-      data: {
-        logs,
+      data: formattedLogs,
+      pagination: {
         total,
         page,
         limit,
