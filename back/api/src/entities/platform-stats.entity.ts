@@ -13,38 +13,38 @@ import {
 @Index(['date'])
 export class PlatformStats {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column({ type: 'date', unique: true })
-  date: Date;
+  date!: Date;
 
   @Column({ type: 'integer', default: 0 })
-  total_users: number;
+  total_users!: number;
 
   @Column({ type: 'integer', default: 0 })
-  active_users: number;
+  active_users!: number;
 
   @Column({ type: 'integer', default: 0 })
-  total_companies: number;
+  total_companies!: number;
 
   @Column({ type: 'integer', default: 0 })
-  total_chats: number;
+  total_chats!: number;
 
   @Column({ type: 'integer', default: 0 })
-  total_messages: number;
+  total_messages!: number;
 
   @Column({ type: 'integer', default: 0 })
-  new_users: number;
+  new_users!: number;
 
   @Column({ type: 'integer', default: 0 })
-  new_companies: number;
+  new_companies!: number;
 
   @Column({ type: 'jsonb', default: {} })
-  metrics: Record<string, any>;
+  metrics!: Record<string, any>;
 
   @CreateDateColumn({ type: 'timestamptz' })
-  created_at: Date;
+  created_at!: Date;
 
   @UpdateDateColumn({ type: 'timestamptz' })
-  updated_at: Date;
+  updated_at!: Date;
 }

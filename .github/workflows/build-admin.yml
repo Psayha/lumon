@@ -5,32 +5,63 @@ on:
     branches: [ main ]
   workflow_dispatch: {}
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-admin:
+    name: Build Admin Panel
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Use Node.js 18
+      - name: Setup Node.js 20
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
           cache: 'npm'
+          cache-dependency-path: adminpage/package-lock.json
 
-      - name: Install deps (adminpage)
+      - name: Install dependencies
         working-directory: adminpage
         run: npm ci --no-audit --no-fund
 
-      - name: Build admin
+      - name: Run lint
+        working-directory: adminpage
+        run: npm run lint
+
+      - name: TypeScript type check
+        working-directory: adminpage
+        run: npx tsc --noEmit
+
+      - name: Build admin panel
         working-directory: adminpage
         run: npm run build
+        env:
+          VITE_API_URL: ''
+          NODE_ENV: production
+
+      - name: Verify build output
+        run: |
+          if [ ! -d "dist-admin" ]; then
+            echo "❌ Build failed: dist-admin directory not found"
+            exit 1
+          fi
+          if [ ! -f "dist-admin/index.html" ]; then
+            echo "❌ Build failed: index.html not found"
+            exit 1
+          fi
+          echo "✅ Build successful"
+          ls -lh dist-admin/
 
       - name: Upload dist-admin artifact
         uses: actions/upload-artifact@v4
         with:
           name: dist-admin
           path: dist-admin
+          retention-days: 7
 
 
 

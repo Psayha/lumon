@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Database, Upload, FileText, Trash2, Download, CheckCircle } from 'lucide-react';
+import { Database, Upload, FileText, Trash2 } from 'lucide-react';
 import { useToast } from '../components/Toast';
 import { adminApiRequest, ADMIN_API_CONFIG } from '../config/api';
 
@@ -90,7 +90,7 @@ export const AIDocumentsTab: React.FC = () => {
       } else {
         showToast('error', data.message || 'Не удалось удалить документ');
       }
-    } catch (error) {
+    } catch (_error) {
       showToast('error', 'Ошибка при удалении документа');
     }
   };

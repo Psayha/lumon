@@ -85,7 +85,7 @@ export class UserLimitsService {
     const windowStart = new Date(now.getTime() - windowMinutes * 60 * 1000);
 
     // Get or create rate limit record
-    let rateLimit = await this.rateLimitRepository.findOne({
+    const rateLimit = await this.rateLimitRepository.findOne({
       where: {
         user_id: userId,
         endpoint,

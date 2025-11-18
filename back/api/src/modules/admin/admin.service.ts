@@ -2,7 +2,6 @@ import {
   Injectable,
   UnauthorizedException,
   NotFoundException,
-  ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between } from 'typeorm';
@@ -17,7 +16,6 @@ import {
   AbExperiment,
   AbAssignment,
   PlatformStats,
-  UserRole,
   Backup,
 } from '@entities';
 import { v4 as uuidv4 } from 'uuid';
@@ -110,7 +108,7 @@ export class AdminService {
    * Replaces: admin.users-list.json
    */
   async listUsers(page = 1, limit = 50) {
-    const [users, total] = await this.userRepository.findAndCount({
+    const [users, _total] = await this.userRepository.findAndCount({
       relations: ['chats', 'userCompanies'],
       take: limit,
       skip: (page - 1) * limit,
@@ -620,11 +618,11 @@ export class AdminService {
     } catch (error) {
       // Update backup record with error
       backup.status = 'failed';
-      backup.error_message = error.message;
+      backup.error_message = (error as Error).message;
       backup.completed_at = new Date();
       await this.backupRepository.save(backup);
 
-      throw new Error(`Failed to create backup: ${error.message}`);
+      throw new Error(`Failed to create backup: ${(error as Error).message}`);
     }
   }
 
@@ -662,7 +660,7 @@ export class AdminService {
         message: `Backup ${backupId} restored successfully from ${filePath}`,
       };
     } catch (error) {
-      throw new Error(`Failed to restore backup: ${error.message}`);
+      throw new Error(`Failed to restore backup: ${(error as Error).message}`);
     }
   }
 
@@ -692,7 +690,7 @@ export class AdminService {
         message: `Backup ${backupId} deleted successfully`,
       };
     } catch (error) {
-      throw new Error(`Failed to delete backup: ${error.message}`);
+      throw new Error(`Failed to delete backup: ${(error as Error).message}`);
     }
   }
 }

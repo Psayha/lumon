@@ -112,7 +112,7 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
         }
         
         // Извлекаем токен из ответа (с fallback для разных структур)
-        let token: string | undefined = 
+        const token: string | undefined = 
           data?.data?.session_token || 
           data?.data?.token || 
           data?.token || 

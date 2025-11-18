@@ -1,0 +1,71 @@
+# Dependencies
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+# Build output
+dist
+dist-admin
+build
+.next
+out
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+.env.production
+!.env.example
+
+# Tests
+coverage
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+test/
+tests/
+__tests__
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.editorconfig
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# CI/CD
+.github
+.gitlab-ci.yml
+.travis.yml
+
+# Documentation
+README.md
+CHANGELOG.md
+docs/
+*.md
+
+# Logs
+logs
+*.log
+
+# Backend (if building frontend)
+back/
+
+# Config files (keep only what's needed)
+.prettierrc*
+.eslintrc*
+tsconfig*.json

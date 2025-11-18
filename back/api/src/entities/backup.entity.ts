@@ -12,30 +12,30 @@ import {
 @Index(['status'])
 export class Backup {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column({ type: 'varchar', length: 255 })
-  filename: string;
+  filename!: string;
 
   @Column({ type: 'varchar', length: 500 })
-  file_path: string;
+  file_path!: string;
 
   @Column({ type: 'bigint', default: 0 })
-  file_size: number;
+  file_size!: number;
 
   @Column({
     type: 'varchar',
     length: 50,
     default: 'in_progress',
   })
-  status: string; // in_progress, completed, failed
+  status!: string; // in_progress, completed, failed
 
   @Column({ type: 'text', nullable: true })
-  error_message: string;
+  error_message!: string;
 
   @CreateDateColumn({ type: 'timestamptz' })
-  created_at: Date;
+  created_at!: Date;
 
   @UpdateDateColumn({ type: 'timestamptz', nullable: true })
-  completed_at: Date;
+  completed_at!: Date;
 }

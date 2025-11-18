@@ -4,14 +4,14 @@ import { MessageRole } from '@entities';
 export class SaveMessageDto {
   @IsString()
   @IsNotEmpty()
-  chat_id: string;
+  chat_id!: string;
 
   @IsEnum(MessageRole)
-  role: MessageRole;
+  role!: MessageRole;
 
   @IsString()
   @IsNotEmpty()
-  content: string;
+  content!: string;
 
   @IsObject()
   @IsOptional()

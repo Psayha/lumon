@@ -111,7 +111,7 @@ export const adminApiRequest = async <T = any>(
     if (contentType && contentType.includes('application/json')) {
       try {
         data = JSON.parse(responseText);
-      } catch (jsonError) {
+      } catch (_jsonError) {
         return {
           success: false,
           message: `Ошибка сервера ${response.status}: Неверный формат ответа`,

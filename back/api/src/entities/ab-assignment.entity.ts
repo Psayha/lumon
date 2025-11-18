@@ -23,31 +23,31 @@ export enum AbVariant {
 @Index(['variant'])
 export class AbAssignment {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column({ type: 'uuid' })
-  experiment_id: string;
+  experiment_id!: string;
 
   @Column({ type: 'uuid' })
-  user_id: string;
+  user_id!: string;
 
   @Column({
     type: 'enum',
     enum: AbVariant,
     enumName: 'ab_variant',
   })
-  variant: AbVariant;
+  variant!: AbVariant;
 
   @CreateDateColumn({ type: 'timestamptz' })
-  assigned_at: Date;
+  assigned_at!: Date;
 
   @ManyToOne(() => AbExperiment, (experiment) => experiment.assignments, {
     onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'experiment_id' })
-  experiment: AbExperiment;
+  experiment!: AbExperiment;
 
   @ManyToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
-  user: User;
+  user!: User;
 }

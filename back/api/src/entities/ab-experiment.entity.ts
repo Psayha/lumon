@@ -12,38 +12,38 @@ import { AbEvent } from './ab-event.entity';
 @Entity('ab_experiments')
 export class AbExperiment {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column({ type: 'varchar', length: 255, unique: true })
-  name: string;
+  name!: string;
 
   @Column({ type: 'text', nullable: true })
-  description: string;
+  description!: string;
 
   @Column({ type: 'varchar', length: 100 })
-  feature_name: string;
+  feature_name!: string;
 
   @Column({ type: 'boolean', default: true })
-  enabled: boolean;
+  enabled!: boolean;
 
   @Column({ type: 'integer', default: 50 })
-  traffic_percentage: number;
+  traffic_percentage!: number;
 
   @Column({ type: 'jsonb', default: {} })
-  variant_a_config: Record<string, any>;
+  variant_a_config!: Record<string, any>;
 
   @Column({ type: 'jsonb', default: {} })
-  variant_b_config: Record<string, any>;
+  variant_b_config!: Record<string, any>;
 
   @CreateDateColumn({ type: 'timestamptz' })
-  created_at: Date;
+  created_at!: Date;
 
   @UpdateDateColumn({ type: 'timestamptz' })
-  updated_at: Date;
+  updated_at!: Date;
 
   @OneToMany(() => AbAssignment, (assignment) => assignment.experiment)
-  assignments: AbAssignment[];
+  assignments!: AbAssignment[];
 
   @OneToMany(() => AbEvent, (event) => event.experiment)
-  events: AbEvent[];
+  events!: AbEvent[];
 }

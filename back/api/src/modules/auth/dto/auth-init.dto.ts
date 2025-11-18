@@ -3,7 +3,7 @@ import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
 export class AuthInitDto {
   @IsString()
   @IsNotEmpty()
-  initData: string;
+  initData!: string;
 
   @IsString()
   @IsOptional()
@@ -11,7 +11,7 @@ export class AuthInitDto {
 }
 
 export class AuthInitResponse {
-  success: boolean;
+  success!: boolean;
   data?: {
     session_token: string;
     user: {

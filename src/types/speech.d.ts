@@ -42,19 +42,14 @@ declare global {
         readonly confidence: number;
     }
 
-    var SpeechRecognition: {
+    interface SpeechRecognitionConstructor {
         prototype: SpeechRecognition;
         new (): SpeechRecognition;
-    };
-
-    var webkitSpeechRecognition: {
-        prototype: SpeechRecognition;
-        new (): SpeechRecognition;
-    };
+    }
 
     interface Window {
-        SpeechRecognition: typeof SpeechRecognition;
-        webkitSpeechRecognition: typeof webkitSpeechRecognition;
+        SpeechRecognition: SpeechRecognitionConstructor;
+        webkitSpeechRecognition: SpeechRecognitionConstructor;
     }
 }
 

@@ -199,7 +199,7 @@ const reAuth = async (): Promise<boolean> => {
     }
     
     // Извлекаем токен из ответа (с fallback для разных структур)
-    let token: string | undefined = 
+    const token: string | undefined = 
       data?.data?.session_token || 
       data?.data?.token || 
       data?.token || 
@@ -352,7 +352,9 @@ export const authInit = async (initData: string, appVersion: string = '1.0.0'): 
   try {
     const { logFetchResponse } = await import('./debugLogger').catch(() => ({ logFetchResponse: null as any }));
     if (logFetchResponse) await logFetchResponse(res);
-  } catch {}
+  } catch {
+    // Ignore debug logger errors
+  }
 
   let json: any;
   try {
@@ -649,7 +651,9 @@ export const createChat = async (title?: string): Promise<ApiResponse<Chat>> => 
   try {
     const { logFetchResponse } = await import('./debugLogger').catch(() => ({ logFetchResponse: null as any }));
     if (logFetchResponse) await logFetchResponse(res);
-  } catch {}
+  } catch {
+    // Ignore debug logger errors
+  }
 
   const text = await res.text();
   const json = text ? JSON.parse(text) : null;

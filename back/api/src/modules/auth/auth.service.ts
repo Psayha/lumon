@@ -53,11 +53,11 @@ export class AuthService {
       const session = await this.sessionRepository.save({
         session_token: sessionToken,
         user_id: user.id,
-        company_id: roleData.company_id,
+        company_id: roleData.company_id || undefined,
         role: roleData.role as UserRole,
         expires_at: expiresAt,
         is_active: true,
-      });
+      }) as Session;
 
       // Log audit event (fire and forget)
       this.logAuditEvent({
@@ -87,7 +87,7 @@ export class AuthService {
         },
       };
     } catch (error) {
-      throw new BadRequestException(error.message);
+      throw new BadRequestException((error as Error).message);
     }
   }
 
@@ -199,7 +199,7 @@ export class AuthService {
     try {
       user = JSON.parse(userStr);
     } catch (parseError) {
-      throw new Error(`Failed to parse user JSON: ${parseError.message}`);
+      throw new Error(`Failed to parse user JSON: ${(parseError as Error).message}`);
     }
 
     if (!user || !user.id) {
@@ -249,7 +249,7 @@ export class AuthService {
         language_code: data.language_code,
         app_version: data.app_version,
         last_login_at: new Date(),
-      });
+      }) as User;
     }
 
     return user;

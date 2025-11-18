@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { FileText, Upload, Edit, Trash2, Save, X } from 'lucide-react';
+import { FileText, Edit, Save, X } from 'lucide-react';
 import { useToast } from '../components/Toast';
 import { adminApiRequest, ADMIN_API_CONFIG } from '../config/api';
 
@@ -68,7 +68,7 @@ export const LegalDocsTab: React.FC = () => {
       } else {
         showToast('error', data.message || 'Не удалось обновить документ');
       }
-    } catch (error) {
+    } catch (_error) {
       showToast('error', 'Ошибка при обновлении документа');
     }
   };

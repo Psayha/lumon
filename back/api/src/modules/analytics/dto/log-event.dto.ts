@@ -3,7 +3,7 @@ import { IsString, IsNotEmpty, IsOptional, IsObject } from 'class-validator';
 export class LogEventDto {
   @IsString()
   @IsNotEmpty()
-  action: string;
+  action!: string;
 
   @IsString()
   @IsOptional()

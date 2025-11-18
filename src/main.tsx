@@ -32,7 +32,9 @@ const initializeTheme = () => {
     applyFromTelegram();
     try {
       tg.onEvent?.('themeChanged', applyFromTelegram);
-    } catch (_) {}
+    } catch (_) {
+      // Ignore if onEvent is not available
+    }
   }
 
   const saved = localStorage.getItem('theme') as 'light' | 'dark' | 'system' | null;
@@ -50,11 +52,10 @@ const initializeTheme = () => {
       if (media.matches) root.classList.add('dark');
       else root.classList.remove('dark');
     };
-    try {
+    if ('addEventListener' in media) {
       media.addEventListener('change', apply);
-    } catch (_) {
-      // Safari
-      // @ts-ignore
+    } else {
+      // @ts-expect-error - Legacy Safari API
       media.addListener(apply);
     }
   }

@@ -78,6 +78,7 @@ export const UsersTab: React.FC = () => {
         setLimits(data.data);
       }
     } catch (error) {
+      console.error('Failed to load limits:', error);
     }
   };
 
@@ -108,7 +109,7 @@ export const UsersTab: React.FC = () => {
       } else {
         showToast('error', data.message || 'Не удалось обновить лимит');
       }
-    } catch (error) {
+    } catch (_error) {
       showToast('error', 'Ошибка при обновлении лимита');
     }
   };
@@ -127,7 +128,7 @@ export const UsersTab: React.FC = () => {
       } else {
         showToast('error', data.message || 'Не удалось очистить историю');
       }
-    } catch (error) {
+    } catch (_error) {
       showToast('error', 'Ошибка при очистке истории');
     }
   };
@@ -146,7 +147,7 @@ export const UsersTab: React.FC = () => {
       } else {
         showToast('error', data.message || 'Не удалось удалить пользователя');
       }
-    } catch (error) {
+    } catch (_error) {
       showToast('error', 'Ошибка при удалении пользователя');
     }
   };
@@ -171,7 +172,7 @@ export const UsersTab: React.FC = () => {
       } else {
         showToast('error', data.message || 'Не удалось обновить лимиты');
       }
-    } catch (error) {
+    } catch (_error) {
       showToast('error', 'Ошибка при обновлении лимитов');
     }
   };

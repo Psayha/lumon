@@ -54,8 +54,8 @@ const ApiTestPage: React.FC = () => {
     if (savedContext) {
       try {
         setUserContext(JSON.parse(savedContext));
-      } catch (e) {
-        console.error('Failed to parse user context:', e);
+      } catch (_e) {
+        console.error('Failed to parse user context:', _e);
       }
     }
   }, []);
@@ -133,7 +133,7 @@ const ApiTestPage: React.FC = () => {
 
   const handleLoadTestData = () => {
     const data = testData[selectedEndpoint as keyof typeof testData];
-    let dataToLoad = data ? { ...data } : {};
+    const dataToLoad = data ? { ...data } : {};
     
     // Автоматически подставляем chat_id для chat-save-message если он есть
     if (selectedEndpoint === 'chat-save-message' && chatIdForHistory && chatIdForHistory.trim() !== '') {
@@ -157,7 +157,7 @@ const ApiTestPage: React.FC = () => {
       const endpoint = info.url;
       method = info.method;
       
-      let requestOptions: RequestInit = {
+      const requestOptions: RequestInit = {
         method,
         headers: {
           'Content-Type': 'application/json',
@@ -567,7 +567,7 @@ const ApiTestPage: React.FC = () => {
 
       try {
         const sourceData = testData[endpoint as keyof typeof testData];
-        let testDataForEndpoint = sourceData ? { ...sourceData } : {};
+        const testDataForEndpoint = sourceData ? { ...sourceData } : {};
         
         // Обновляем токен в тестовых данных
         if (['auth-validate', 'auth-refresh', 'auth-logout', 'auth-set-viewer-role', 'auth-switch-company'].includes(endpoint)) {
@@ -877,7 +877,7 @@ const ApiTestPage: React.FC = () => {
                 const newEndpoint = e.target.value;
                 setSelectedEndpoint(newEndpoint);
                 const data = testData[newEndpoint as keyof typeof testData];
-                let dataToLoad = data ? { ...data } : {};
+                const dataToLoad = data ? { ...data } : {};
                 
                 // Автоматически подставляем chat_id для chat-save-message если он есть
                 if (newEndpoint === 'chat-save-message' && chatIdForHistory && chatIdForHistory.trim() !== '') {

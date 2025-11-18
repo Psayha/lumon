@@ -15,48 +15,48 @@ import { AuditEvent } from './audit-event.entity';
 @Entity('users')
 export class User {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column({ type: 'bigint', unique: true })
-  telegram_id: number;
+  telegram_id!: number;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
-  username: string;
+  username!: string;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
-  first_name: string;
+  first_name!: string;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
-  last_name: string;
+  last_name!: string;
 
   @Column({ type: 'varchar', length: 10, default: 'ru' })
-  language_code: string;
+  language_code!: string;
 
   @Column({ type: 'varchar', length: 50, nullable: true })
-  app_version: string;
+  app_version!: string;
 
   @Column({ type: 'timestamptz', nullable: true })
-  last_login_at: Date;
+  last_login_at!: Date;
 
   @CreateDateColumn({ type: 'timestamptz' })
-  created_at: Date;
+  created_at!: Date;
 
   @UpdateDateColumn({ type: 'timestamptz' })
-  updated_at: Date;
+  updated_at!: Date;
 
   // Relations
   @OneToMany(() => Session, (session) => session.user)
-  sessions: Session[];
+  sessions!: Session[];
 
   @OneToMany(() => Chat, (chat) => chat.user)
-  chats: Chat[];
+  chats!: Chat[];
 
   @OneToMany(() => UserCompany, (userCompany) => userCompany.user)
-  userCompanies: UserCompany[];
+  userCompanies!: UserCompany[];
 
   @OneToMany(() => UserLimit, (userLimit) => userLimit.user)
-  userLimits: UserLimit[];
+  userLimits!: UserLimit[];
 
   @OneToMany(() => AuditEvent, (auditEvent) => auditEvent.user)
-  auditEvents: AuditEvent[];
+  auditEvents!: AuditEvent[];
 }
