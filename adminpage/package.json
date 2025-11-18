@@ -1,15 +1,14 @@
 {
-  "name": "lumon2",
+  "name": "lumon-admin",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "format": "prettier --write \"src/**/*.{ts,tsx,json,css}\"",
-    "prepare": "husky install"
+    "format": "prettier --write \"src/**/*.{ts,tsx,json,css}\""
   },
   "dependencies": {
     "clsx": "^2.1.1",
@@ -21,6 +20,7 @@
     "tailwind-merge": "^3.3.1"
   },
   "devDependencies": {
+    "@types/node": "^20.10.6",
     "@types/react": "^18.2.15",
     "@types/react-dom": "^18.2.7",
     "@typescript-eslint/eslint-plugin": "^8.46.3",
@@ -29,8 +29,6 @@
     "autoprefixer": "^10.4.14",
     "eslint": "^9.39.1",
     "eslint-config-prettier": "^10.1.8",
-    "husky": "^8.0.3",
-    "lint-staged": "^15.2.0",
     "postcss": "^8.4.27",
     "prettier": "^3.6.2",
     "tailwindcss": "^3.3.3",

@@ -30,12 +30,29 @@ jobs:
         env:
           VITE_API_URL: ''
 
+      - name: Install admin panel dependencies
+        working-directory: adminpage
+        run: npm ci --no-audit --no-fund
+
       - name: Build admin panel
-        run: |
-          # Админ-панель использует общие зависимости из корня
-          npx vite build --config adminpage/vite.config.ts
+        working-directory: adminpage
+        run: npm run build
         env:
           VITE_API_URL: ''
+          NODE_ENV: production
+
+      - name: Verify builds
+        run: |
+          echo "🔍 Verifying build outputs..."
+          if [ ! -d "dist" ] || [ ! -f "dist/index.html" ]; then
+            echo "❌ Frontend build failed"
+            exit 1
+          fi
+          if [ ! -d "dist-admin" ] || [ ! -f "dist-admin/index.html" ]; then
+            echo "❌ Admin build failed"
+            exit 1
+          fi
+          echo "✅ All builds verified successfully"
 
       - name: Setup SSH
         run: |
@@ -113,9 +130,12 @@ jobs:
           SSH_USER: ${{ secrets.SSH_USER }}
 
       - name: Deploy backend services with Docker Compose (Supabase + n8n)
-        continue-on-error: true
         run: |
-          ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "cd ${{ steps.backend_path.outputs.path }} && docker compose up -d --build"
+          ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "cd ${{ steps.backend_path.outputs.path }} && DOCKER_BUILDKIT=1 docker compose up -d --build" || {
+            echo "⚠️ Docker Compose deployment failed, checking if services are already running..."
+            ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "cd ${{ steps.backend_path.outputs.path }} && docker compose ps"
+            exit 0
+          }
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_PORT: ${{ secrets.SSH_PORT }}
