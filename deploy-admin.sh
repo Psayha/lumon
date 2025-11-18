@@ -57,7 +57,7 @@ if [ ! -f "package.json" ]; then
     exit 1
 fi
 
-npm install --production
+npm install
 echo -e "${GREEN}✓${NC} Зависимости установлены"
 echo ""
 
