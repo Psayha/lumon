@@ -331,7 +331,7 @@ const App: React.FC = () => {
         if ((tg as any).setBottomBarColor) {
           (tg as any).setBottomBarColor(bg);
         }
-      } catch (error) {
+      } catch (_error) {
         // Тихая обработка - методы могут быть не поддерживаемы в старых версиях
         logger.debug('[Telegram] Некоторые методы UI не поддерживаются в текущей версии API');
       }
@@ -379,7 +379,7 @@ const App: React.FC = () => {
           if ((tg as any).setBottomBarColor) {
             (tg as any).setBottomBarColor(bg);
           }
-        } catch (error) {
+        } catch (_error) {
           // Тихая обработка - методы могут быть не поддерживаемы в старых версиях
           console.debug('[Telegram] Некоторые методы UI не поддерживаются в текущей версии API');
         }

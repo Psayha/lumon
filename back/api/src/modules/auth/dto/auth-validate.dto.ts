@@ -1,5 +1,5 @@
 export class AuthValidateResponse {
-  success: boolean;
+  success!: boolean;
   data?: {
     user: {
       id: string;

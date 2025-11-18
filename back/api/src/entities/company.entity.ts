@@ -13,27 +13,27 @@ import { UserCompany } from './user-company.entity';
 @Entity('companies')
 export class Company {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column({ type: 'varchar', length: 255 })
-  name: string;
+  name!: string;
 
   @Column({ type: 'jsonb', default: {} })
-  settings: Record<string, any>;
+  settings!: Record<string, any>;
 
   @CreateDateColumn({ type: 'timestamptz' })
-  created_at: Date;
+  created_at!: Date;
 
   @UpdateDateColumn({ type: 'timestamptz' })
-  updated_at: Date;
+  updated_at!: Date;
 
   // Relations
   @OneToMany(() => Session, (session) => session.company)
-  sessions: Session[];
+  sessions!: Session[];
 
   @OneToMany(() => Chat, (chat) => chat.company)
-  chats: Chat[];
+  chats!: Chat[];
 
   @OneToMany(() => UserCompany, (userCompany) => userCompany.company)
-  userCompanies: UserCompany[];
+  userCompanies!: UserCompany[];
 }

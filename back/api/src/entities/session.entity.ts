@@ -23,16 +23,16 @@ export enum UserRole {
 @Index(['is_active'], { where: 'is_active = true' })
 export class Session {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column({ type: 'uuid', unique: true })
-  session_token: string;
+  session_token!: string;
 
   @Column({ type: 'uuid' })
-  user_id: string;
+  user_id!: string;
 
   @Column({ type: 'uuid', nullable: true })
-  company_id: string;
+  company_id!: string;
 
   @Column({
     type: 'enum',
@@ -40,29 +40,29 @@ export class Session {
     enumName: 'user_role',
     default: UserRole.VIEWER,
   })
-  role: UserRole;
+  role!: UserRole;
 
   @Column({ type: 'timestamptz' })
-  expires_at: Date;
+  expires_at!: Date;
 
   @Column({ type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP' })
-  last_activity_at: Date;
+  last_activity_at!: Date;
 
   @Column({ type: 'boolean', default: true })
-  is_active: boolean;
+  is_active!: boolean;
 
   @CreateDateColumn({ type: 'timestamptz' })
-  created_at: Date;
+  created_at!: Date;
 
   // Relations
   @ManyToOne(() => User, (user) => user.sessions, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
-  user: User;
+  user!: User;
 
   @ManyToOne(() => Company, (company) => company.sessions, {
     onDelete: 'CASCADE',
     nullable: true,
   })
   @JoinColumn({ name: 'company_id' })
-  company: Company;
+  company!: Company;
 }

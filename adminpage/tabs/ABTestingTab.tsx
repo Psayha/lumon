@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { FlaskConical, Plus, Edit, ToggleLeft, ToggleRight, Save, X } from 'lucide-react';
+import { FlaskConical, Plus, ToggleLeft, ToggleRight } from 'lucide-react';
 import { useToast } from '../components/Toast';
 import { adminApiRequest, ADMIN_API_CONFIG } from '../config/api';
 
@@ -22,8 +22,8 @@ interface Experiment {
 export const ABTestingTab: React.FC = () => {
   const [experiments, setExperiments] = useState<Experiment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [_showCreateModal, _setShowCreateModal] = useState(false);
+  const [_editingId, _setEditingId] = useState<string | null>(null);
   const { showToast } = useToast();
 
   const loadExperiments = async () => {
@@ -59,7 +59,7 @@ export const ABTestingTab: React.FC = () => {
       } else {
         showToast('error', data.message || 'Не удалось обновить эксперимент');
       }
-    } catch (error) {
+    } catch (_error) {
       showToast('error', 'Ошибка при обновлении эксперимента');
     }
   };
@@ -82,7 +82,7 @@ export const ABTestingTab: React.FC = () => {
           </p>
         </div>
         <button
-          onClick={() => setShowCreateModal(true)}
+          onClick={() => _setShowCreateModal(true)}
           className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
         >
           <Plus className="w-4 h-4" />

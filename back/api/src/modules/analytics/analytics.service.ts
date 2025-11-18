@@ -26,11 +26,11 @@ export class AnalyticsService {
       user_id: user.id,
       action: dto.action,
       resource_type: dto.resource || 'analytics',
-      resource_id: dto.resource_id || null,
+      resource_id: dto.resource_id || undefined,
       metadata: dto.meta || {},
       ip,
       user_agent: userAgent,
-    });
+    }) as AuditEvent;
 
     return {
       success: true,

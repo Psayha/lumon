@@ -19,35 +19,35 @@ import { UserRole } from './session.entity';
 @Index(['role'])
 export class UserCompany {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column({ type: 'uuid' })
-  user_id: string;
+  user_id!: string;
 
   @Column({ type: 'uuid' })
-  company_id: string;
+  company_id!: string;
 
   @Column({
     type: 'enum',
     enum: UserRole,
     enumName: 'user_role',
   })
-  role: UserRole;
+  role!: UserRole;
 
   @Column({ type: 'boolean', default: true })
-  is_active: boolean;
+  is_active!: boolean;
 
   @CreateDateColumn({ type: 'timestamptz' })
-  created_at: Date;
+  created_at!: Date;
 
   // Relations
   @ManyToOne(() => User, (user) => user.userCompanies, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
-  user: User;
+  user!: User;
 
   @ManyToOne(() => Company, (company) => company.userCompanies, {
     onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'company_id' })
-  company: Company;
+  company!: Company;
 }

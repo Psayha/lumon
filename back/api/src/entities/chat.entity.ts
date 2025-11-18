@@ -20,35 +20,35 @@ import { Message } from './message.entity';
 @Index(['user_id', 'company_id'])
 export class Chat {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column({ type: 'uuid' })
-  user_id: string;
+  user_id!: string;
 
   @Column({ type: 'uuid', nullable: true })
-  company_id: string;
+  company_id!: string;
 
   @Column({ type: 'varchar', length: 500, nullable: true })
-  title: string;
+  title!: string;
 
   @CreateDateColumn({ type: 'timestamptz' })
-  created_at: Date;
+  created_at!: Date;
 
   @UpdateDateColumn({ type: 'timestamptz' })
-  updated_at: Date;
+  updated_at!: Date;
 
   // Relations
   @ManyToOne(() => User, (user) => user.chats, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
-  user: User;
+  user!: User;
 
   @ManyToOne(() => Company, (company) => company.chats, {
     onDelete: 'SET NULL',
     nullable: true,
   })
   @JoinColumn({ name: 'company_id' })
-  company: Company;
+  company!: Company;
 
   @OneToMany(() => Message, (message) => message.chat)
-  messages: Message[];
+  messages!: Message[];
 }

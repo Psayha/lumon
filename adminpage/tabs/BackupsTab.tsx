@@ -51,7 +51,7 @@ export const BackupsTab: React.FC = () => {
       } else {
         alert(`Ошибка: ${data.message || 'Не удалось создать бэкап'}`);
       }
-    } catch (error) {
+    } catch (_error) {
       alert('Ошибка при создании бэкапа');
     } finally {
       setIsCreating(false);
@@ -72,7 +72,7 @@ export const BackupsTab: React.FC = () => {
       } else {
         alert(`Ошибка: ${data.message || 'Не удалось восстановить бэкап'}`);
       }
-    } catch (error) {
+    } catch (_error) {
       alert('Ошибка при восстановлении бэкапа');
     }
   };
@@ -92,7 +92,7 @@ export const BackupsTab: React.FC = () => {
       } else {
         alert(`Ошибка: ${data.message || 'Не удалось удалить бэкап'}`);
       }
-    } catch (error) {
+    } catch (_error) {
       alert('Ошибка при удалении бэкапа');
     }
   };

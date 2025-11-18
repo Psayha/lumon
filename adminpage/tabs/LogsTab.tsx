@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { FileText, Search, Filter, Download, RefreshCw } from 'lucide-react';
+import { Search, Filter, Download, RefreshCw } from 'lucide-react';
 import { useToast } from '../components/Toast';
 import { adminApiRequest, ADMIN_API_CONFIG } from '../config/api';
 

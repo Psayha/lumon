@@ -16,34 +16,34 @@ import { User } from './user.entity';
 @Index(['resource_type', 'resource_id'])
 export class AuditEvent {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column({ type: 'uuid', nullable: true })
-  user_id: string;
+  user_id!: string;
 
   @Column({ type: 'varchar', length: 100 })
-  action: string;
+  action!: string;
 
   @Column({ type: 'varchar', length: 100, nullable: true })
-  resource_type: string;
+  resource_type!: string;
 
   @Column({ type: 'uuid', nullable: true })
-  resource_id: string;
+  resource_id!: string;
 
   @Column({ type: 'jsonb', nullable: true })
-  metadata: Record<string, any>;
+  metadata!: Record<string, any>;
 
   @Column({ type: 'varchar', length: 45, nullable: true })
-  ip: string;
+  ip!: string;
 
   @Column({ type: 'text', nullable: true })
-  user_agent: string;
+  user_agent!: string;
 
   @CreateDateColumn({ type: 'timestamptz' })
-  created_at: Date;
+  created_at!: Date;
 
   // Relations
   @ManyToOne(() => User, (user) => user.auditEvents, { onDelete: 'SET NULL' })
   @JoinColumn({ name: 'user_id' })
-  user: User;
+  user!: User;
 }

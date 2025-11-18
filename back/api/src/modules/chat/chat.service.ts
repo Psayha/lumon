@@ -2,7 +2,6 @@ import {
   Injectable,
   NotFoundException,
   ForbiddenException,
-  BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -11,7 +10,6 @@ import {
   Message,
   AuditEvent,
   IdempotencyKey,
-  MessageRole,
 } from '@entities';
 import { CreateChatDto } from './dto/create-chat.dto';
 import { SaveMessageDto } from './dto/save-message.dto';
@@ -38,9 +36,9 @@ export class ChatService {
   async createChat(dto: CreateChatDto, user: CurrentUserData) {
     const chat = await this.chatRepository.save({
       user_id: user.id,
-      company_id: user.company_id,
+      company_id: user.company_id || undefined,
       title: dto.title || 'New Chat',
-    });
+    }) as Chat;
 
     return {
       success: true,

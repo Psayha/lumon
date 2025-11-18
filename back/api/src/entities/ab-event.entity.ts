@@ -18,37 +18,37 @@ import { AbVariant } from './ab-assignment.entity';
 @Index(['created_at'])
 export class AbEvent {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column({ type: 'uuid' })
-  experiment_id: string;
+  experiment_id!: string;
 
   @Column({ type: 'uuid' })
-  user_id: string;
+  user_id!: string;
 
   @Column({
     type: 'enum',
     enum: AbVariant,
     enumName: 'ab_variant',
   })
-  variant: AbVariant;
+  variant!: AbVariant;
 
   @Column({ type: 'varchar', length: 50 })
-  event_type: string;
+  event_type!: string;
 
   @Column({ type: 'jsonb', default: {} })
-  event_data: Record<string, any>;
+  event_data!: Record<string, any>;
 
   @CreateDateColumn({ type: 'timestamptz' })
-  created_at: Date;
+  created_at!: Date;
 
   @ManyToOne(() => AbExperiment, (experiment) => experiment.events, {
     onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'experiment_id' })
-  experiment: AbExperiment;
+  experiment!: AbExperiment;
 
   @ManyToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
-  user: User;
+  user!: User;
 }

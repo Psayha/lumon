@@ -1,0 +1,7 @@
+back/
+node_modules/
+dist/
+dist-admin/
+build/
+*.config.js
+*.config.ts

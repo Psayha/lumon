@@ -34,12 +34,12 @@ interface SystemStatus {
 export const HealthChecksTab: React.FC = () => {
   const [systemStatus, setSystemStatus] = useState<SystemStatus | null>(null);
   const [healthChecks, setHealthChecks] = useState<HealthCheck[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [_isLoading, _setIsLoading] = useState(true);
   const [isChecking, setIsChecking] = useState(false);
   const { showToast } = useToast();
 
   const loadHealthChecks = async () => {
-    setIsLoading(true);
+    _setIsLoading(true);
     try {
       const data = await adminApiRequest(ADMIN_API_CONFIG.endpoints.healthCheckList);
       if (data.success && data.data) {
@@ -52,10 +52,10 @@ export const HealthChecksTab: React.FC = () => {
       } else {
         showToast('error', data.message || 'Не удалось загрузить health checks');
       }
-    } catch (error) {
+    } catch (_error) {
       showToast('error', 'Ошибка при загрузке health checks');
     } finally {
-      setIsLoading(false);
+      _setIsLoading(false);
     }
   };
 
@@ -76,7 +76,7 @@ export const HealthChecksTab: React.FC = () => {
       } else {
         showToast('error', data.message || 'Не удалось выполнить проверку');
       }
-    } catch (error) {
+    } catch (_error) {
       showToast('error', 'Ошибка при проверке здоровья системы');
     } finally {
       setIsChecking(false);
@@ -95,7 +95,7 @@ export const HealthChecksTab: React.FC = () => {
       } else {
         showToast('error', data.message || 'Не удалось выполнить проверку');
       }
-    } catch (error) {
+    } catch (_error) {
       showToast('error', 'Ошибка при проверке сервиса');
     }
   };
@@ -130,7 +130,7 @@ export const HealthChecksTab: React.FC = () => {
 
     const maxValue = Math.max(...data.map((d) => d.value), 100);
     const chartHeight = 100;
-    const chartWidth = 100;
+    const _chartWidth = 100;
 
     return (
       <div className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
