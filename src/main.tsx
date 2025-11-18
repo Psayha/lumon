@@ -55,7 +55,7 @@ const initializeTheme = () => {
     if ('addEventListener' in media) {
       media.addEventListener('change', apply);
     } else {
-      // @ts-ignore - Legacy Safari API
+      // @ts-expect-error - Legacy Safari API
       media.addListener(apply);
     }
   }

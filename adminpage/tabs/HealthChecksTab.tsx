@@ -130,7 +130,6 @@ export const HealthChecksTab: React.FC = () => {
 
     const maxValue = Math.max(...data.map((d) => d.value), 100);
     const chartHeight = 100;
-    const _chartWidth = 100;
 
     return (
       <div className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
