@@ -14,7 +14,13 @@ export const typeOrmConfig: DataSourceOptions = {
   entities,
   synchronize: false, // NEVER use synchronize in production!
   logging: process.env.NODE_ENV === 'development',
-  ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
+  // SECURITY FIX: Enable proper SSL verification
+  ssl: process.env.DB_SSL === 'true'
+    ? {
+        rejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED !== 'false',
+        ca: process.env.DB_SSL_CA || undefined,
+      }
+    : false,
 };
 
 export const AppDataSource = new DataSource(typeOrmConfig);

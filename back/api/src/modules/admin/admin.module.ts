@@ -34,6 +34,6 @@ import {
   ],
   controllers: [AdminController],
   providers: [AdminService],
-  exports: [AdminService],
+  exports: [AdminService, TypeOrmModule], // Export Session repository for AdminGuard
 })
 export class AdminModule {}

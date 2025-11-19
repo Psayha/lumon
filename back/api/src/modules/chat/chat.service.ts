@@ -15,6 +15,7 @@ import { CreateChatDto } from './dto/create-chat.dto';
 import { SaveMessageDto } from './dto/save-message.dto';
 import { CurrentUserData } from '@/common/decorators/current-user.decorator';
 import { v4 as uuidv4 } from 'uuid';
+import * as xss from 'xss';
 
 @Injectable()
 export class ChatService {
@@ -147,11 +148,18 @@ export class ChatService {
       throw new ForbiddenException('Chat not found or access denied');
     }
 
+    // SECURITY FIX: Sanitize content to prevent XSS
+    const sanitizedContent = xss(dto.content.trim(), {
+      whiteList: {}, // Remove all HTML tags
+      stripIgnoreTag: true,
+      stripIgnoreTagBody: ['script', 'style'],
+    });
+
     // Insert message
     const message = await this.messageRepository.save({
       chat_id: dto.chat_id,
       role: dto.role,
-      content: dto.content.trim(),
+      content: sanitizedContent,
       metadata: dto.metadata || {},
     });
 

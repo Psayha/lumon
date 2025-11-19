@@ -70,15 +70,25 @@ export class AdminService {
       throw new UnauthorizedException('Invalid admin credentials');
     }
 
-    // Generate admin session token
+    // SECURITY FIX: Store admin session in database
     const sessionToken = uuidv4();
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + 24); // 24 hours for admin
 
+    // Create admin session (user_id = null for admin sessions)
+    await this.sessionRepository.save({
+      session_token: sessionToken,
+      user_id: null, // null indicates admin session
+      company_id: null,
+      role: null,
+      expires_at: expiresAt,
+      is_active: true,
+    });
+
     return {
       success: true,
       data: {
-        session_token: sessionToken,
+        token: sessionToken,
         role: 'admin',
         expires_at: expiresAt,
       },
@@ -90,15 +100,29 @@ export class AdminService {
    * Replaces: admin.validate.json
    */
   async validateAdminSession(token: string) {
-    // Simple validation - в production лучше хранить admin sessions в БД
-    if (!token || token.length < 10) {
+    // SECURITY FIX: Validate admin session in database
+    const session = await this.sessionRepository.findOne({
+      where: {
+        session_token: token,
+        is_active: true,
+        user_id: null, // Admin sessions have null user_id
+      },
+    });
+
+    if (!session) {
       throw new UnauthorizedException('Invalid admin token');
+    }
+
+    // Check if session expired
+    if (session.expires_at < new Date()) {
+      throw new UnauthorizedException('Admin session expired');
     }
 
     return {
       success: true,
       data: {
         role: 'admin',
+        expires_at: session.expires_at,
       },
     };
   }
@@ -572,11 +596,18 @@ export class AdminService {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('T').join('_').substring(0, 19);
     const filename = `backup-${timestamp}.sql`;
     const backupDir = process.env.BACKUP_DIR || '/var/backups/lumon';
-    const filePath = path.join(backupDir, filename);
+
+    // Validate backup directory path
+    const resolvedBackupDir = path.resolve(backupDir);
+    if (!resolvedBackupDir.startsWith('/var/backups/') && !resolvedBackupDir.startsWith('/tmp/backups/')) {
+      throw new Error('Invalid backup directory');
+    }
+
+    const filePath = path.join(resolvedBackupDir, filename);
 
     // Create backup directory if it doesn't exist
-    if (!fs.existsSync(backupDir)) {
-      fs.mkdirSync(backupDir, { recursive: true });
+    if (!fs.existsSync(resolvedBackupDir)) {
+      fs.mkdirSync(resolvedBackupDir, { recursive: true });
     }
 
     // Create backup record in database
@@ -591,14 +622,45 @@ export class AdminService {
       // Get database credentials from environment
       const dbHost = process.env.DB_HOST || 'localhost';
       const dbPort = process.env.DB_PORT || '5432';
-      const dbName = process.env.DB_NAME || 'lumon';
-      const dbUser = process.env.DB_USER || 'postgres';
+      const dbName = process.env.DB_DATABASE || 'lumon';
+      const dbUser = process.env.DB_USERNAME || 'postgres';
       const dbPassword = process.env.DB_PASSWORD || '';
 
-      // Execute pg_dump command
-      const command = `PGPASSWORD="${dbPassword}" pg_dump -h ${dbHost} -p ${dbPort} -U ${dbUser} -d ${dbName} -F p -f "${filePath}"`;
+      // SECURITY FIX: Use spawn instead of exec to prevent command injection
+      const { spawn } = require('child_process');
 
-      await execAsync(command);
+      await new Promise((resolve, reject) => {
+        const pgDump = spawn('pg_dump', [
+          '-h', dbHost,
+          '-p', dbPort,
+          '-U', dbUser,
+          '-d', dbName,
+          '-F', 'p',
+          '-f', filePath,
+        ], {
+          env: {
+            ...process.env,
+            PGPASSWORD: dbPassword,
+          },
+        });
+
+        let stderr = '';
+        pgDump.stderr.on('data', (data) => {
+          stderr += data.toString();
+        });
+
+        pgDump.on('close', (code) => {
+          if (code === 0) {
+            resolve(null);
+          } else {
+            reject(new Error(`pg_dump failed with code ${code}: ${stderr}`));
+          }
+        });
+
+        pgDump.on('error', (err) => {
+          reject(err);
+        });
+      });
 
       // Get file size
       const stats = fs.statSync(filePath);
@@ -638,22 +700,67 @@ export class AdminService {
       throw new NotFoundException('Backup not found');
     }
 
-    if (!fs.existsSync(filePath)) {
+    // SECURITY FIX: Validate file path to prevent path traversal
+    const resolvedPath = path.resolve(filePath);
+    const backupDir = path.resolve(process.env.BACKUP_DIR || '/var/backups/lumon');
+
+    // Ensure file is within allowed backup directory
+    if (!resolvedPath.startsWith(backupDir)) {
+      throw new Error('Invalid backup file path - path traversal detected');
+    }
+
+    // Ensure file exists
+    if (!fs.existsSync(resolvedPath)) {
       throw new NotFoundException('Backup file not found');
+    }
+
+    // Ensure file has .sql extension
+    if (!resolvedPath.endsWith('.sql')) {
+      throw new Error('Invalid backup file type');
     }
 
     try {
       // Get database credentials from environment
       const dbHost = process.env.DB_HOST || 'localhost';
       const dbPort = process.env.DB_PORT || '5432';
-      const dbName = process.env.DB_NAME || 'lumon';
-      const dbUser = process.env.DB_USER || 'postgres';
+      const dbName = process.env.DB_DATABASE || 'lumon';
+      const dbUser = process.env.DB_USERNAME || 'postgres';
       const dbPassword = process.env.DB_PASSWORD || '';
 
-      // Execute psql command to restore database
-      const command = `PGPASSWORD="${dbPassword}" psql -h ${dbHost} -p ${dbPort} -U ${dbUser} -d ${dbName} -f "${filePath}"`;
+      // SECURITY FIX: Use spawn instead of exec to prevent command injection
+      const { spawn } = require('child_process');
 
-      await execAsync(command);
+      await new Promise((resolve, reject) => {
+        const psql = spawn('psql', [
+          '-h', dbHost,
+          '-p', dbPort,
+          '-U', dbUser,
+          '-d', dbName,
+          '-f', resolvedPath,
+        ], {
+          env: {
+            ...process.env,
+            PGPASSWORD: dbPassword,
+          },
+        });
+
+        let stderr = '';
+        psql.stderr.on('data', (data) => {
+          stderr += data.toString();
+        });
+
+        psql.on('close', (code) => {
+          if (code === 0) {
+            resolve(null);
+          } else {
+            reject(new Error(`psql failed with code ${code}: ${stderr}`));
+          }
+        });
+
+        psql.on('error', (err) => {
+          reject(err);
+        });
+      });
 
       return {
         success: true,

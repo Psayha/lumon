@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 import appConfig from './config/app.config';
 import { typeOrmConfig } from './config/typeorm.config';
 import { AuthModule } from './modules/auth/auth.module';
@@ -19,6 +21,25 @@ import { HealthModule } from './modules/health/health.module';
       envFilePath: ['.env.local', '.env'],
     }),
 
+    // SECURITY FIX: Add rate limiting
+    ThrottlerModule.forRoot([
+      {
+        name: 'short',
+        ttl: 1000, // 1 second
+        limit: 10, // 10 requests per second
+      },
+      {
+        name: 'medium',
+        ttl: 60000, // 1 minute
+        limit: 100, // 100 requests per minute
+      },
+      {
+        name: 'long',
+        ttl: 900000, // 15 minutes
+        limit: 1000, // 1000 requests per 15 minutes
+      },
+    ]),
+
     // Database
     TypeOrmModule.forRoot(typeOrmConfig),
 
@@ -29,6 +50,13 @@ import { HealthModule } from './modules/health/health.module';
     AnalyticsModule,
     UserLimitsModule,
     HealthModule,
+  ],
+  providers: [
+    // SECURITY FIX: Enable rate limiting globally
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
   ],
 })
 export class AppModule {}

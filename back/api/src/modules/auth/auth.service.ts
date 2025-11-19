@@ -8,6 +8,7 @@ import { Repository } from 'typeorm';
 import { User, Session, UserCompany, AuditEvent, UserRole } from '@entities';
 import { v4 as uuidv4 } from 'uuid';
 import { AuthInitDto } from './dto/auth-init.dto';
+import { createHmac } from 'crypto';
 
 @Injectable()
 export class AuthService {
@@ -185,6 +186,47 @@ export class AuthService {
         }
       }
     });
+
+    // SECURITY FIX: Verify Telegram hash to prevent authentication bypass
+    const botToken = process.env.TELEGRAM_BOT_TOKEN;
+    if (botToken) {
+      const hash = params.hash;
+      if (!hash) {
+        throw new UnauthorizedException('Missing hash in initData');
+      }
+
+      // Create data-check-string from all params except hash
+      const dataCheckArr: string[] = [];
+      Object.keys(params)
+        .filter(key => key !== 'hash')
+        .sort()
+        .forEach(key => {
+          dataCheckArr.push(`${key}=${params[key]}`);
+        });
+      const dataCheckString = dataCheckArr.join('\n');
+
+      // Calculate secret key from bot token
+      const secretKey = createHmac('sha256', 'WebAppData')
+        .update(botToken)
+        .digest();
+
+      // Calculate hash
+      const calculatedHash = createHmac('sha256', secretKey)
+        .update(dataCheckString)
+        .digest('hex');
+
+      // Verify hash
+      if (calculatedHash !== hash) {
+        throw new UnauthorizedException('Invalid Telegram hash - data may be tampered');
+      }
+
+      // Check auth_date to prevent replay attacks (max 1 hour old)
+      const authDate = parseInt(params.auth_date || '0', 10);
+      const currentTime = Math.floor(Date.now() / 1000);
+      if (currentTime - authDate > 3600) {
+        throw new UnauthorizedException('initData is too old (max 1 hour)');
+      }
+    }
 
     if (!params.user) {
       throw new Error('user parameter is missing in initData');

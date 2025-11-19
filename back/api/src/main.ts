@@ -1,32 +1,62 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
+import helmet from 'helmet';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     logger: ['error', 'warn', 'log', 'debug'],
   });
 
-  // Enable CORS for frontend and admin panel
+  // SECURITY FIX: Add Helmet.js for security headers
+  app.use(helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        scriptSrc: ["'self'"],
+        imgSrc: ["'self'", 'data:', 'https:'],
+      },
+    },
+    hsts: {
+      maxAge: 31536000,
+      includeSubDomains: true,
+      preload: true,
+    },
+  }));
+
+  // SECURITY FIX: Proper CORS configuration
+  const allowedOrigins = process.env.NODE_ENV === 'production'
+    ? [
+        'https://lumon.psayha.ru',
+        'https://psayha.ru',
+        'https://admin.psayha.ru',
+      ]
+    : [
+        'http://localhost:5173',
+        'http://localhost:3000',
+        'https://lumon.psayha.ru',
+        'https://psayha.ru',
+        'https://admin.psayha.ru',
+      ];
+
   app.enableCors({
-    origin: [
-      'http://localhost:5173',
-      'http://localhost:3000',
-      'https://lumon.psayha.ru',
-      'https://psayha.ru',
-      'https://admin.psayha.ru', // Admin panel
-    ],
+    origin: allowedOrigins,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Idempotency-Key'],
+    maxAge: 86400, // 24 hours
   });
 
-  // Global validation pipe
+  // SECURITY FIX: Stricter validation
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
-      forbidNonWhitelisted: false,
+      forbidNonWhitelisted: true, // Reject unknown properties
       transform: true,
+      transformOptions: {
+        enableImplicitConversion: false,
+      },
     }),
   );
 
