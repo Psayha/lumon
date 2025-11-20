@@ -1,5 +1,6 @@
 import { IsNotEmpty, IsString, MaxLength, IsOptional } from 'class-validator';
 import { IsUuidV4 } from '@/common/decorators/is-uuid-v4.decorator';
+import { IsSafeFilePath } from '@/common/decorators/is-safe-file-path.decorator';
 
 /**
  * SECURITY: DTOs for backup operations
@@ -17,6 +18,11 @@ export class RestoreBackupDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(500) // Prevent path traversal with very long paths
+  @IsSafeFilePath({
+    allowedExtensions: ['.sql'],
+    allowAbsolutePaths: true, // Allow absolute paths for backup directory
+    message: 'Invalid backup file path - must be a .sql file without path traversal sequences',
+  })
   file_path!: string;
 }
 

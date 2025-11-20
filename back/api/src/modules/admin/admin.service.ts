@@ -968,23 +968,42 @@ export class AdminService {
       throw new NotFoundException('Backup not found');
     }
 
-    // SECURITY FIX: Validate file path to prevent path traversal
-    const resolvedPath = path.resolve(filePath);
+    // SECURITY FIX: Comprehensive path traversal protection
+    // 1. Normalize and resolve the path
+    const normalizedPath = path.normalize(filePath);
+    const resolvedPath = path.resolve(normalizedPath);
     const backupDir = path.resolve(process.env.BACKUP_DIR || '/var/backups/lumon');
 
-    // Ensure file is within allowed backup directory
-    if (!resolvedPath.startsWith(backupDir)) {
+    // 2. Check for null bytes (can bypass extension checks in some systems)
+    if (filePath.includes('\0')) {
+      throw new Error('Invalid backup file path - null byte detected');
+    }
+
+    // 3. Check for path traversal sequences before resolution
+    if (filePath.includes('..') || filePath.includes('~')) {
+      throw new Error('Invalid backup file path - traversal sequence detected');
+    }
+
+    // 4. Ensure file is within allowed backup directory (after resolution)
+    if (!resolvedPath.startsWith(backupDir + path.sep) && resolvedPath !== backupDir) {
       throw new Error('Invalid backup file path - path traversal detected');
     }
 
-    // Ensure file exists
+    // 5. Ensure file exists
     if (!fs.existsSync(resolvedPath)) {
       throw new NotFoundException('Backup file not found');
     }
 
-    // Ensure file has .sql extension
-    if (!resolvedPath.endsWith('.sql')) {
-      throw new Error('Invalid backup file type');
+    // 6. Verify it's a regular file (not a symlink, directory, device, etc.)
+    const stats = fs.statSync(resolvedPath);
+    if (!stats.isFile()) {
+      throw new Error('Invalid backup file path - not a regular file');
+    }
+
+    // 7. Ensure file has .sql extension (case-insensitive)
+    const ext = path.extname(resolvedPath).toLowerCase();
+    if (ext !== '.sql') {
+      throw new Error('Invalid backup file type - must be .sql file');
     }
 
     try {
