@@ -95,7 +95,10 @@ export interface SaveMessageResponse {
 
 export interface ChatHistoryResponse {
   success: boolean;
-  data: Message[];
+  data: {
+    chat_id: string;
+    messages: Message[];
+  };
 }
 
 export interface CreateChatResponse {
@@ -528,13 +531,14 @@ export const getChatHistory = async (chatId: string): Promise<ApiResponse<Messag
     }
 
     const data = await response.json() as ChatHistoryResponse;
-    
+
     // Валидация ответа
     if (!data.success) {
       throw new Error('Invalid response: missing success');
     }
-    
-    return { success: true, data: data.data || [] };
+
+    // Возвращаем массив сообщений из data.data.messages
+    return { success: true, data: data.data?.messages || [] };
   } catch (error) {
     const errorMessage = getErrorMessage(error, 'Не удалось загрузить историю чата');
     logger.error('Error fetching chat history:', error);

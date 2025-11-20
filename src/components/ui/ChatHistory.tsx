@@ -289,14 +289,6 @@ export const ChatHistory: React.FC<ChatHistoryProps> = ({
                               <Calendar className="w-3 h-3" />
                               {formatTime(chat.timestamp)}
                             </div>
-                            <div 
-                              className="text-xs"
-                              style={{
-                                color: themeParams.hint_color || '#9CA3AF'
-                              }}
-                            >
-                              {chat.messageCount} сообщений
-                            </div>
                           </div>
                         </div>
                         
