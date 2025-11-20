@@ -58,13 +58,31 @@ export class ChatService {
   /**
    * List user's chats
    * Replaces: chat.list.json workflow
+   *
+   * SECURITY FIX: Proper multi-tenancy isolation based on role
+   * - Viewer: Only own chats
+   * - Manager: Only own chats (NOT other managers' chats)
+   * - Owner: All company chats
    */
   async listChats(user: CurrentUserData) {
+    let where: any;
+
+    if (user.role === 'owner' && user.company_id) {
+      // Owner sees ALL company chats
+      where = { company_id: user.company_id };
+    } else if (user.role === 'manager' && user.company_id) {
+      // Manager sees ONLY their own chats (with company context)
+      where = {
+        user_id: user.id,
+        company_id: user.company_id,
+      };
+    } else {
+      // Viewer (or no company) sees ONLY their own chats
+      where = { user_id: user.id };
+    }
+
     const chats = await this.chatRepository.find({
-      where: [
-        { user_id: user.id },
-        ...(user.company_id ? [{ company_id: user.company_id }] : []),
-      ],
+      where,
       order: { created_at: 'DESC' },
     });
 
@@ -77,6 +95,10 @@ export class ChatService {
   /**
    * Delete chat
    * Replaces: chat.delete.json workflow
+   *
+   * SECURITY FIX: Proper access control
+   * - Users can only delete their own chats
+   * - Owners can delete any company chat
    */
   async deleteChat(chatId: string, user: CurrentUserData) {
     // Check access
@@ -88,10 +110,20 @@ export class ChatService {
       throw new NotFoundException('Chat not found');
     }
 
-    // Check ownership (user owns chat OR user's company owns chat)
-    const hasAccess =
-      chat.user_id === user.id ||
-      (user.company_id && chat.company_id === user.company_id);
+    // Check ownership based on role
+    let hasAccess = false;
+
+    if (chat.user_id === user.id) {
+      // User owns the chat - always allowed
+      hasAccess = true;
+    } else if (
+      user.role === 'owner' &&
+      user.company_id &&
+      chat.company_id === user.company_id
+    ) {
+      // Owner can delete any company chat
+      hasAccess = true;
+    }
 
     if (!hasAccess) {
       throw new ForbiddenException('Access denied');
@@ -139,10 +171,22 @@ export class ChatService {
       throw new NotFoundException('Chat not found');
     }
 
-    // Verify access (user owns OR company owns)
-    const hasAccess =
-      chat.user_id === user.id ||
-      (user.company_id && chat.company_id === user.company_id);
+    // SECURITY FIX: Verify access based on role
+    // - Users can only add messages to their own chats
+    // - Owners can add messages to any company chat
+    let hasAccess = false;
+
+    if (chat.user_id === user.id) {
+      // User owns the chat - always allowed
+      hasAccess = true;
+    } else if (
+      user.role === 'owner' &&
+      user.company_id &&
+      chat.company_id === user.company_id
+    ) {
+      // Owner can access any company chat
+      hasAccess = true;
+    }
 
     if (!hasAccess) {
       throw new ForbiddenException('Chat not found or access denied');
@@ -217,6 +261,10 @@ export class ChatService {
   /**
    * Get chat history
    * Replaces: get-chat-history.json workflow
+   *
+   * SECURITY FIX: Proper access control
+   * - Users can only view their own chat history
+   * - Owners can view any company chat history
    */
   async getChatHistory(chatId: string, user: CurrentUserData) {
     // Check access
@@ -228,9 +276,20 @@ export class ChatService {
       throw new NotFoundException('Chat not found');
     }
 
-    const hasAccess =
-      chat.user_id === user.id ||
-      (user.company_id && chat.company_id === user.company_id);
+    // Check ownership based on role
+    let hasAccess = false;
+
+    if (chat.user_id === user.id) {
+      // User owns the chat - always allowed
+      hasAccess = true;
+    } else if (
+      user.role === 'owner' &&
+      user.company_id &&
+      chat.company_id === user.company_id
+    ) {
+      // Owner can view any company chat
+      hasAccess = true;
+    }
 
     if (!hasAccess) {
       throw new ForbiddenException('Access denied');
