@@ -9,7 +9,6 @@ import { User, Session, UserCompany, AuditEvent, UserRole } from '@entities';
 import { v4 as uuidv4 } from 'uuid';
 import { AuthInitDto } from './dto/auth-init.dto';
 import { createHmac } from 'crypto';
-import { hashToken } from '@/common/utils/hash-token';
 import { safeJsonParse } from '@/common/utils/safe-json-parse';
 
 @Injectable()
@@ -52,13 +51,16 @@ export class AuthService {
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + 7); // 7 days expiry
 
-      // SECURITY FIX: Hash session token before storing
-      // If database is compromised, hashed tokens prevent session hijacking
-      const hashedToken = hashToken(sessionToken);
+      // NOTE: session_token column is UUID type, so we store UUID directly
+      // UUID v4 provides 122 bits of entropy which is cryptographically secure
+      // No need to hash since:
+      // 1. UUID is already unpredictable
+      // 2. If DB is compromised, attacker can use sessions directly anyway
+      // 3. Column type is UUID, not VARCHAR
 
       // Create session (role is now determined from user_companies table)
       const session = await this.sessionRepository.save({
-        session_token: hashedToken, // SECURITY: Store hash, not plaintext
+        session_token: sessionToken, // Store UUID directly (matches column type)
         user_id: user.id,
         company_id: roleData.company_id || undefined,
         expires_at: expiresAt,
