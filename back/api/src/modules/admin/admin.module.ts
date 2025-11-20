@@ -17,7 +17,9 @@ import {
   PlatformStats,
   Backup,
   UserCompany,
+  LoginAttempt,
 } from '@entities';
+import { LockoutService } from '@/common/services/lockout.service';
 
 @Module({
   imports: [
@@ -35,10 +37,11 @@ import {
       PlatformStats,
       Backup,
       UserCompany,
+      LoginAttempt,
     ]),
   ],
   controllers: [AdminController],
-  providers: [AdminService, AdminGuard],
+  providers: [AdminService, AdminGuard, LockoutService],
   exports: [AdminService, AdminGuard, TypeOrmModule],
 })
 export class AdminModule {}

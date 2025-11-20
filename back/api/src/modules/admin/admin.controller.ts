@@ -7,7 +7,9 @@ import {
   UseGuards,
   Headers,
   UnauthorizedException,
+  Req,
 } from '@nestjs/common';
+import { Request } from 'express';
 import { Throttle } from '@nestjs/throttler';
 import { AdminService } from './admin.service';
 import { AdminGuard } from './admin.guard';
@@ -21,12 +23,27 @@ export class AdminController {
 
   /**
    * Admin login endpoint
-   * SECURITY FIX: Strict rate limiting - 5 attempts per hour to prevent brute force
+   * SECURITY FIX: Strict rate limiting + account lockout to prevent brute force
    */
   @Post('login')
   @Throttle({ default: { limit: 5, ttl: 3600000 } }) // 5 requests per hour (3600 seconds)
-  async login(@Body() dto: AdminLoginDto) {
-    return this.adminService.login(dto.username, dto.password);
+  async login(@Body() dto: AdminLoginDto, @Req() req: Request) {
+    // Extract IP address (handling proxies)
+    const ipAddress =
+      (req.headers['x-forwarded-for'] as string)?.split(',')[0].trim() ||
+      (req.headers['x-real-ip'] as string) ||
+      req.socket.remoteAddress ||
+      'unknown';
+
+    // Extract user agent
+    const userAgent = req.headers['user-agent'] || 'unknown';
+
+    return this.adminService.login(
+      dto.username,
+      dto.password,
+      ipAddress,
+      userAgent,
+    );
   }
 
   @Post('validate')

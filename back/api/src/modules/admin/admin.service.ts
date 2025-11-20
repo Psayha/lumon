@@ -29,6 +29,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { timingSafeCompare } from '@/common/utils/timing-safe-compare';
 import { hashToken } from '@/common/utils/hash-token';
+import { LockoutService } from '@/common/services/lockout.service';
 
 const execAsync = promisify(exec);
 
@@ -66,21 +67,76 @@ export class AdminService {
     private backupRepository: Repository<Backup>,
     @InjectRepository(UserCompany)
     private userCompanyRepository: Repository<UserCompany>,
+    private lockoutService: LockoutService,
   ) {}
 
   /**
    * Admin login
    * Replaces: admin.login.json
-   * SECURITY FIX: Use timing-safe password comparison
+   * SECURITY FIX: Use timing-safe password comparison + account lockout
    */
-  async login(username: string, password: string) {
+  async login(
+    username: string,
+    password: string,
+    ipAddress?: string,
+    userAgent?: string,
+  ) {
+    // SECURITY FIX: Check if username is locked
+    const usernameLockStatus = await this.lockoutService.isLocked(
+      username,
+      'username',
+    );
+    if (usernameLockStatus.locked) {
+      throw new UnauthorizedException(
+        `Account temporarily locked. Try again in ${usernameLockStatus.remainingMinutes} minutes.`,
+      );
+    }
+
+    // SECURITY FIX: Check if IP is locked
+    if (ipAddress) {
+      const ipLockStatus = await this.lockoutService.isLocked(ipAddress, 'ip');
+      if (ipLockStatus.locked) {
+        throw new UnauthorizedException(
+          `Too many failed login attempts from this IP. Try again in ${ipLockStatus.remainingMinutes} minutes.`,
+        );
+      }
+    }
+
     // SECURITY FIX: Use timing-safe comparison to prevent timing attacks
     // Regular !== comparison can leak password length and content via timing
     const usernameValid = timingSafeCompare(username, this.ADMIN_USERNAME);
     const passwordValid = timingSafeCompare(password, this.ADMIN_PASSWORD);
 
     if (!usernameValid || !passwordValid) {
-      throw new UnauthorizedException('Invalid admin credentials');
+      // SECURITY FIX: Record failed attempt for both username and IP
+      const usernameResult = await this.lockoutService.recordFailedAttempt(
+        username,
+        'username',
+        ipAddress,
+        userAgent,
+      );
+
+      if (ipAddress) {
+        await this.lockoutService.recordFailedAttempt(
+          ipAddress,
+          'ip',
+          ipAddress,
+          userAgent,
+        );
+      }
+
+      // Inform user how many attempts remain
+      const attemptsMsg = usernameResult.locked
+        ? 'Account has been temporarily locked due to too many failed attempts.'
+        : `Invalid credentials. ${usernameResult.attemptsRemaining} attempts remaining.`;
+
+      throw new UnauthorizedException(attemptsMsg);
+    }
+
+    // SECURITY FIX: Reset failed attempts on successful login
+    await this.lockoutService.resetAttempts(username, 'username');
+    if (ipAddress) {
+      await this.lockoutService.resetAttempts(ipAddress, 'ip');
     }
 
     // SECURITY FIX: Store admin session in dedicated admin_sessions table
