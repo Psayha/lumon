@@ -81,11 +81,13 @@ npm run start:prod
 - Web Speech API (голосовой ввод)
 
 **Backend:**
-- NestJS 10.x + TypeScript 5.x
+- NestJS 11.x + TypeScript 5.x
 - TypeORM + PostgreSQL
 - Class Validator + Class Transformer
 - Passport JWT Authentication
 - Bull Queue (background jobs)
+- Helmet.js + CORS (security headers)
+- Rate Limiting + CSRF Protection
 
 **Infrastructure:**
 - Docker + Docker Compose
@@ -286,12 +288,31 @@ npm run build
 
 ---
 
+## 🔐 Безопасность
+
+**Статус:** ✅ **26/26 критических уязвимостей исправлено** (ноябрь 2025)
+
+### Реализованные меры безопасности:
+- ✅ **Global Rate Limiting** - защита от brute-force атак
+- ✅ **CSRF Protection** - защита от межсайтовой подделки запросов
+- ✅ **Helmet.js** - защитные HTTP заголовки
+- ✅ **Database Isolation** - отдельные БД для n8n и основного приложения
+- ✅ **Path Traversal Protection** - валидация файловых путей
+- ✅ **XSS Protection** - sanitization пользовательского контента
+- ✅ **Environment Variables** - обязательные переменные окружения
+- ✅ **Localhost-only Ports** - PostgreSQL, n8n, Studio доступны только локально
+
+📚 **Подробности:** [SECURITY.md](./SECURITY.md)
+
+---
+
 ## 🎯 Следующие шаги
 
 - ✅ **Build Process Audit** - полный аудит сборки завершен
 - ✅ **CI/CD** - автоматический деплой настроен
 - ✅ **TypeScript Strict Mode** - 0 ошибок
 - ✅ **ESLint** - 0 критических ошибок
+- ✅ **Security Audit** - 26/26 уязвимостей исправлено
 
 📚 **Roadmap:** [docs/ROADMAP_FUTURE.md](./docs/ROADMAP_FUTURE.md)
 
@@ -321,6 +342,6 @@ Private project - All rights reserved
 
 ---
 
-**Версия:** 2.0.0 (NestJS Backend)
-**Последнее обновление:** 18 ноября 2025
-**Статус:** ✅ Production Ready
+**Версия:** 2.1.0 (NestJS Backend + Security Hardening)
+**Последнее обновление:** 20 ноября 2025
+**Статус:** ✅ Production Ready + Security Hardened
