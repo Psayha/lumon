@@ -7,6 +7,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AdminSession } from '@entities';
+import { hashToken } from '@/common/utils/hash-token';
 
 /**
  * Admin Guard - validates admin session tokens
@@ -29,10 +30,14 @@ export class AdminGuard implements CanActivate {
 
     const token = authHeader.replace('Bearer ', '').trim();
 
+    // SECURITY FIX: Hash token before lookup
+    // Admin tokens are stored as SHA-256 hashes in database
+    const hashedToken = hashToken(token);
+
     // SECURITY FIX: Validate token in admin_sessions table
     const session = await this.adminSessionRepository.findOne({
       where: {
-        session_token: token,
+        session_token: hashedToken, // SECURITY: Compare hashes, not plaintext
         is_active: true,
       },
     });

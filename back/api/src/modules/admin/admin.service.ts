@@ -28,6 +28,7 @@ import { promisify } from 'util';
 import * as fs from 'fs';
 import * as path from 'path';
 import { timingSafeCompare } from '@/common/utils/timing-safe-compare';
+import { hashToken } from '@/common/utils/hash-token';
 
 const execAsync = promisify(exec);
 
@@ -87,9 +88,12 @@ export class AdminService {
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + 24); // 24 hours for admin
 
+    // SECURITY FIX: Hash session token before storing
+    const hashedToken = hashToken(sessionToken);
+
     // Create admin session in admin_sessions table
     await this.adminSessionRepository.save({
-      session_token: sessionToken,
+      session_token: hashedToken, // SECURITY: Store hash, not plaintext
       admin_username: username,
       expires_at: expiresAt,
       is_active: true,

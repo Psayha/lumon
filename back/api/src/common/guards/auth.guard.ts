@@ -7,6 +7,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Session, UserCompany, UserRole } from '@entities';
+import { hashToken } from '@/common/utils/hash-token';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
@@ -27,9 +28,13 @@ export class AuthGuard implements CanActivate {
 
     const token = authHeader.replace('Bearer ', '').trim();
 
+    // SECURITY FIX: Hash the token before lookup
+    // Tokens are stored as SHA-256 hashes in database
+    const hashedToken = hashToken(token);
+
     const session = await this.sessionRepository.findOne({
       where: {
-        session_token: token,
+        session_token: hashedToken, // SECURITY: Compare hashes, not plaintext
         is_active: true,
       },
       relations: ['user'],

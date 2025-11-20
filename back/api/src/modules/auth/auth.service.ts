@@ -9,6 +9,7 @@ import { User, Session, UserCompany, AuditEvent, UserRole } from '@entities';
 import { v4 as uuidv4 } from 'uuid';
 import { AuthInitDto } from './dto/auth-init.dto';
 import { createHmac } from 'crypto';
+import { hashToken } from '@/common/utils/hash-token';
 
 @Injectable()
 export class AuthService {
@@ -50,9 +51,13 @@ export class AuthService {
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + 7); // 7 days expiry
 
+      // SECURITY FIX: Hash session token before storing
+      // If database is compromised, hashed tokens prevent session hijacking
+      const hashedToken = hashToken(sessionToken);
+
       // Create session (role is now determined from user_companies table)
       const session = await this.sessionRepository.save({
-        session_token: sessionToken,
+        session_token: hashedToken, // SECURITY: Store hash, not plaintext
         user_id: user.id,
         company_id: roleData.company_id || undefined,
         expires_at: expiresAt,
