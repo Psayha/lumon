@@ -175,6 +175,41 @@ export function AnimatedAIChat({
         };
     }, [showCommandPalette]);
 
+    // Загрузка истории чата при изменении chatId
+    useEffect(() => {
+        const loadChatHistory = async () => {
+            // Загружаем историю только если есть chatId и он не null
+            if (!chatId) {
+                console.log('[AnimatedAIChat] No chatId, skipping history load');
+                return;
+            }
+
+            console.log('[AnimatedAIChat] Loading chat history for chatId:', chatId);
+
+            try {
+                const response = await getChatHistory(chatId);
+                if (response.success && response.data) {
+                    // Преобразуем формат сообщений из API в формат компонента
+                    const formattedMessages = response.data.map((msg: ApiMessage) => ({
+                        id: msg.id || '',
+                        text: msg.content,
+                        isUser: msg.role === 'user',
+                        timestamp: msg.created_at ? new Date(msg.created_at) : new Date()
+                    }));
+
+                    console.log('[AnimatedAIChat] Loaded', formattedMessages.length, 'messages from history');
+                    setMessages(formattedMessages);
+                } else {
+                    console.error('[AnimatedAIChat] Failed to load chat history:', response.error);
+                }
+            } catch (error) {
+                console.error('[AnimatedAIChat] Error loading chat history:', error);
+            }
+        };
+
+        loadChatHistory();
+    }, [chatId]);
+
     const isListening = externalIsListening ?? false;
     const isRecognizing = externalIsRecognizing ?? false;
 
