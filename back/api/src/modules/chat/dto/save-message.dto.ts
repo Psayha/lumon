@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsEnum, IsOptional, IsObject, MaxLength, ValidateNested } from 'class-validator';
+import { IsString, IsNotEmpty, IsEnum, IsOptional, IsObject, MaxLength, ValidateNested, IsUUID } from 'class-validator';
 import { Type } from 'class-transformer';
 import { MessageRole } from '@entities';
 
@@ -16,7 +16,7 @@ class MessageMetadata {
 }
 
 export class SaveMessageDto {
-  @IsString()
+  @IsUUID(4) // SECURITY: Validate chat_id is a valid UUID
   @IsNotEmpty()
   chat_id!: string;
 
