@@ -204,12 +204,16 @@ export class AuthService {
       }
 
       // Create data-check-string from all params except hash
+      // IMPORTANT: Telegram sends URL-encoded params, but for HMAC verification
+      // we need to use decoded values
       const dataCheckArr: string[] = [];
       Object.keys(params)
         .filter(key => key !== 'hash')
         .sort()
         .forEach(key => {
-          dataCheckArr.push(`${key}=${params[key]}`);
+          // Decode the value before adding to data-check-string
+          const decodedValue = decodeURIComponent(params[key]);
+          dataCheckArr.push(`${key}=${decodedValue}`);
         });
       const dataCheckString = dataCheckArr.join('\n');
 
