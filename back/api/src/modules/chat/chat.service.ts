@@ -207,6 +207,23 @@ export class ChatService {
       metadata: dto.metadata || {},
     });
 
+    // Update chat title with first user message
+    if (dto.role === 'user' && (chat.title === 'New Chat' || chat.title === 'Новый чат' || !chat.title || chat.title === '')) {
+      // Check if this is the first user message
+      const userMessageCount = await this.messageRepository.count({
+        where: { chat_id: dto.chat_id, role: 'user' },
+      });
+
+      if (userMessageCount === 1) {
+        // This is the first user message, update chat title
+        const titleText = sanitizedContent.substring(0, 100); // First 100 chars
+        await this.chatRepository.update(
+          { id: dto.chat_id },
+          { title: titleText },
+        );
+      }
+    }
+
     // Log audit event (fire and forget)
     this.auditRepository
       .save({
