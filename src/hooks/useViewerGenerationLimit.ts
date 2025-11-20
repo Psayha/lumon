@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useUserRole } from './useUserRole';
+import { getApiUrl, getDefaultHeaders } from '../config/api';
+import { logger } from '../lib/logger';
 
 interface GenerationLimit {
   count: number;
@@ -7,17 +9,69 @@ interface GenerationLimit {
   userId: string; // Добавлено: отслеживаем userId для сброса при смене пользователя
 }
 
-const VIEWER_DAILY_LIMIT = 3;
+// SECURITY FIX: Fetch limit from backend instead of hardcoding
+// Old hardcoded value was 3, now we get it from database
+const DEFAULT_VIEWER_DAILY_LIMIT = 1000; // Fallback if API fails
 
 export const useViewerGenerationLimit = () => {
   const { role, context } = useUserRole();
   const [limit, setLimit] = useState<GenerationLimit | null>(null);
-  const [remaining, setRemaining] = useState<number>(VIEWER_DAILY_LIMIT);
+  const [remaining, setRemaining] = useState<number>(DEFAULT_VIEWER_DAILY_LIMIT);
+  const [backendLimit, setBackendLimit] = useState<number | null>(null);
+
+  // Fetch limit from backend
+  useEffect(() => {
+    const fetchBackendLimit = async () => {
+      if (role !== 'viewer') {
+        return;
+      }
+
+      try {
+        const url = getApiUrl('/webhook/user-limits');
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: getDefaultHeaders(),
+          body: JSON.stringify({}),
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+        if (data?.success && data?.data) {
+          const dailyRequestsLimit = data.data.find(
+            (l: any) => l.limit_type === 'daily_requests'
+          );
+          if (dailyRequestsLimit) {
+            setBackendLimit(dailyRequestsLimit.limit_value);
+            logger.log('[useViewerGenerationLimit] Backend limit loaded:', dailyRequestsLimit.limit_value);
+          } else {
+            // No limit found, use default
+            setBackendLimit(DEFAULT_VIEWER_DAILY_LIMIT);
+          }
+        }
+      } catch (error) {
+        logger.error('[useViewerGenerationLimit] Failed to fetch backend limit:', error);
+        // Use default fallback
+        setBackendLimit(DEFAULT_VIEWER_DAILY_LIMIT);
+      }
+    };
+
+    fetchBackendLimit();
+  }, [role]);
+
+  const VIEWER_DAILY_LIMIT = backendLimit ?? DEFAULT_VIEWER_DAILY_LIMIT;
 
   useEffect(() => {
     const loadLimit = () => {
       if (role !== 'viewer') {
         setRemaining(Infinity);
+        return;
+      }
+
+      // Wait for backend limit to be loaded
+      if (backendLimit === null) {
         return;
       }
 
@@ -71,7 +125,7 @@ export const useViewerGenerationLimit = () => {
     };
 
     loadLimit();
-  }, [role, context?.userId]);
+  }, [role, context?.userId, backendLimit]);
 
   const incrementGeneration = (): boolean => {
     if (role !== 'viewer') {
