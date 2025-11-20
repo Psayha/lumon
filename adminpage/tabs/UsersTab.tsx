@@ -53,15 +53,16 @@ export const UsersTab: React.FC = () => {
       if (searchQuery) params.append('search', searchQuery);
 
       const endpoint = `${ADMIN_API_CONFIG.endpoints.adminUsersList}?${params}`;
-      const data = await adminApiRequest(endpoint);
+      const data = await adminApiRequest<User[]>(endpoint);
       if (data.success && data.data) {
         setUsers(data.data);
       } else {
         const errorMsg = data.message || 'Ошибка сервера: не удалось загрузить пользователей';
         showToast('error', errorMsg);
       }
-    } catch (error: any) {
-      showToast('error', error?.message || 'Ошибка при загрузке пользователей');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Ошибка при загрузке пользователей';
+      showToast('error', errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -73,7 +74,7 @@ export const UsersTab: React.FC = () => {
       if (userId) params.append('user_id', userId);
 
       const endpoint = `${ADMIN_API_CONFIG.endpoints.adminUserLimitsList}?${params}`;
-      const data = await adminApiRequest(endpoint);
+      const data = await adminApiRequest<UserLimit[]>(endpoint);
       if (data.success && data.data) {
         setLimits(data.data);
       }
