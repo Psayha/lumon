@@ -1,14 +1,36 @@
 // API Configuration for Lumon Backend
 // Backend: NestJS API (migrated from n8n on Nov 16, 2025)
-// Production: https://n8n.psayha.ru (NestJS API on port 3000)
+// Production: Set VITE_API_URL environment variable
 // Development: http://localhost:3000
+
+// SECURITY: Production URL must be set via VITE_API_URL environment variable
+// See .env.example for configuration details
+const getBaseUrl = (): string => {
+  // Always prefer environment variable
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+
+  // Development fallback
+  if (!import.meta.env.PROD) {
+    return 'http://localhost:3000';
+  }
+
+  // Production requires explicit configuration
+  console.error(
+    '[API Config] VITE_API_URL not set in production! ' +
+    'Please set VITE_API_URL environment variable. ' +
+    'See .env.example for details.'
+  );
+
+  // Fallback to relative URL (will use current host)
+  return '';
+};
 
 export const API_CONFIG = {
   // Base URL for NestJS API
-  // Production: https://n8n.psayha.ru → nginx → NestJS (port 3000)
-  // Development: http://localhost:3000
-  // Override with VITE_API_URL environment variable if needed
-  baseUrl: import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://n8n.psayha.ru' : 'http://localhost:3000'),
+  // MUST be configured via VITE_API_URL environment variable in production
+  baseUrl: getBaseUrl(),
   
   // API endpoints
   endpoints: {

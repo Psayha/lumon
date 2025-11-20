@@ -26,19 +26,26 @@ async function bootstrap() {
   }));
 
   // SECURITY FIX: Proper CORS configuration
-  const allowedOrigins = process.env.NODE_ENV === 'production'
-    ? [
-        'https://lumon.psayha.ru',
-        'https://psayha.ru',
-        'https://admin.psayha.ru',
-      ]
+  // CORS origins from environment variable (comma-separated)
+  // Example: CORS_ORIGINS=http://localhost:5173,http://localhost:3000,https://yourdomain.com
+  const corsOriginsEnv = process.env.CORS_ORIGINS;
+
+  const allowedOrigins = corsOriginsEnv
+    ? corsOriginsEnv.split(',').map(origin => origin.trim())
+    : process.env.NODE_ENV === 'production'
+    ? []  // In production, CORS_ORIGINS MUST be set explicitly
     : [
         'http://localhost:5173',
         'http://localhost:3000',
-        'https://lumon.psayha.ru',
-        'https://psayha.ru',
-        'https://admin.psayha.ru',
       ];
+
+  if (process.env.NODE_ENV === 'production' && allowedOrigins.length === 0) {
+    console.warn(
+      '⚠️  WARNING: CORS_ORIGINS not set in production! ' +
+      'Set CORS_ORIGINS environment variable with allowed origins. ' +
+      'See .env.example for details.'
+    );
+  }
 
   app.enableCors({
     origin: allowedOrigins,
