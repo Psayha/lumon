@@ -1,5 +1,6 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
+import { Toaster } from 'sonner'
 import App from './App.tsx'
 import './index.css'
 
@@ -93,5 +94,12 @@ preRenderCheck();
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <App />
+    <Toaster
+      position="top-center"
+      expand={true}
+      richColors
+      closeButton
+      theme="system"
+    />
   </React.StrictMode>,
 )

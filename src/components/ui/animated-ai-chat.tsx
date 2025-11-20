@@ -86,7 +86,7 @@ interface AnimatedAIChatProps {
     isRecognizing?: boolean;
     onRecognizingChange?: (isRecognizing: boolean) => void;
     chatId?: string | null;
-    onMessageSave?: (message: string, role: 'user' | 'assistant') => Promise<void>;
+    onMessageSave?: (message: string, role: 'user' | 'assistant', messageId?: string) => Promise<void>;
     onChatIdChange?: (chatId: string | null) => void;
 }
 
@@ -315,7 +315,7 @@ export function AnimatedAIChat({
             // Сохраняем пользовательское сообщение (создаст чат если нет)
             if (onMessageSave) {
                 try {
-                    await onMessageSave(userMessage.text, 'user');
+                    await onMessageSave(userMessage.text, 'user', userMessage.id);
                 } catch (error) {
                     // Не блокируем отправку сообщения при ошибке сохранения
                     console.error('[AnimatedAIChat] Error saving user message:', error);
@@ -347,7 +347,7 @@ export function AnimatedAIChat({
                 
                 // Сохраняем ответ AI в БД
                 if (onMessageSave && chatId) {
-                    onMessageSave(aiMessage.text, 'assistant').catch(error => {
+                    onMessageSave(aiMessage.text, 'assistant', aiMessage.id).catch(error => {
                         console.error('[AnimatedAIChat] Error saving assistant message:', error);
                     });
                 }
