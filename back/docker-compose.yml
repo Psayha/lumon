@@ -6,7 +6,7 @@ services:
     environment:
       # SECURITY FIX: Require password to be set via environment variable
       # No insecure defaults - forces explicit configuration
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?ERROR: POSTGRES_PASSWORD must be set in .env}
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?ERROR: POSTGRES_PASSWORD must be set in .env}"
       POSTGRES_DB: ${POSTGRES_DB:-lumon}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
     ports:
@@ -56,7 +56,7 @@ services:
     container_name: lumon-n8n-db
     environment:
       # SECURITY FIX: Require password to be set via environment variable
-      POSTGRES_PASSWORD: ${N8N_DB_PASSWORD:?ERROR: N8N_DB_PASSWORD must be set in .env}
+      POSTGRES_PASSWORD: "${N8N_DB_PASSWORD:?ERROR: N8N_DB_PASSWORD must be set in .env}"
       POSTGRES_DB: ${N8N_DB_DATABASE:-n8n}
       POSTGRES_USER: ${N8N_DB_USER:-n8n}
     volumes:
@@ -78,10 +78,10 @@ services:
     environment:
       - N8N_BASIC_AUTH_ACTIVE=true
       # SECURITY FIX: Require n8n credentials to be set explicitly
-      - N8N_BASIC_AUTH_USER=${N8N_USER:?ERROR: N8N_USER must be set in .env}
-      - N8N_BASIC_AUTH_PASSWORD=${N8N_PASSWORD:?ERROR: N8N_PASSWORD must be set in .env}
+      - N8N_BASIC_AUTH_USER="${N8N_USER:?ERROR: N8N_USER must be set in .env}"
+      - N8N_BASIC_AUTH_PASSWORD="${N8N_PASSWORD:?ERROR: N8N_PASSWORD must be set in .env}"
       # SECURITY FIX: Require n8n host configuration
-      - N8N_HOST=${N8N_HOST:?ERROR: N8N_HOST must be set in .env}
+      - N8N_HOST="${N8N_HOST:?ERROR: N8N_HOST must be set in .env}"
       - N8N_PORT=5678
       - N8N_PROTOCOL=${N8N_PROTOCOL:-https}
       - N8N_SECURE_COOKIE=${N8N_SECURE_COOKIE:-true}
@@ -91,13 +91,13 @@ services:
       - DB_POSTGRESDB_PORT=5432
       - DB_POSTGRESDB_DATABASE=${N8N_DB_DATABASE:-n8n}
       - DB_POSTGRESDB_USER=${N8N_DB_USER:-n8n}
-      - DB_POSTGRESDB_PASSWORD=${N8N_DB_PASSWORD:?ERROR: N8N_DB_PASSWORD must be set in .env}
+      - DB_POSTGRESDB_PASSWORD="${N8N_DB_PASSWORD:?ERROR: N8N_DB_PASSWORD must be set in .env}"
       # SECURITY FIX: Require encryption key to be set explicitly
-      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY:?ERROR: N8N_ENCRYPTION_KEY must be set in .env}
+      - N8N_ENCRYPTION_KEY="${N8N_ENCRYPTION_KEY:?ERROR: N8N_ENCRYPTION_KEY must be set in .env}"
       # SECURITY FIX: Require CORS and webhook URLs to be configured
-      - N8N_CORS_ORIGIN=${N8N_CORS_ORIGIN:?ERROR: N8N_CORS_ORIGIN must be set in .env}
-      - WEBHOOK_URL=${WEBHOOK_URL:?ERROR: WEBHOOK_URL must be set in .env}
-      - N8N_EDITOR_BASE_URL=${N8N_EDITOR_BASE_URL:?ERROR: N8N_EDITOR_BASE_URL must be set in .env}
+      - N8N_CORS_ORIGIN="${N8N_CORS_ORIGIN:?ERROR: N8N_CORS_ORIGIN must be set in .env}"
+      - WEBHOOK_URL="${WEBHOOK_URL:?ERROR: WEBHOOK_URL must be set in .env}"
+      - N8N_EDITOR_BASE_URL="${N8N_EDITOR_BASE_URL:?ERROR: N8N_EDITOR_BASE_URL must be set in .env}"
     volumes:
       - n8n-data:/home/node/.n8n
       - ./n8n/workflows:/data/workflows
