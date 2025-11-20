@@ -2,6 +2,7 @@ import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { ScheduleModule } from '@nestjs/schedule';
 import { APP_GUARD } from '@nestjs/core';
 import appConfig from './config/app.config';
 import { typeOrmConfig } from './config/typeorm.config';
@@ -11,6 +12,7 @@ import { AdminModule } from './modules/admin/admin.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { UserLimitsModule } from './modules/user-limits/user-limits.module';
 import { HealthModule } from './modules/health/health.module';
+import { CleanupModule } from './modules/cleanup/cleanup.module';
 import { CsrfProtectionMiddleware } from './common/middleware/csrf-protection.middleware';
 
 @Module({
@@ -44,6 +46,9 @@ import { CsrfProtectionMiddleware } from './common/middleware/csrf-protection.mi
     // Database
     TypeOrmModule.forRoot(typeOrmConfig),
 
+    // SECURITY: Automated cleanup jobs
+    ScheduleModule.forRoot(),
+
     // Feature modules
     AuthModule,
     ChatModule,
@@ -51,6 +56,7 @@ import { CsrfProtectionMiddleware } from './common/middleware/csrf-protection.mi
     AnalyticsModule,
     UserLimitsModule,
     HealthModule,
+    CleanupModule,
   ],
   providers: [
     // SECURITY FIX: Enable rate limiting globally

@@ -16,12 +16,14 @@ import { AdminService } from './admin.service';
 import { AdminGuard } from './admin.guard';
 import { AdminLoginDto, UpdateUserLimitsDto } from './dto/admin-login.dto';
 import { CsrfTokenService } from '@/common/services/csrf-token.service';
+import { CleanupService } from '@/common/services/cleanup.service';
 
 @Controller('webhook/admin')
 export class AdminController {
   constructor(
     private readonly adminService: AdminService,
     private readonly csrfTokenService: CsrfTokenService,
+    private readonly cleanupService: CleanupService,
   ) {}
 
   // ============ Auth Endpoints ============
@@ -318,5 +320,31 @@ export class AdminController {
   @UseGuards(AdminGuard)
   async runHealthCheck(@Body() body: { service?: string }) {
     return this.adminService.runHealthCheck(body.service || 'all');
+  }
+
+  // ============ System Maintenance ============
+
+  /**
+   * Run database cleanup jobs
+   * SECURITY: Removes expired sessions, idempotency keys, old audit logs, etc.
+   */
+  @Post('cleanup-run')
+  @UseGuards(AdminGuard)
+  async runCleanupJobs() {
+    return this.cleanupService.runAllCleanupJobs();
+  }
+
+  /**
+   * Get cleanup statistics
+   * Shows how many records are pending cleanup
+   */
+  @Get('cleanup-stats')
+  @UseGuards(AdminGuard)
+  async getCleanupStats() {
+    const stats = await this.cleanupService.getCleanupStats();
+    return {
+      success: true,
+      data: stats,
+    };
   }
 }
