@@ -14,6 +14,7 @@ import { UserLimitsModule } from './modules/user-limits/user-limits.module';
 import { HealthModule } from './modules/health/health.module';
 import { CleanupModule } from './modules/cleanup/cleanup.module';
 import { CsrfProtectionMiddleware } from './common/middleware/csrf-protection.middleware';
+import { HttpsEnforcementMiddleware } from './common/middleware/https-enforcement.middleware';
 
 @Module({
   imports: [
@@ -68,6 +69,9 @@ import { CsrfProtectionMiddleware } from './common/middleware/csrf-protection.mi
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
+    // SECURITY: Enforce HTTPS in production (must be first)
+    consumer.apply(HttpsEnforcementMiddleware).forRoutes('*');
+
     // SECURITY: Apply CSRF protection to all routes
     consumer.apply(CsrfProtectionMiddleware).forRoutes('*');
   }

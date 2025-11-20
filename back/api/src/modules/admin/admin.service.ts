@@ -17,6 +17,7 @@ import {
   Message,
   AbExperiment,
   AbAssignment,
+  AbVariant,
   PlatformStats,
   Backup,
   UserCompany,
@@ -748,18 +749,25 @@ export class AdminService {
       throw new NotFoundException('Experiment not found');
     }
 
-    const assignments = await this.abAssignmentRepository.find({
-      where: { experiment_id: experimentId },
-    });
-
-    const variantACount = assignments.filter((a) => a.variant === 'A').length;
-    const variantBCount = assignments.filter((a) => a.variant === 'B').length;
+    // SECURITY FIX: Use COUNT queries instead of loading all records into memory
+    // Prevents memory exhaustion DoS with large assignment counts
+    const [totalAssignments, variantACount, variantBCount] = await Promise.all([
+      this.abAssignmentRepository.count({
+        where: { experiment_id: experimentId },
+      }),
+      this.abAssignmentRepository.count({
+        where: { experiment_id: experimentId, variant: AbVariant.A as any },
+      }),
+      this.abAssignmentRepository.count({
+        where: { experiment_id: experimentId, variant: AbVariant.B as any },
+      }),
+    ]);
 
     return {
       success: true,
       data: {
         experiment,
-        total_assignments: assignments.length,
+        total_assignments: totalAssignments,
         variant_a_count: variantACount,
         variant_b_count: variantBCount,
       },
