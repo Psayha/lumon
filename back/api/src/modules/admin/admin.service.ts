@@ -2,6 +2,7 @@ import {
   Injectable,
   UnauthorizedException,
   NotFoundException,
+  BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between } from 'typeorm';
@@ -18,6 +19,8 @@ import {
   AbAssignment,
   PlatformStats,
   Backup,
+  UserCompany,
+  UserRole,
 } from '@entities';
 import { v4 as uuidv4 } from 'uuid';
 import { exec } from 'child_process';
@@ -59,6 +62,8 @@ export class AdminService {
     private platformStatsRepository: Repository<PlatformStats>,
     @InjectRepository(Backup)
     private backupRepository: Repository<Backup>,
+    @InjectRepository(UserCompany)
+    private userCompanyRepository: Repository<UserCompany>,
   ) {}
 
   /**
@@ -200,6 +205,92 @@ export class AdminService {
     return {
       success: true,
       message: `User ${userId} deleted successfully`,
+    };
+  }
+
+  /**
+   * Ban user - demote from manager to viewer and delete all their data
+   * Owner can ban managers from their company
+   *
+   * When banned:
+   * 1. User's role changes from manager to viewer
+   * 2. All user's chats are deleted
+   * 3. All user's messages are deleted
+   * 4. All user's sessions are invalidated
+   * 5. User can still log in but only as viewer with fresh start
+   */
+  async banUser(userId: string, companyId: string) {
+    // Check if user exists
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Check if user is member of the company
+    const userCompany = await this.userCompanyRepository.findOne({
+      where: {
+        user_id: userId,
+        company_id: companyId,
+        is_active: true,
+      },
+    });
+
+    if (!userCompany) {
+      throw new NotFoundException('User is not a member of this company');
+    }
+
+    // Can only ban managers (viewers are already restricted)
+    if (userCompany.role !== UserRole.MANAGER) {
+      throw new BadRequestException(
+        `Cannot ban user with role '${userCompany.role}'. Only managers can be banned.`,
+      );
+    }
+
+    // 1. Change role from manager to viewer
+    await this.userCompanyRepository.update(userCompany.id, {
+      role: UserRole.VIEWER,
+    });
+
+    // 2. Delete all user's chats (messages will be cascade deleted)
+    await this.chatRepository.delete({
+      user_id: userId,
+      company_id: companyId,
+    });
+
+    // 3. Invalidate all user's sessions for this company
+    await this.sessionRepository.update(
+      {
+        user_id: userId,
+        company_id: companyId,
+      },
+      {
+        is_active: false,
+      },
+    );
+
+    // 4. Reset user limits to viewer defaults (3 messages/day)
+    await this.userLimitRepository.update(
+      {
+        user_id: userId,
+      },
+      {
+        daily_limit: 3,
+        monthly_limit: 90, // 3 per day * 30 days
+      },
+    );
+
+    return {
+      success: true,
+      message: `User ${userId} has been banned from company ${companyId}. Role changed to viewer, all data deleted.`,
+      data: {
+        user_id: userId,
+        company_id: companyId,
+        previous_role: UserRole.MANAGER,
+        new_role: UserRole.VIEWER,
+        chats_deleted: true,
+        sessions_invalidated: true,
+        limits_reset: true,
+      },
     };
   }
 

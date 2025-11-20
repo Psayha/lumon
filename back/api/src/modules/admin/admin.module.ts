@@ -16,6 +16,7 @@ import {
   AbAssignment,
   PlatformStats,
   Backup,
+  UserCompany,
 } from '@entities';
 
 @Module({
@@ -33,6 +34,7 @@ import {
       AbAssignment,
       PlatformStats,
       Backup,
+      UserCompany,
     ]),
   ],
   controllers: [AdminController],

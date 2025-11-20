@@ -52,6 +52,12 @@ export class AdminController {
     return this.adminService.deleteUser(body.user_id);
   }
 
+  @Post('user-ban')
+  @UseGuards(AdminGuard)
+  async banUser(@Body() body: { user_id: string; company_id: string }) {
+    return this.adminService.banUser(body.user_id, body.company_id);
+  }
+
   @Post('user-history-clear')
   @UseGuards(AdminGuard)
   async clearUserHistory(@Body() body: { user_id: string }) {
