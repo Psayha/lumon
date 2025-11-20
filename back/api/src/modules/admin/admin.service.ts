@@ -27,6 +27,7 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import * as fs from 'fs';
 import * as path from 'path';
+import { timingSafeCompare } from '@/common/utils/timing-safe-compare';
 
 const execAsync = promisify(exec);
 
@@ -69,12 +70,15 @@ export class AdminService {
   /**
    * Admin login
    * Replaces: admin.login.json
+   * SECURITY FIX: Use timing-safe password comparison
    */
   async login(username: string, password: string) {
-    if (
-      username !== this.ADMIN_USERNAME ||
-      password !== this.ADMIN_PASSWORD
-    ) {
+    // SECURITY FIX: Use timing-safe comparison to prevent timing attacks
+    // Regular !== comparison can leak password length and content via timing
+    const usernameValid = timingSafeCompare(username, this.ADMIN_USERNAME);
+    const passwordValid = timingSafeCompare(password, this.ADMIN_PASSWORD);
+
+    if (!usernameValid || !passwordValid) {
       throw new UnauthorizedException('Invalid admin credentials');
     }
 
