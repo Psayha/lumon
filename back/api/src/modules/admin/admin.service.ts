@@ -307,21 +307,21 @@ export class AdminService {
     }
 
     // SECURITY FIX: Prevent deleting last owner of a company
-    if (user.company_id) {
-      // Check if user is an owner
-      const userCompany = await this.userCompanyRepository.findOne({
-        where: {
-          user_id: userId,
-          company_id: user.company_id,
-          is_active: true,
-        },
-      });
+    // Check if user belongs to any company
+    const userCompany = await this.userCompanyRepository.findOne({
+      where: {
+        user_id: userId,
+        is_active: true,
+      },
+    });
 
-      if (userCompany && userCompany.role === UserRole.OWNER) {
+    if (userCompany) {
+      // Check if user is an owner
+      if (userCompany.role === UserRole.OWNER) {
         // Count total owners in this company
         const ownersCount = await this.userCompanyRepository.count({
           where: {
-            company_id: user.company_id,
+            company_id: userCompany.company_id,
             role: UserRole.OWNER,
             is_active: true,
           },
@@ -409,10 +409,11 @@ export class AdminService {
     await this.userLimitRepository.update(
       {
         user_id: userId,
+        limit_type: 'messages_per_day',
       },
       {
-        daily_limit: 3,
-        monthly_limit: 90, // 3 per day * 30 days
+        limit_value: 3,
+        current_usage: 0,
       },
     );
 
@@ -704,17 +705,17 @@ export class AdminService {
 
     try {
       // Get all user chats within transaction
-      const chats = await queryRunner.manager.find('Chat', {
+      const chats = await queryRunner.manager.find(Chat, {
         where: { user_id: userId },
       });
 
       // Delete all messages in these chats
       for (const chat of chats) {
-        await queryRunner.manager.delete('Message', { chat_id: chat.id });
+        await queryRunner.manager.delete(Message, { chat_id: chat.id });
       }
 
       // Delete all chats
-      await queryRunner.manager.delete('Chat', { user_id: userId });
+      await queryRunner.manager.delete(Chat, { user_id: userId });
 
       // Commit transaction
       await queryRunner.commitTransaction();

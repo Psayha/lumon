@@ -112,9 +112,6 @@ const VoiceAssistantPage: React.FC = () => {
                 hasToken: !!localStorage.getItem('session_token')
               });
 
-              // Generate message ID if not provided
-              const msgId = messageId || `msg-${Date.now()}`;
-
               try {
                 const token = localStorage.getItem('session_token');
 

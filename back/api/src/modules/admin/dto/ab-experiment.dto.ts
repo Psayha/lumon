@@ -3,6 +3,10 @@ import {
   IsNotEmpty,
   IsBoolean,
   IsOptional,
+  IsNumber,
+  IsObject,
+  Min,
+  Max,
   MaxLength,
 } from 'class-validator';
 import { IsUuidV4 } from '@/common/decorators/is-uuid-v4.decorator';
@@ -26,8 +30,20 @@ export class CreateAbExperimentDto {
   @MaxLength(100)
   feature_name!: string;
 
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  traffic_percentage!: number;
+
+  @IsObject()
+  variant_a_config!: Record<string, any>;
+
+  @IsObject()
+  variant_b_config!: Record<string, any>;
+
   @IsBoolean()
-  is_active!: boolean;
+  @IsOptional()
+  is_active?: boolean;
 }
 
 /**
