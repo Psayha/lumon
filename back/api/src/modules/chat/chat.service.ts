@@ -15,7 +15,7 @@ import { CreateChatDto } from './dto/create-chat.dto';
 import { SaveMessageDto } from './dto/save-message.dto';
 import { CurrentUserData } from '@/common/decorators/current-user.decorator';
 import { v4 as uuidv4 } from 'uuid';
-import xss from 'xss';
+import { filterXSS } from 'xss';
 
 @Injectable()
 export class ChatService {
@@ -193,7 +193,7 @@ export class ChatService {
     }
 
     // SECURITY FIX: Sanitize content to prevent XSS
-    const sanitizedContent = xss(dto.content.trim(), {
+    const sanitizedContent = filterXSS(dto.content.trim(), {
       whiteList: {}, // Remove all HTML tags
       stripIgnoreTag: true,
       stripIgnoreTagBody: ['script', 'style'],
