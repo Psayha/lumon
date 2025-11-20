@@ -38,21 +38,21 @@ export const ADMIN_API_CONFIG = {
     // Admin Companies
     adminCompaniesList: '/webhook/admin/companies-list',
 
-    // Admin Legal Docs (Not yet migrated)
+    // Admin Legal Docs (Stub endpoints - returns empty array)
     adminLegalDocsList: '/webhook/admin/legal-docs-list',
     adminLegalDocsUpdate: '/webhook/admin/legal-docs-update',
 
-    // Admin AI Docs (Not yet migrated)
+    // Admin AI Docs (Stub endpoints - returns empty array)
     adminAiDocsList: '/webhook/admin/ai-docs-list',
     adminAiDocsDelete: '/webhook/admin/ai-docs-delete',
 
-    // Admin Backups (Not yet migrated)
+    // Admin Backups (Fully migrated with security fixes)
     backupList: '/webhook/admin/backup-list',
     backupCreate: '/webhook/admin/backup-create',
     backupRestore: '/webhook/admin/backup-restore',
     backupDelete: '/webhook/admin/backup-delete',
 
-    // Admin Health Checks (Not yet migrated)
+    // Admin Health Checks (Fully migrated)
     healthCheckList: '/webhook/admin/health-check-list',
     healthCheck: '/webhook/admin/health-check',
 
