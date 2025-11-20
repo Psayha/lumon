@@ -4,6 +4,9 @@ services:
   api:
     build: .
     ports:
+      # API port - exposed for external access
+      # For production, use reverse proxy (nginx/traefik) with HTTPS
+      # For localhost-only: change to "127.0.0.1:3000:3000"
       - "3000:3000"
     environment:
       - NODE_ENV=production
@@ -16,6 +19,13 @@ services:
       - DB_SSL=${DB_SSL}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+    # SECURITY FIX: Add healthcheck to detect unhealthy API state
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     restart: unless-stopped
     depends_on:
       - postgres
@@ -26,11 +36,14 @@ services:
   postgres:
     image: postgres:14-alpine
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: lumon
+      # SECURITY FIX: Use environment variables instead of hardcoded credentials
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?ERROR: POSTGRES_PASSWORD must be set in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-lumon}
     ports:
-      - "5432:5432"
+      # SECURITY FIX: Bind PostgreSQL to localhost only
+      # Prevents external network access to development database
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
     networks:

@@ -1,34 +1,86 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
+import helmet from 'helmet';
+import * as cookieParser from 'cookie-parser';
+import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { runMigrations } from './database/migration-runner';
 
 async function bootstrap() {
+  // SECURITY FIX: Run database migrations automatically before starting the app
+  // This ensures all security constraints (UNIQUE, CHECK) are created
+  await runMigrations();
+
   const app = await NestFactory.create(AppModule, {
     logger: ['error', 'warn', 'log', 'debug'],
   });
 
-  // Enable CORS for frontend and admin panel
+  // SECURITY FIX: Add cookie parser for httpOnly cookies
+  // Required for admin authentication via secure cookies
+  app.use(cookieParser());
+
+  // SECURITY FIX: Add Helmet.js for security headers
+  app.use(helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        scriptSrc: ["'self'"],
+        imgSrc: ["'self'", 'data:', 'https:'],
+      },
+    },
+    hsts: {
+      maxAge: 31536000,
+      includeSubDomains: true,
+      preload: true,
+    },
+  }));
+
+  // SECURITY FIX: Proper CORS configuration
+  // CORS origins from environment variable (comma-separated)
+  // Example: CORS_ORIGINS=http://localhost:5173,http://localhost:3000,https://yourdomain.com
+  const corsOriginsEnv = process.env.CORS_ORIGINS;
+
+  const allowedOrigins = corsOriginsEnv
+    ? corsOriginsEnv.split(',').map(origin => origin.trim())
+    : process.env.NODE_ENV === 'production'
+    ? []  // In production, CORS_ORIGINS MUST be set explicitly
+    : [
+        'http://localhost:5173',
+        'http://localhost:3000',
+      ];
+
+  if (process.env.NODE_ENV === 'production' && allowedOrigins.length === 0) {
+    console.warn(
+      '⚠️  WARNING: CORS_ORIGINS not set in production! ' +
+      'Set CORS_ORIGINS environment variable with allowed origins. ' +
+      'See .env.example for details.'
+    );
+  }
+
   app.enableCors({
-    origin: [
-      'http://localhost:5173',
-      'http://localhost:3000',
-      'https://lumon.psayha.ru',
-      'https://psayha.ru',
-      'https://admin.psayha.ru', // Admin panel
-    ],
+    origin: allowedOrigins,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Idempotency-Key'],
+    maxAge: 86400, // 24 hours
   });
 
-  // Global validation pipe
+  // SECURITY FIX: Stricter validation
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
-      forbidNonWhitelisted: false,
+      forbidNonWhitelisted: true, // Reject unknown properties
       transform: true,
+      transformOptions: {
+        enableImplicitConversion: false,
+      },
     }),
   );
+
+  // SECURITY FIX: Global exception filter
+  // Prevents leaking internal paths and stack traces in production
+  app.useGlobalFilters(new HttpExceptionFilter());
 
   const port = process.env.PORT || 3000;
   await app.listen(port);

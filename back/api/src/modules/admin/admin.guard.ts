@@ -1,0 +1,69 @@
+import {
+  Injectable,
+  CanActivate,
+  ExecutionContext,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { AdminSession } from '@entities';
+import { hashToken } from '@/common/utils/hash-token';
+
+/**
+ * Admin Guard - validates admin session tokens
+ * Uses admin_sessions table instead of regular sessions table
+ */
+@Injectable()
+export class AdminGuard implements CanActivate {
+  constructor(
+    @InjectRepository(AdminSession)
+    private adminSessionRepository: Repository<AdminSession>,
+  ) {}
+
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const request = context.switchToHttp().getRequest();
+
+    // SECURITY FIX: Read admin token from httpOnly cookie instead of Authorization header
+    // This prevents XSS attacks as JavaScript cannot access httpOnly cookies
+    const token = request.cookies?.admin_token;
+
+    if (!token) {
+      throw new UnauthorizedException(
+        'Missing admin session. Please login via admin panel.',
+      );
+    }
+
+    // SECURITY FIX: Hash token before lookup
+    // Admin tokens are stored as SHA-256 hashes in database
+    const hashedToken = hashToken(token);
+
+    // SECURITY FIX: Validate token in admin_sessions table
+    const session = await this.adminSessionRepository.findOne({
+      where: {
+        session_token: hashedToken, // SECURITY: Compare hashes, not plaintext
+        is_active: true,
+      },
+    });
+
+    if (!session) {
+      throw new UnauthorizedException('Invalid admin token');
+    }
+
+    // Check if session expired
+    if (session.expires_at < new Date()) {
+      throw new UnauthorizedException('Admin session expired');
+    }
+
+    // Update last activity (fire and forget)
+    this.adminSessionRepository.update(session.id, {
+      last_activity_at: new Date(),
+    }).catch(err => {
+      console.error('Failed to update admin session activity:', err);
+    });
+
+    // Attach admin session to request for use in controllers
+    request.adminSession = session;
+
+    return true;
+  }
+}

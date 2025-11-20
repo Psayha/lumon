@@ -8,6 +8,9 @@ import { Repository } from 'typeorm';
 import { User, Session, UserCompany, AuditEvent, UserRole } from '@entities';
 import { v4 as uuidv4 } from 'uuid';
 import { AuthInitDto } from './dto/auth-init.dto';
+import { createHmac } from 'crypto';
+import { hashToken } from '@/common/utils/hash-token';
+import { safeJsonParse } from '@/common/utils/safe-json-parse';
 
 @Injectable()
 export class AuthService {
@@ -49,12 +52,15 @@ export class AuthService {
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + 7); // 7 days expiry
 
-      // Create session
+      // SECURITY FIX: Hash session token before storing
+      // If database is compromised, hashed tokens prevent session hijacking
+      const hashedToken = hashToken(sessionToken);
+
+      // Create session (role is now determined from user_companies table)
       const session = await this.sessionRepository.save({
-        session_token: sessionToken,
+        session_token: hashedToken, // SECURITY: Store hash, not plaintext
         user_id: user.id,
         company_id: roleData.company_id || undefined,
-        role: roleData.role as UserRole,
         expires_at: expiresAt,
         is_active: true,
       }) as Session;
@@ -113,6 +119,9 @@ export class AuthService {
       throw new UnauthorizedException('Session expired');
     }
 
+    // Fetch role from user_companies table
+    const roleData = await this.getUserRoleAndCompany(session.user_id);
+
     // Update last activity
     await this.sessionRepository.update(session.id, {
       last_activity_at: new Date(),
@@ -125,7 +134,7 @@ export class AuthService {
           id: session.user_id,
           company_id: session.company_id,
         },
-        role: session.role,
+        role: roleData.role,
         companyId: session.company_id,
       },
     };
@@ -186,6 +195,47 @@ export class AuthService {
       }
     });
 
+    // SECURITY FIX: Verify Telegram hash to prevent authentication bypass
+    const botToken = process.env.TELEGRAM_BOT_TOKEN;
+    if (botToken) {
+      const hash = params.hash;
+      if (!hash) {
+        throw new UnauthorizedException('Missing hash in initData');
+      }
+
+      // Create data-check-string from all params except hash
+      const dataCheckArr: string[] = [];
+      Object.keys(params)
+        .filter(key => key !== 'hash')
+        .sort()
+        .forEach(key => {
+          dataCheckArr.push(`${key}=${params[key]}`);
+        });
+      const dataCheckString = dataCheckArr.join('\n');
+
+      // Calculate secret key from bot token
+      const secretKey = createHmac('sha256', 'WebAppData')
+        .update(botToken)
+        .digest();
+
+      // Calculate hash
+      const calculatedHash = createHmac('sha256', secretKey)
+        .update(dataCheckString)
+        .digest('hex');
+
+      // Verify hash
+      if (calculatedHash !== hash) {
+        throw new UnauthorizedException('Invalid Telegram hash - data may be tampered');
+      }
+
+      // Check auth_date to prevent replay attacks (max 1 hour old)
+      const authDate = parseInt(params.auth_date || '0', 10);
+      const currentTime = Math.floor(Date.now() / 1000);
+      if (currentTime - authDate > 3600) {
+        throw new UnauthorizedException('initData is too old (max 1 hour)');
+      }
+    }
+
     if (!params.user) {
       throw new Error('user parameter is missing in initData');
     }
@@ -197,7 +247,9 @@ export class AuthService {
 
     let user: any;
     try {
-      user = JSON.parse(userStr);
+      // SECURITY FIX: Use safe JSON parse to prevent prototype pollution
+      // Regular JSON.parse can pollute Object.prototype with __proto__
+      user = safeJsonParse(userStr);
     } catch (parseError) {
       throw new Error(`Failed to parse user JSON: ${(parseError as Error).message}`);
     }
@@ -224,9 +276,15 @@ export class AuthService {
     language_code: string;
     app_version: string;
   }) {
+    // SECURITY FIX: Validate telegram_id is a valid number
+    const telegramId = Number(data.telegram_id);
+    if (isNaN(telegramId) || !isFinite(telegramId)) {
+      throw new BadRequestException('Invalid telegram_id: must be a valid number');
+    }
+
     // Check if user exists
     let user = await this.userRepository.findOne({
-      where: { telegram_id: Number(data.telegram_id) },
+      where: { telegram_id: telegramId },
     });
 
     if (user) {
@@ -242,7 +300,7 @@ export class AuthService {
     } else {
       // Create new user
       user = await this.userRepository.save({
-        telegram_id: Number(data.telegram_id),
+        telegram_id: telegramId,
         first_name: data.first_name,
         last_name: data.last_name,
         username: data.username,

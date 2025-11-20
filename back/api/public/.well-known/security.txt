@@ -1,0 +1,22 @@
+# Security Policy for Lumon API
+# This file follows RFC 9116: https://www.rfc-editor.org/rfc/rfc9116
+
+Contact: mailto:security@example.com
+Expires: 2026-12-31T23:59:59.000Z
+Preferred-Languages: en, ru
+Canonical: https://api.lumon.com/.well-known/security.txt
+
+# Security Disclosure Policy
+#
+# If you discover a security vulnerability in Lumon API,
+# please report it responsibly:
+#
+# 1. Send email to: security@example.com
+# 2. Include detailed description of the vulnerability
+# 3. Provide steps to reproduce
+# 4. Allow reasonable time for fix before public disclosure
+#
+# We appreciate responsible security research and will
+# acknowledge contributors in our security advisories.
+#
+# Thank you for helping keep Lumon secure!

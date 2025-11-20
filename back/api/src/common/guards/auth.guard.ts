@@ -6,13 +6,16 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Session } from '@entities';
+import { Session, UserCompany, UserRole } from '@entities';
+import { hashToken } from '@/common/utils/hash-token';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
   constructor(
     @InjectRepository(Session)
     private sessionRepository: Repository<Session>,
+    @InjectRepository(UserCompany)
+    private userCompanyRepository: Repository<UserCompany>,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -25,9 +28,13 @@ export class AuthGuard implements CanActivate {
 
     const token = authHeader.replace('Bearer ', '').trim();
 
+    // SECURITY FIX: Hash the token before lookup
+    // Tokens are stored as SHA-256 hashes in database
+    const hashedToken = hashToken(token);
+
     const session = await this.sessionRepository.findOne({
       where: {
-        session_token: token,
+        session_token: hashedToken, // SECURITY: Compare hashes, not plaintext
         is_active: true,
       },
       relations: ['user'],
@@ -41,11 +48,35 @@ export class AuthGuard implements CanActivate {
       throw new UnauthorizedException('Session expired');
     }
 
+    // SECURITY FIX: Fetch role from user_companies table instead of session
+    // This ensures proper multi-tenancy and allows users to have different
+    // roles in different companies
+    let role: string = UserRole.VIEWER; // Default to viewer
+
+    if (session.company_id) {
+      const userCompany = await this.userCompanyRepository.findOne({
+        where: {
+          user_id: session.user_id,
+          company_id: session.company_id,
+          is_active: true,
+        },
+      });
+
+      if (userCompany) {
+        role = userCompany.role;
+      } else {
+        // User is not a member of this company (security violation)
+        throw new UnauthorizedException(
+          'User is not a member of the specified company',
+        );
+      }
+    }
+
     // Attach user and session to request object
     request.user = {
       id: session.user_id,
       company_id: session.company_id,
-      role: session.role,
+      role,
       session,
     };
 

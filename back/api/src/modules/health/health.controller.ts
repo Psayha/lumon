@@ -1,7 +1,8 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, UseGuards } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '@entities';
+import { AdminGuard } from '@/modules/admin/admin.guard';
 
 @Controller()
 export class HealthController {
@@ -27,8 +28,10 @@ export class HealthController {
   /**
    * GET /health/detailed
    * Detailed health check including database
+   * SECURITY FIX: Protected by AdminGuard - prevents information disclosure
    */
   @Get('health/detailed')
+  @UseGuards(AdminGuard) // SECURITY: Only admins can see detailed metrics
   async detailedHealthCheck() {
     let dbStatus = 'unknown';
     let dbLatency = 0;

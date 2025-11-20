@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Building2, FileText, Database, LogOut, Shield, HardDrive, Activity, FileSearch, Users, BarChart3, FlaskConical, Menu, X } from 'lucide-react';
+import { Building2, LogOut, Shield, HardDrive, Activity, FileSearch, Users, BarChart3, FlaskConical, Menu, X } from 'lucide-react';
 import { AdminLogin } from './components/AdminLogin';
 import { ToastProvider } from './components/Toast';
 import { CompaniesTab } from './tabs/CompaniesTab';
-import { LegalDocsTab } from './tabs/LegalDocsTab';
-import { AIDocumentsTab } from './tabs/AIDocumentsTab';
+// Hidden tabs - stub endpoints not yet migrated from n8n:
+// import { LegalDocsTab } from './tabs/LegalDocsTab';
+// import { AIDocumentsTab } from './tabs/AIDocumentsTab';
 import { BackupsTab } from './tabs/BackupsTab';
 import { HealthChecksTab } from './tabs/HealthChecksTab';
 import { LogsTab } from './tabs/LogsTab';
@@ -15,7 +16,7 @@ import { ABTestingTab } from './tabs/ABTestingTab';
 
 const AdminPage: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [activeTab, setActiveTab] = useState<'companies' | 'legal' | 'ai-docs' | 'backups' | 'health' | 'logs' | 'users' | 'analytics' | 'ab-testing'>('companies');
+  const [activeTab, setActiveTab] = useState<'companies' | 'backups' | 'health' | 'logs' | 'users' | 'analytics' | 'ab-testing'>('companies');
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   // Проверка авторизации при загрузке
@@ -92,8 +93,10 @@ const AdminPage: React.FC = () => {
 
   const tabs = [
     { id: 'companies' as const, label: 'Компании', icon: Building2 },
-    { id: 'legal' as const, label: 'Юр документы', icon: FileText },
-    { id: 'ai-docs' as const, label: 'Документы для ИИ', icon: Database },
+    // Hidden: Legal Docs (stub endpoint - not yet migrated from n8n)
+    // { id: 'legal' as const, label: 'Юр документы', icon: FileText },
+    // Hidden: AI Docs (stub endpoint - not yet migrated from n8n)
+    // { id: 'ai-docs' as const, label: 'Документы для ИИ', icon: Database },
     { id: 'backups' as const, label: 'Бэкапы', icon: HardDrive },
     { id: 'health' as const, label: 'Health Checks', icon: Activity },
     { id: 'logs' as const, label: 'Логи', icon: FileSearch },
@@ -221,6 +224,7 @@ const AdminPage: React.FC = () => {
                     <CompaniesTab />
                   </motion.div>
                 )}
+                {/* Hidden: Legal Docs tab - stub endpoint
                 {activeTab === 'legal' && (
                   <motion.div
                     key="legal"
@@ -232,6 +236,8 @@ const AdminPage: React.FC = () => {
                     <LegalDocsTab />
                   </motion.div>
                 )}
+                */}
+                {/* Hidden: AI Docs tab - stub endpoint
                 {activeTab === 'ai-docs' && (
                   <motion.div
                     key="ai-docs"
@@ -243,6 +249,7 @@ const AdminPage: React.FC = () => {
                     <AIDocumentsTab />
                   </motion.div>
                 )}
+                */}
                 {activeTab === 'backups' && (
                   <motion.div
                     key="backups"

@@ -47,12 +47,12 @@ export const BackupsTab: React.FC = () => {
       });
       if (data.success) {
         await loadBackups();
-        alert('Бэкап создан успешно');
+        showToast('success', 'Бэкап создан успешно');
       } else {
-        alert(`Ошибка: ${data.message || 'Не удалось создать бэкап'}`);
+        showToast('error', `Ошибка: ${data.message || 'Не удалось создать бэкап'}`);
       }
     } catch (_error) {
-      alert('Ошибка при создании бэкапа');
+      showToast('error', 'Ошибка при создании бэкапа');
     } finally {
       setIsCreating(false);
     }
@@ -68,12 +68,12 @@ export const BackupsTab: React.FC = () => {
         body: JSON.stringify({ backup_id: backupId, file_path: filePath }),
       });
       if (data.success) {
-        alert('Бэкап восстановлен успешно');
+        showToast('success', 'Бэкап восстановлен успешно');
       } else {
-        alert(`Ошибка: ${data.message || 'Не удалось восстановить бэкап'}`);
+        showToast('error', `Ошибка: ${data.message || 'Не удалось восстановить бэкап'}`);
       }
     } catch (_error) {
-      alert('Ошибка при восстановлении бэкапа');
+      showToast('error', 'Ошибка при восстановлении бэкапа');
     }
   };
 
@@ -88,12 +88,12 @@ export const BackupsTab: React.FC = () => {
       });
       if (data.success) {
         await loadBackups();
-        alert('Бэкап удален');
+        showToast('success', 'Бэкап удален');
       } else {
-        alert(`Ошибка: ${data.message || 'Не удалось удалить бэкап'}`);
+        showToast('error', `Ошибка: ${data.message || 'Не удалось удалить бэкап'}`);
       }
     } catch (_error) {
-      alert('Ошибка при удалении бэкапа');
+      showToast('error', 'Ошибка при удалении бэкапа');
     }
   };
 

@@ -2,6 +2,7 @@ import {
   Injectable,
   UnauthorizedException,
   NotFoundException,
+  BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between } from 'typeorm';
@@ -9,22 +10,26 @@ import {
   User,
   Company,
   Session,
+  AdminSession,
   UserLimit,
   AuditEvent,
   Chat,
   Message,
   AbExperiment,
   AbAssignment,
+  AbVariant,
   PlatformStats,
   Backup,
+  UserCompany,
+  UserRole,
 } from '@entities';
 import { v4 as uuidv4 } from 'uuid';
-import { exec } from 'child_process';
-import { promisify } from 'util';
+import { spawn } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
-
-const execAsync = promisify(exec);
+import { timingSafeCompare } from '@/common/utils/timing-safe-compare';
+import { hashToken } from '@/common/utils/hash-token';
+import { LockoutService } from '@/common/services/lockout.service';
 
 @Injectable()
 export class AdminService {
@@ -40,6 +45,8 @@ export class AdminService {
     private companyRepository: Repository<Company>,
     @InjectRepository(Session)
     private sessionRepository: Repository<Session>,
+    @InjectRepository(AdminSession)
+    private adminSessionRepository: Repository<AdminSession>,
     @InjectRepository(UserLimit)
     private userLimitRepository: Repository<UserLimit>,
     @InjectRepository(AuditEvent)
@@ -56,29 +63,100 @@ export class AdminService {
     private platformStatsRepository: Repository<PlatformStats>,
     @InjectRepository(Backup)
     private backupRepository: Repository<Backup>,
+    @InjectRepository(UserCompany)
+    private userCompanyRepository: Repository<UserCompany>,
+    private lockoutService: LockoutService,
   ) {}
 
   /**
    * Admin login
    * Replaces: admin.login.json
+   * SECURITY FIX: Use timing-safe password comparison + account lockout
    */
-  async login(username: string, password: string) {
-    if (
-      username !== this.ADMIN_USERNAME ||
-      password !== this.ADMIN_PASSWORD
-    ) {
-      throw new UnauthorizedException('Invalid admin credentials');
+  async login(
+    username: string,
+    password: string,
+    ipAddress?: string,
+    userAgent?: string,
+  ) {
+    // SECURITY FIX: Check if username is locked
+    const usernameLockStatus = await this.lockoutService.isLocked(
+      username,
+      'username',
+    );
+    if (usernameLockStatus.locked) {
+      throw new UnauthorizedException(
+        `Account temporarily locked. Try again in ${usernameLockStatus.remainingMinutes} minutes.`,
+      );
     }
 
-    // Generate admin session token
+    // SECURITY FIX: Check if IP is locked
+    if (ipAddress) {
+      const ipLockStatus = await this.lockoutService.isLocked(ipAddress, 'ip');
+      if (ipLockStatus.locked) {
+        throw new UnauthorizedException(
+          `Too many failed login attempts from this IP. Try again in ${ipLockStatus.remainingMinutes} minutes.`,
+        );
+      }
+    }
+
+    // SECURITY FIX: Use timing-safe comparison to prevent timing attacks
+    // Regular !== comparison can leak password length and content via timing
+    const usernameValid = timingSafeCompare(username, this.ADMIN_USERNAME);
+    const passwordValid = timingSafeCompare(password, this.ADMIN_PASSWORD);
+
+    if (!usernameValid || !passwordValid) {
+      // SECURITY FIX: Record failed attempt for both username and IP
+      const usernameResult = await this.lockoutService.recordFailedAttempt(
+        username,
+        'username',
+        ipAddress,
+        userAgent,
+      );
+
+      if (ipAddress) {
+        await this.lockoutService.recordFailedAttempt(
+          ipAddress,
+          'ip',
+          ipAddress,
+          userAgent,
+        );
+      }
+
+      // Inform user how many attempts remain
+      const attemptsMsg = usernameResult.locked
+        ? 'Account has been temporarily locked due to too many failed attempts.'
+        : `Invalid credentials. ${usernameResult.attemptsRemaining} attempts remaining.`;
+
+      throw new UnauthorizedException(attemptsMsg);
+    }
+
+    // SECURITY FIX: Reset failed attempts on successful login
+    await this.lockoutService.resetAttempts(username, 'username');
+    if (ipAddress) {
+      await this.lockoutService.resetAttempts(ipAddress, 'ip');
+    }
+
+    // SECURITY FIX: Store admin session in dedicated admin_sessions table
     const sessionToken = uuidv4();
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + 24); // 24 hours for admin
 
+    // SECURITY FIX: Hash session token before storing
+    const hashedToken = hashToken(sessionToken);
+
+    // Create admin session in admin_sessions table
+    await this.adminSessionRepository.save({
+      session_token: hashedToken, // SECURITY: Store hash, not plaintext
+      admin_username: username,
+      expires_at: expiresAt,
+      is_active: true,
+    });
+
     return {
       success: true,
       data: {
-        session_token: sessionToken,
+        token: sessionToken,
         role: 'admin',
         expires_at: expiresAt,
       },
@@ -90,16 +168,63 @@ export class AdminService {
    * Replaces: admin.validate.json
    */
   async validateAdminSession(token: string) {
-    // Simple validation - в production лучше хранить admin sessions в БД
-    if (!token || token.length < 10) {
+    // SECURITY FIX: Hash token before lookup
+    const hashedToken = hashToken(token);
+
+    // SECURITY FIX: Validate admin session in admin_sessions table
+    const session = await this.adminSessionRepository.findOne({
+      where: {
+        session_token: hashedToken, // Compare hashed tokens
+        is_active: true,
+      },
+    });
+
+    if (!session) {
       throw new UnauthorizedException('Invalid admin token');
     }
+
+    // Check if session expired
+    if (session.expires_at < new Date()) {
+      throw new UnauthorizedException('Admin session expired');
+    }
+
+    // Update last activity
+    await this.adminSessionRepository.update(session.id, {
+      last_activity_at: new Date(),
+    });
 
     return {
       success: true,
       data: {
         role: 'admin',
+        username: session.admin_username,
+        expires_at: session.expires_at,
       },
+    };
+  }
+
+  /**
+   * Admin logout
+   * Invalidates admin session in database
+   */
+  async logout(token: string) {
+    // Hash token before lookup
+    const hashedToken = hashToken(token);
+
+    // Deactivate session
+    await this.adminSessionRepository.update(
+      {
+        session_token: hashedToken,
+        is_active: true,
+      },
+      {
+        is_active: false,
+      },
+    );
+
+    return {
+      success: true,
+      message: 'Logged out successfully',
     };
   }
 
@@ -108,10 +233,15 @@ export class AdminService {
    * Replaces: admin.users-list.json
    */
   async listUsers(page = 1, limit = 50) {
+    // SECURITY FIX: Validate pagination parameters
+    // Prevent DoS via limit=undefined or limit=999999
+    const validatedPage = Math.max(1, Math.min(page || 1, 10000)); // Max 10000 pages
+    const validatedLimit = Math.max(1, Math.min(limit || 50, 100)); // Max 100 items per page
+
     const [users, _total] = await this.userRepository.findAndCount({
       relations: ['chats', 'userCompanies'],
-      take: limit,
-      skip: (page - 1) * limit,
+      take: validatedLimit,
+      skip: (validatedPage - 1) * validatedLimit,
       order: { created_at: 'DESC' },
     });
 
@@ -142,14 +272,26 @@ export class AdminService {
    * List all companies
    * Replaces: admin.companies-list.json
    */
-  async listCompanies() {
-    const companies = await this.companyRepository.find({
+  async listCompanies(page = 1, limit = 50) {
+    // SECURITY FIX: Add pagination to prevent DoS
+    const validatedPage = Math.max(1, Math.min(page || 1, 10000));
+    const validatedLimit = Math.max(1, Math.min(limit || 50, 100));
+
+    const [companies, total] = await this.companyRepository.findAndCount({
       order: { created_at: 'DESC' },
+      take: validatedLimit,
+      skip: (validatedPage - 1) * validatedLimit,
     });
 
     return {
       success: true,
       data: companies,
+      pagination: {
+        page: validatedPage,
+        limit: validatedLimit,
+        total,
+        totalPages: Math.ceil(total / validatedLimit),
+      },
     };
   }
 
@@ -164,12 +306,129 @@ export class AdminService {
       throw new NotFoundException('User not found');
     }
 
+    // SECURITY FIX: Prevent deleting last owner of a company
+    // Check if user belongs to any company
+    const userCompany = await this.userCompanyRepository.findOne({
+      where: {
+        user_id: userId,
+        is_active: true,
+      },
+    });
+
+    if (userCompany) {
+      // Check if user is an owner
+      if (userCompany.role === UserRole.OWNER) {
+        // Count total owners in this company
+        const ownersCount = await this.userCompanyRepository.count({
+          where: {
+            company_id: userCompany.company_id,
+            role: UserRole.OWNER,
+            is_active: true,
+          },
+        });
+
+        if (ownersCount <= 1) {
+          throw new BadRequestException(
+            'Cannot delete the last owner of a company. ' +
+              'Please assign another owner first or delete the company.',
+          );
+        }
+      }
+    }
+
     // Cascade delete will handle sessions, chats, messages, etc.
     await this.userRepository.delete(userId);
 
     return {
       success: true,
       message: `User ${userId} deleted successfully`,
+    };
+  }
+
+  /**
+   * Ban user - demote from manager to viewer and delete all their data
+   * Owner can ban managers from their company
+   *
+   * When banned:
+   * 1. User's role changes from manager to viewer
+   * 2. All user's chats are deleted
+   * 3. All user's messages are deleted
+   * 4. All user's sessions are invalidated
+   * 5. User can still log in but only as viewer with fresh start
+   */
+  async banUser(userId: string, companyId: string) {
+    // Check if user exists
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Check if user is member of the company
+    const userCompany = await this.userCompanyRepository.findOne({
+      where: {
+        user_id: userId,
+        company_id: companyId,
+        is_active: true,
+      },
+    });
+
+    if (!userCompany) {
+      throw new NotFoundException('User is not a member of this company');
+    }
+
+    // Can only ban managers (viewers are already restricted)
+    if (userCompany.role !== UserRole.MANAGER) {
+      throw new BadRequestException(
+        `Cannot ban user with role '${userCompany.role}'. Only managers can be banned.`,
+      );
+    }
+
+    // 1. Change role from manager to viewer
+    await this.userCompanyRepository.update(userCompany.id, {
+      role: UserRole.VIEWER,
+    });
+
+    // 2. Delete all user's chats (messages will be cascade deleted)
+    await this.chatRepository.delete({
+      user_id: userId,
+      company_id: companyId,
+    });
+
+    // 3. Invalidate all user's sessions for this company
+    await this.sessionRepository.update(
+      {
+        user_id: userId,
+        company_id: companyId,
+      },
+      {
+        is_active: false,
+      },
+    );
+
+    // 4. Reset user limits to viewer defaults (3 messages/day)
+    await this.userLimitRepository.update(
+      {
+        user_id: userId,
+        limit_type: 'messages_per_day',
+      },
+      {
+        limit_value: 3,
+        current_usage: 0,
+      },
+    );
+
+    return {
+      success: true,
+      message: `User ${userId} has been banned from company ${companyId}. Role changed to viewer, all data deleted.`,
+      data: {
+        user_id: userId,
+        company_id: companyId,
+        previous_role: UserRole.MANAGER,
+        new_role: UserRole.VIEWER,
+        chats_deleted: true,
+        sessions_invalidated: true,
+        limits_reset: true,
+      },
     };
   }
 
@@ -313,14 +572,18 @@ export class AdminService {
    * Replaces: admin.logs-list.json
    */
   async listLogs(page = 1, limit = 100, action?: string, userId?: string) {
+    // SECURITY FIX: Validate pagination parameters
+    const validatedPage = Math.max(1, Math.min(page || 1, 10000));
+    const validatedLimit = Math.max(1, Math.min(limit || 100, 200)); // Max 200 logs per page
+
     const where: any = {};
     if (action) where.action = action;
     if (userId) where.user_id = userId;
 
     const [logs, total] = await this.auditRepository.findAndCount({
       where,
-      take: limit,
-      skip: (page - 1) * limit,
+      take: validatedLimit,
+      skip: (validatedPage - 1) * validatedLimit,
       order: { created_at: 'DESC' },
       relations: ['user'],
     });
@@ -432,24 +695,44 @@ export class AdminService {
    * Replaces: admin.user-history-clear.json
    */
   async clearUserHistory(userId: string) {
-    // Get all user chats
-    const chats = await this.chatRepository.find({
-      where: { user_id: userId },
-    });
+    // SECURITY FIX: Use transaction to ensure atomicity
+    // Prevents partial deletes if operation fails midway
+    const queryRunner =
+      this.chatRepository.manager.connection.createQueryRunner();
 
-    // Delete all messages in these chats
-    for (const chat of chats) {
-      await this.messageRepository.delete({ chat_id: chat.id });
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      // Get all user chats within transaction
+      const chats = await queryRunner.manager.find(Chat, {
+        where: { user_id: userId },
+      });
+
+      // Delete all messages in these chats
+      for (const chat of chats) {
+        await queryRunner.manager.delete(Message, { chat_id: chat.id });
+      }
+
+      // Delete all chats
+      await queryRunner.manager.delete(Chat, { user_id: userId });
+
+      // Commit transaction
+      await queryRunner.commitTransaction();
+
+      return {
+        success: true,
+        message: `Cleared history for user ${userId}`,
+        chats_deleted: chats.length,
+      };
+    } catch (error) {
+      // Rollback transaction on error
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      // Release query runner
+      await queryRunner.release();
     }
-
-    // Delete all chats
-    await this.chatRepository.delete({ user_id: userId });
-
-    return {
-      success: true,
-      message: `Cleared history for user ${userId}`,
-      chats_deleted: chats.length,
-    };
   }
 
   /**
@@ -464,18 +747,25 @@ export class AdminService {
       throw new NotFoundException('Experiment not found');
     }
 
-    const assignments = await this.abAssignmentRepository.find({
-      where: { experiment_id: experimentId },
-    });
-
-    const variantACount = assignments.filter((a) => a.variant === 'A').length;
-    const variantBCount = assignments.filter((a) => a.variant === 'B').length;
+    // SECURITY FIX: Use COUNT queries instead of loading all records into memory
+    // Prevents memory exhaustion DoS with large assignment counts
+    const [totalAssignments, variantACount, variantBCount] = await Promise.all([
+      this.abAssignmentRepository.count({
+        where: { experiment_id: experimentId },
+      }),
+      this.abAssignmentRepository.count({
+        where: { experiment_id: experimentId, variant: AbVariant.A as any },
+      }),
+      this.abAssignmentRepository.count({
+        where: { experiment_id: experimentId, variant: AbVariant.B as any },
+      }),
+    ]);
 
     return {
       success: true,
       data: {
         experiment,
-        total_assignments: assignments.length,
+        total_assignments: totalAssignments,
         variant_a_count: variantACount,
         variant_b_count: variantBCount,
       },
@@ -572,11 +862,18 @@ export class AdminService {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('T').join('_').substring(0, 19);
     const filename = `backup-${timestamp}.sql`;
     const backupDir = process.env.BACKUP_DIR || '/var/backups/lumon';
-    const filePath = path.join(backupDir, filename);
+
+    // Validate backup directory path
+    const resolvedBackupDir = path.resolve(backupDir);
+    if (!resolvedBackupDir.startsWith('/var/backups/') && !resolvedBackupDir.startsWith('/tmp/backups/')) {
+      throw new Error('Invalid backup directory');
+    }
+
+    const filePath = path.join(resolvedBackupDir, filename);
 
     // Create backup directory if it doesn't exist
-    if (!fs.existsSync(backupDir)) {
-      fs.mkdirSync(backupDir, { recursive: true });
+    if (!fs.existsSync(resolvedBackupDir)) {
+      fs.mkdirSync(resolvedBackupDir, { recursive: true });
     }
 
     // Create backup record in database
@@ -591,14 +888,43 @@ export class AdminService {
       // Get database credentials from environment
       const dbHost = process.env.DB_HOST || 'localhost';
       const dbPort = process.env.DB_PORT || '5432';
-      const dbName = process.env.DB_NAME || 'lumon';
-      const dbUser = process.env.DB_USER || 'postgres';
+      const dbName = process.env.DB_DATABASE || 'lumon';
+      const dbUser = process.env.DB_USERNAME || 'postgres';
       const dbPassword = process.env.DB_PASSWORD || '';
 
-      // Execute pg_dump command
-      const command = `PGPASSWORD="${dbPassword}" pg_dump -h ${dbHost} -p ${dbPort} -U ${dbUser} -d ${dbName} -F p -f "${filePath}"`;
+      // SECURITY FIX: Use spawn instead of exec to prevent command injection
+      await new Promise((resolve, reject) => {
+        const pgDump = spawn('pg_dump', [
+          '-h', dbHost,
+          '-p', dbPort,
+          '-U', dbUser,
+          '-d', dbName,
+          '-F', 'p',
+          '-f', filePath,
+        ], {
+          env: {
+            ...process.env,
+            PGPASSWORD: dbPassword,
+          },
+        });
 
-      await execAsync(command);
+        let stderr = '';
+        pgDump.stderr.on('data', (data) => {
+          stderr += data.toString();
+        });
+
+        pgDump.on('close', (code) => {
+          if (code === 0) {
+            resolve(null);
+          } else {
+            reject(new Error(`pg_dump failed with code ${code}: ${stderr}`));
+          }
+        });
+
+        pgDump.on('error', (err) => {
+          reject(err);
+        });
+      });
 
       // Get file size
       const stats = fs.statSync(filePath);
@@ -638,22 +964,84 @@ export class AdminService {
       throw new NotFoundException('Backup not found');
     }
 
-    if (!fs.existsSync(filePath)) {
+    // SECURITY FIX: Comprehensive path traversal protection
+    // 1. Normalize and resolve the path
+    const normalizedPath = path.normalize(filePath);
+    const resolvedPath = path.resolve(normalizedPath);
+    const backupDir = path.resolve(process.env.BACKUP_DIR || '/var/backups/lumon');
+
+    // 2. Check for null bytes (can bypass extension checks in some systems)
+    if (filePath.includes('\0')) {
+      throw new Error('Invalid backup file path - null byte detected');
+    }
+
+    // 3. Check for path traversal sequences before resolution
+    if (filePath.includes('..') || filePath.includes('~')) {
+      throw new Error('Invalid backup file path - traversal sequence detected');
+    }
+
+    // 4. Ensure file is within allowed backup directory (after resolution)
+    if (!resolvedPath.startsWith(backupDir + path.sep) && resolvedPath !== backupDir) {
+      throw new Error('Invalid backup file path - path traversal detected');
+    }
+
+    // 5. Ensure file exists
+    if (!fs.existsSync(resolvedPath)) {
       throw new NotFoundException('Backup file not found');
+    }
+
+    // 6. Verify it's a regular file (not a symlink, directory, device, etc.)
+    const stats = fs.statSync(resolvedPath);
+    if (!stats.isFile()) {
+      throw new Error('Invalid backup file path - not a regular file');
+    }
+
+    // 7. Ensure file has .sql extension (case-insensitive)
+    const ext = path.extname(resolvedPath).toLowerCase();
+    if (ext !== '.sql') {
+      throw new Error('Invalid backup file type - must be .sql file');
     }
 
     try {
       // Get database credentials from environment
       const dbHost = process.env.DB_HOST || 'localhost';
       const dbPort = process.env.DB_PORT || '5432';
-      const dbName = process.env.DB_NAME || 'lumon';
-      const dbUser = process.env.DB_USER || 'postgres';
+      const dbName = process.env.DB_DATABASE || 'lumon';
+      const dbUser = process.env.DB_USERNAME || 'postgres';
       const dbPassword = process.env.DB_PASSWORD || '';
 
-      // Execute psql command to restore database
-      const command = `PGPASSWORD="${dbPassword}" psql -h ${dbHost} -p ${dbPort} -U ${dbUser} -d ${dbName} -f "${filePath}"`;
+      // SECURITY FIX: Use spawn instead of exec to prevent command injection
+      await new Promise((resolve, reject) => {
+        const psql = spawn('psql', [
+          '-h', dbHost,
+          '-p', dbPort,
+          '-U', dbUser,
+          '-d', dbName,
+          '-f', resolvedPath,
+        ], {
+          env: {
+            ...process.env,
+            PGPASSWORD: dbPassword,
+          },
+        });
 
-      await execAsync(command);
+        let stderr = '';
+        psql.stderr.on('data', (data) => {
+          stderr += data.toString();
+        });
+
+        psql.on('close', (code) => {
+          if (code === 0) {
+            resolve(null);
+          } else {
+            reject(new Error(`psql failed with code ${code}: ${stderr}`));
+          }
+        });
+
+        psql.on('error', (err) => {
+          reject(err);
+        });
+      });
 
       return {
         success: true,

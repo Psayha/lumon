@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { ArrowLeft, Play, Copy, Bot, RefreshCw, Trash2 } from 'lucide-react';
-import { 
-  createUser, 
-  createChat, 
-  saveMessage, 
-  getChatHistory, 
+import {
+  createUser,
+  createChat,
+  saveMessage,
+  getChatHistory,
   trackEvent,
   type User,
   type Message
@@ -1037,7 +1038,7 @@ const ApiTestPage: React.FC = () => {
                     <button
                       onClick={() => {
                         navigator.clipboard.writeText(response);
-                        alert('✅ Ответ скопирован в буфер обмена!');
+                        toast.success('✅ Ответ скопирован в буфер обмена!');
                       }}
                       className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-sm hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                     >
@@ -1069,7 +1070,7 @@ ${JSON.stringify(logData.fullResponse, null, 2)}
 ===========================
                         `.trim();
                         navigator.clipboard.writeText(aiLog);
-                        alert('🤖 Лог для AI скопирован! Теперь можешь отправить его мне.');
+                        toast.success('🤖 Лог для AI скопирован! Теперь можешь отправить его мне.');
                       }}
                       className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition-colors font-medium"
                     >
