@@ -382,7 +382,7 @@ export function AnimatedAIChat({
                 setMessages(prev => [...prev, aiMessage]);
                 
                 // Сохраняем ответ AI в БД
-                if (onMessageSave && chatId) {
+                if (onMessageSave) {
                     onMessageSave(aiMessage.text, 'assistant', aiMessage.id).catch(error => {
                         console.error('[AnimatedAIChat] Error saving assistant message:', error);
                     });
