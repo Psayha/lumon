@@ -58,7 +58,7 @@ export const ChatHistory: React.FC<ChatHistoryProps> = ({
         const formattedChats: ChatHistoryItem[] = response.data.map((chat: Chat) => ({
           id: chat.id || '',
           title: chat.title || 'Без названия',
-          lastMessage: chat.lastMessage || 'Нет сообщений',
+          lastMessage: chat.lastMessage || '',
           timestamp: chat.lastMessageAt ? new Date(chat.lastMessageAt) : (chat.updated_at ? new Date(chat.updated_at) : new Date(chat.created_at || Date.now())),
           messageCount: chat.messageCount || 0
         }));

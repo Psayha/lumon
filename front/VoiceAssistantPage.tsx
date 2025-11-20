@@ -76,6 +76,56 @@ const VoiceAssistantPage: React.FC = () => {
     };
   }, []);
 
+  // Создаем чат при открытии страницы
+  useEffect(() => {
+    const initializeChat = async () => {
+      // Если уже есть chatId, ничего не делаем
+      if (chatId) {
+        console.log('[VoiceAssistantPage] Chat already exists:', chatId);
+        return;
+      }
+
+      // Если чат уже создается, не создаем повторно
+      if (isCreatingChat) {
+        console.log('[VoiceAssistantPage] Chat is already being created');
+        return;
+      }
+
+      const token = localStorage.getItem('session_token');
+      if (!token) {
+        console.error('[VoiceAssistantPage] No session token, skipping chat creation');
+        return;
+      }
+
+      console.log('[VoiceAssistantPage] Initializing new chat on page load...');
+      setChatCreating();
+
+      try {
+        const chatResponse = await createChatDirect('New Chat');
+
+        if (chatResponse.success && chatResponse.data?.id) {
+          const newChatId = chatResponse.data.id;
+          console.log('[VoiceAssistantPage] ✅ Chat created on init:', newChatId);
+          setChatCreated(newChatId);
+
+          await trackEvent({
+            action: 'chat_created',
+            resource: 'chat',
+            resource_id: newChatId,
+            meta: { source: 'voice_assistant', trigger: 'page_load' },
+          });
+        } else {
+          throw new Error('Failed to create chat');
+        }
+      } catch (error) {
+        console.error('[VoiceAssistantPage] ❌ Error creating chat on init:', error);
+        setChatCreationError(error instanceof Error ? error.message : 'Unknown error');
+      }
+    };
+
+    initializeChat();
+  }, []); // Запускаем только один раз при монтировании
+
   return (
     <>
       <div 
@@ -121,96 +171,34 @@ const VoiceAssistantPage: React.FC = () => {
                   throw new Error('Session token is required. Please log in again.');
                 }
 
-                // RACE CONDITION FIX: Check if chat is being created
-                if (!chatId) {
-                  // If chat is already being created, wait for it
-                  if (isCreatingChat) {
-                    console.log('[VoiceAssistantPage] ⏳ Chat is being created, waiting...');
-                    toast.info('Please wait, chat is being created...');
+                // Ждем создания чата, если он еще не создан
+                let currentChatId = chatId;
+                if (!currentChatId) {
+                  console.log('[VoiceAssistantPage] ⏳ Waiting for chat to be created...');
 
-                    // Wait for chat creation to complete (poll every 100ms)
-                    const maxWaitTime = 10000; // 10 seconds max
-                    const startTime = Date.now();
+                  const maxWaitTime = 10000; // 10 seconds max
+                  const startTime = Date.now();
 
-                    while (isCreatingChat && Date.now() - startTime < maxWaitTime) {
-                      await new Promise(resolve => setTimeout(resolve, 100));
-                      // Get fresh state
-                      const currentChatId = useChatStore.getState().chatId;
-                      const currentIsCreating = useChatStore.getState().isCreatingChat;
+                  while (Date.now() - startTime < maxWaitTime) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    currentChatId = useChatStore.getState().chatId;
 
-                      if (currentChatId) {
-                        // Chat created! Save message to it
-                        console.log('[VoiceAssistantPage] ✅ Chat created during wait, saving message');
-                        const toastId = toast.loading('Saving message...');
-
-                        await saveMessage({
-                          chat_id: currentChatId,
-                          role,
-                          content: message,
-                        });
-
-                        toast.success('Message saved', { id: toastId });
-                        return;
-                      }
-
-                      if (!currentIsCreating) {
-                        // Creation failed or completed without chatId
-                        throw new Error('Chat creation failed');
-                      }
+                    if (currentChatId) {
+                      console.log('[VoiceAssistantPage] ✅ Chat is ready:', currentChatId);
+                      break;
                     }
+                  }
 
+                  if (!currentChatId) {
                     throw new Error('Chat creation timeout');
                   }
-
-                  // Create new chat
-                  console.log('[VoiceAssistantPage] Creating new chat...');
-                  setChatCreating();
-
-                  const toastId = toast.loading('Creating chat...');
-
-                  try {
-                    const chatResponse = await createChatDirect('Voice Assistant Chat');
-
-                    if (chatResponse.success && chatResponse.data?.id) {
-                      const newChatId = chatResponse.data.id;
-                      setChatCreated(newChatId);
-
-                      // Сохраняем первое сообщение
-                      toast.loading('Saving message...', { id: toastId });
-                      await saveMessage({
-                        chat_id: newChatId,
-                        role,
-                        content: message,
-                      });
-
-                      await trackEvent({
-                        action: 'chat_created',
-                        resource: 'chat',
-                        resource_id: newChatId,
-                        meta: { source: 'voice_assistant' },
-                      });
-
-                      toast.success('Chat created!', { id: toastId });
-                      console.log('[VoiceAssistantPage] ✅ Chat created and message saved:', newChatId);
-                    } else {
-                      throw new Error(chatResponse.error || 'Failed to create chat');
-                    }
-                  } catch (error) {
-                    const errorMsg = error instanceof Error ? error.message : 'Failed to create chat';
-                    setChatCreationError(errorMsg);
-                    toast.error(errorMsg, { id: toastId });
-                    throw error;
-                  }
-                  return;
                 }
 
-                // Сохраняем сообщение в существующий чат
-                console.log('[VoiceAssistantPage] Saving message to chat:', chatId);
-
-                const toastId = toast.loading('Saving message...');
+                // Сохраняем сообщение
+                console.log('[VoiceAssistantPage] Saving message to chat:', currentChatId);
 
                 await saveMessage({
-                  chat_id: chatId,
+                  chat_id: currentChatId,
                   role,
                   content: message,
                 });
@@ -218,20 +206,18 @@ const VoiceAssistantPage: React.FC = () => {
                 await trackEvent({
                   action: 'message_sent',
                   resource: 'message',
-                  resource_id: chatId,
+                  resource_id: currentChatId,
                   meta: {
                     role,
                     message_length: message.length,
                   },
                 });
 
-                toast.success('Message saved', { id: toastId });
                 console.log('[VoiceAssistantPage] ✅ Message saved successfully');
               } catch (error) {
                 console.error('[VoiceAssistantPage] ❌ Error saving message:', error);
                 const errorMsg = error instanceof Error ? error.message : 'Failed to save message';
                 toast.error(errorMsg);
-                // Re-throw to let the component handle it if needed
                 throw error;
               }
             }}
