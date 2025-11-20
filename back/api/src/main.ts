@@ -4,8 +4,13 @@ import { AppModule } from './app.module';
 import helmet from 'helmet';
 import * as cookieParser from 'cookie-parser';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { runMigrations } from './database/migration-runner';
 
 async function bootstrap() {
+  // SECURITY FIX: Run database migrations automatically before starting the app
+  // This ensures all security constraints (UNIQUE, CHECK) are created
+  await runMigrations();
+
   const app = await NestFactory.create(AppModule, {
     logger: ['error', 'warn', 'log', 'debug'],
   });

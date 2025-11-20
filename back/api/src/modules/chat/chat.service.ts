@@ -15,7 +15,7 @@ import { CreateChatDto } from './dto/create-chat.dto';
 import { SaveMessageDto } from './dto/save-message.dto';
 import { CurrentUserData } from '@/common/decorators/current-user.decorator';
 import { v4 as uuidv4 } from 'uuid';
-import * as xss from 'xss';
+import xss from 'xss';
 
 @Injectable()
 export class ChatService {
