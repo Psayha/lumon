@@ -36,7 +36,12 @@ export function validateJsonb(
   data: any,
   options: ValidationOptions = {},
 ): any {
-  const opts = { ...DEFAULT_OPTIONS, ...options };
+  const opts = {
+    ...DEFAULT_OPTIONS,
+    ...options,
+    // Ensure allowedKeys is always an array
+    allowedKeys: options.allowedKeys ?? DEFAULT_OPTIONS.allowedKeys,
+  };
 
   // Check if null/undefined
   if (data === null || data === undefined) {
@@ -64,7 +69,7 @@ export function validateJsonb(
   const sanitized = sanitizeAndCheckDepth(data, 1, opts.maxDepth);
 
   // Validate allowed keys (if whitelist is specified)
-  if (opts.allowedKeys.length > 0) {
+  if (opts.allowedKeys && opts.allowedKeys.length > 0) {
     validateAllowedKeys(sanitized, opts.allowedKeys);
   }
 
