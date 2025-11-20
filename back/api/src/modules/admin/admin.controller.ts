@@ -8,6 +8,7 @@ import {
   Headers,
   UnauthorizedException,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { AdminService } from './admin.service';
 import { AdminGuard } from './admin.guard';
 import { AdminLoginDto, UpdateUserLimitsDto } from './dto/admin-login.dto';
@@ -18,7 +19,12 @@ export class AdminController {
 
   // ============ Auth Endpoints ============
 
+  /**
+   * Admin login endpoint
+   * SECURITY FIX: Strict rate limiting - 5 attempts per hour to prevent brute force
+   */
   @Post('login')
+  @Throttle({ default: { limit: 5, ttl: 3600000 } }) // 5 requests per hour (3600 seconds)
   async login(@Body() dto: AdminLoginDto) {
     return this.adminService.login(dto.username, dto.password);
   }
