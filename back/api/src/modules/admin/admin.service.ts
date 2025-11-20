@@ -24,15 +24,12 @@ import {
   UserRole,
 } from '@entities';
 import { v4 as uuidv4 } from 'uuid';
-import { exec } from 'child_process';
-import { promisify } from 'util';
+import { spawn } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import { timingSafeCompare } from '@/common/utils/timing-safe-compare';
 import { hashToken } from '@/common/utils/hash-token';
 import { LockoutService } from '@/common/services/lockout.service';
-
-const execAsync = promisify(exec);
 
 @Injectable()
 export class AdminService {
@@ -895,8 +892,6 @@ export class AdminService {
       const dbPassword = process.env.DB_PASSWORD || '';
 
       // SECURITY FIX: Use spawn instead of exec to prevent command injection
-      const { spawn } = require('child_process');
-
       await new Promise((resolve, reject) => {
         const pgDump = spawn('pg_dump', [
           '-h', dbHost,
@@ -1015,8 +1010,6 @@ export class AdminService {
       const dbPassword = process.env.DB_PASSWORD || '';
 
       // SECURITY FIX: Use spawn instead of exec to prevent command injection
-      const { spawn } = require('child_process');
-
       await new Promise((resolve, reject) => {
         const psql = spawn('psql', [
           '-h', dbHost,

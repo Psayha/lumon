@@ -19,7 +19,7 @@ import {
  * user_id!: string;
  */
 export function IsUuidV4(validationOptions?: ValidationOptions) {
-  return function (object: Object, propertyName: string) {
+  return function (object: object, propertyName: string) {
     registerDecorator({
       name: 'isUuidV4',
       target: object.constructor,

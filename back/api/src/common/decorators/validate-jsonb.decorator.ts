@@ -24,7 +24,7 @@ export function ValidateJsonb(options?: {
   allowedKeys?: string[];
   validationOptions?: ValidationOptions;
 }) {
-  return function (object: Object, propertyName: string) {
+  return function (object: object, propertyName: string) {
     registerDecorator({
       name: 'validateJsonb',
       target: object.constructor,
