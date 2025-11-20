@@ -31,6 +31,12 @@ interface SystemStatus {
   system_metrics?: SystemMetrics;
 }
 
+interface HealthCheckResponse {
+  system_status?: SystemStatus;
+  health_checks?: HealthCheck[];
+  system_metrics?: SystemMetrics;
+}
+
 export const HealthChecksTab: React.FC = () => {
   const [systemStatus, setSystemStatus] = useState<SystemStatus | null>(null);
   const [healthChecks, setHealthChecks] = useState<HealthCheck[]>([]);
@@ -41,7 +47,7 @@ export const HealthChecksTab: React.FC = () => {
   const loadHealthChecks = async () => {
     _setIsLoading(true);
     try {
-      const data = await adminApiRequest(ADMIN_API_CONFIG.endpoints.healthCheckList);
+      const data = await adminApiRequest<HealthCheckResponse>(ADMIN_API_CONFIG.endpoints.healthCheckList);
       if (data.success && data.data) {
         if (data.data.system_status) {
           setSystemStatus(data.data.system_status);

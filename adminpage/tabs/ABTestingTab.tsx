@@ -11,8 +11,8 @@ interface Experiment {
   featureName: string;
   enabled: boolean;
   trafficPercentage: number;
-  variantAConfig: any;
-  variantBConfig: any;
+  variantAConfig: Record<string, unknown>;
+  variantBConfig: Record<string, unknown>;
   createdAt: string;
   updatedAt: string;
   variantAUsers: number;
@@ -36,8 +36,9 @@ export const ABTestingTab: React.FC = () => {
         const errorMsg = data.message || 'Ошибка сервера: не удалось загрузить эксперименты';
         showToast('error', errorMsg);
       }
-    } catch (error: any) {
-      showToast('error', error?.message || 'Ошибка при загрузке экспериментов');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Ошибка при загрузке экспериментов';
+      showToast('error', errorMessage);
     } finally {
       setIsLoading(false);
     }
