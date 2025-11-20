@@ -235,10 +235,15 @@ export class AdminService {
    * Replaces: admin.users-list.json
    */
   async listUsers(page = 1, limit = 50) {
+    // SECURITY FIX: Validate pagination parameters
+    // Prevent DoS via limit=undefined or limit=999999
+    const validatedPage = Math.max(1, Math.min(page || 1, 10000)); // Max 10000 pages
+    const validatedLimit = Math.max(1, Math.min(limit || 50, 100)); // Max 100 items per page
+
     const [users, _total] = await this.userRepository.findAndCount({
       relations: ['chats', 'userCompanies'],
-      take: limit,
-      skip: (page - 1) * limit,
+      take: validatedLimit,
+      skip: (validatedPage - 1) * validatedLimit,
       order: { created_at: 'DESC' },
     });
 
@@ -289,6 +294,36 @@ export class AdminService {
 
     if (!user) {
       throw new NotFoundException('User not found');
+    }
+
+    // SECURITY FIX: Prevent deleting last owner of a company
+    if (user.company_id) {
+      // Check if user is an owner
+      const userCompany = await this.userCompanyRepository.findOne({
+        where: {
+          user_id: userId,
+          company_id: user.company_id,
+          is_active: true,
+        },
+      });
+
+      if (userCompany && userCompany.role === UserRole.OWNER) {
+        // Count total owners in this company
+        const ownersCount = await this.userCompanyRepository.count({
+          where: {
+            company_id: user.company_id,
+            role: UserRole.OWNER,
+            is_active: true,
+          },
+        });
+
+        if (ownersCount <= 1) {
+          throw new BadRequestException(
+            'Cannot delete the last owner of a company. ' +
+              'Please assign another owner first or delete the company.',
+          );
+        }
+      }
     }
 
     // Cascade delete will handle sessions, chats, messages, etc.
@@ -526,14 +561,18 @@ export class AdminService {
    * Replaces: admin.logs-list.json
    */
   async listLogs(page = 1, limit = 100, action?: string, userId?: string) {
+    // SECURITY FIX: Validate pagination parameters
+    const validatedPage = Math.max(1, Math.min(page || 1, 10000));
+    const validatedLimit = Math.max(1, Math.min(limit || 100, 200)); // Max 200 logs per page
+
     const where: any = {};
     if (action) where.action = action;
     if (userId) where.user_id = userId;
 
     const [logs, total] = await this.auditRepository.findAndCount({
       where,
-      take: limit,
-      skip: (page - 1) * limit,
+      take: validatedLimit,
+      skip: (validatedPage - 1) * validatedLimit,
       order: { created_at: 'DESC' },
       relations: ['user'],
     });
@@ -645,24 +684,44 @@ export class AdminService {
    * Replaces: admin.user-history-clear.json
    */
   async clearUserHistory(userId: string) {
-    // Get all user chats
-    const chats = await this.chatRepository.find({
-      where: { user_id: userId },
-    });
+    // SECURITY FIX: Use transaction to ensure atomicity
+    // Prevents partial deletes if operation fails midway
+    const queryRunner =
+      this.chatRepository.manager.connection.createQueryRunner();
 
-    // Delete all messages in these chats
-    for (const chat of chats) {
-      await this.messageRepository.delete({ chat_id: chat.id });
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      // Get all user chats within transaction
+      const chats = await queryRunner.manager.find('Chat', {
+        where: { user_id: userId },
+      });
+
+      // Delete all messages in these chats
+      for (const chat of chats) {
+        await queryRunner.manager.delete('Message', { chat_id: chat.id });
+      }
+
+      // Delete all chats
+      await queryRunner.manager.delete('Chat', { user_id: userId });
+
+      // Commit transaction
+      await queryRunner.commitTransaction();
+
+      return {
+        success: true,
+        message: `Cleared history for user ${userId}`,
+        chats_deleted: chats.length,
+      };
+    } catch (error) {
+      // Rollback transaction on error
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      // Release query runner
+      await queryRunner.release();
     }
-
-    // Delete all chats
-    await this.chatRepository.delete({ user_id: userId });
-
-    return {
-      success: true,
-      message: `Cleared history for user ${userId}`,
-      chats_deleted: chats.length,
-    };
   }
 
   /**
