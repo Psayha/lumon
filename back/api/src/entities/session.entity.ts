@@ -34,13 +34,9 @@ export class Session {
   @Column({ type: 'uuid', nullable: true })
   company_id!: string;
 
-  @Column({
-    type: 'enum',
-    enum: UserRole,
-    enumName: 'user_role',
-    default: UserRole.VIEWER,
-  })
-  role!: UserRole;
+  // REMOVED: role column - role is now determined from user_companies table
+  // This ensures proper multi-tenancy where users can have different roles
+  // in different companies
 
   @Column({ type: 'timestamptz' })
   expires_at!: Date;

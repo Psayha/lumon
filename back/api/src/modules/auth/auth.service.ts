@@ -50,12 +50,11 @@ export class AuthService {
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + 7); // 7 days expiry
 
-      // Create session
+      // Create session (role is now determined from user_companies table)
       const session = await this.sessionRepository.save({
         session_token: sessionToken,
         user_id: user.id,
         company_id: roleData.company_id || undefined,
-        role: roleData.role as UserRole,
         expires_at: expiresAt,
         is_active: true,
       }) as Session;
@@ -114,6 +113,9 @@ export class AuthService {
       throw new UnauthorizedException('Session expired');
     }
 
+    // Fetch role from user_companies table
+    const roleData = await this.getUserRoleAndCompany(session.user_id);
+
     // Update last activity
     await this.sessionRepository.update(session.id, {
       last_activity_at: new Date(),
@@ -126,7 +128,7 @@ export class AuthService {
           id: session.user_id,
           company_id: session.company_id,
         },
-        role: session.role,
+        role: roleData.role,
         companyId: session.company_id,
       },
     };
