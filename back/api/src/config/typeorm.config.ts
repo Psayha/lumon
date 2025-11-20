@@ -12,7 +12,10 @@ export const typeOrmConfig: DataSourceOptions = {
   password: process.env.DB_PASSWORD,
   database: process.env.DB_DATABASE || 'lumon',
   entities,
-  migrations: ['src/migrations/**/*.ts'],
+  // FIX: Use compiled .js files in production, .ts files in development
+  migrations: process.env.NODE_ENV === 'production'
+    ? ['dist/migrations/**/*.js']
+    : ['src/migrations/**/*.ts'],
   migrationsRun: false, // Don't auto-run migrations, run them manually
   synchronize: false, // NEVER use synchronize in production!
   logging: process.env.NODE_ENV === 'development',
