@@ -2,11 +2,16 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import helmet from 'helmet';
+import * as cookieParser from 'cookie-parser';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     logger: ['error', 'warn', 'log', 'debug'],
   });
+
+  // SECURITY FIX: Add cookie parser for httpOnly cookies
+  // Required for admin authentication via secure cookies
+  app.use(cookieParser());
 
   // SECURITY FIX: Add Helmet.js for security headers
   app.use(helmet({

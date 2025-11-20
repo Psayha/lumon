@@ -170,10 +170,13 @@ export class AdminService {
    * Replaces: admin.validate.json
    */
   async validateAdminSession(token: string) {
+    // SECURITY FIX: Hash token before lookup
+    const hashedToken = hashToken(token);
+
     // SECURITY FIX: Validate admin session in admin_sessions table
     const session = await this.adminSessionRepository.findOne({
       where: {
-        session_token: token,
+        session_token: hashedToken, // Compare hashed tokens
         is_active: true,
       },
     });
@@ -199,6 +202,31 @@ export class AdminService {
         username: session.admin_username,
         expires_at: session.expires_at,
       },
+    };
+  }
+
+  /**
+   * Admin logout
+   * Invalidates admin session in database
+   */
+  async logout(token: string) {
+    // Hash token before lookup
+    const hashedToken = hashToken(token);
+
+    // Deactivate session
+    await this.adminSessionRepository.update(
+      {
+        session_token: hashedToken,
+        is_active: true,
+      },
+      {
+        is_active: false,
+      },
+    );
+
+    return {
+      success: true,
+      message: 'Logged out successfully',
     };
   }
 

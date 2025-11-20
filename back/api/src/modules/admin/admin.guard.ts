@@ -22,13 +22,16 @@ export class AdminGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
-    const authHeader = request.headers.authorization;
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      throw new UnauthorizedException('Missing admin token');
+    // SECURITY FIX: Read admin token from httpOnly cookie instead of Authorization header
+    // This prevents XSS attacks as JavaScript cannot access httpOnly cookies
+    const token = request.cookies?.admin_token;
+
+    if (!token) {
+      throw new UnauthorizedException(
+        'Missing admin session. Please login via admin panel.',
+      );
     }
-
-    const token = authHeader.replace('Bearer ', '').trim();
 
     // SECURITY FIX: Hash token before lookup
     // Admin tokens are stored as SHA-256 hashes in database

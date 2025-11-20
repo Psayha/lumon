@@ -8,8 +8,9 @@ import {
   Headers,
   UnauthorizedException,
   Req,
+  Res,
 } from '@nestjs/common';
-import { Request } from 'express';
+import { Request, Response } from 'express';
 import { Throttle } from '@nestjs/throttler';
 import { AdminService } from './admin.service';
 import { AdminGuard } from './admin.guard';
@@ -27,11 +28,16 @@ export class AdminController {
 
   /**
    * Admin login endpoint
+   * SECURITY FIX: Uses httpOnly cookies instead of localStorage
    * SECURITY FIX: Strict rate limiting + account lockout to prevent brute force
    */
   @Post('login')
   @Throttle({ default: { limit: 5, ttl: 3600000 } }) // 5 requests per hour (3600 seconds)
-  async login(@Body() dto: AdminLoginDto, @Req() req: Request) {
+  async login(
+    @Body() dto: AdminLoginDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     // Extract IP address (handling proxies)
     const ipAddress =
       (req.headers['x-forwarded-for'] as string)?.split(',')[0].trim() ||
@@ -42,22 +48,79 @@ export class AdminController {
     // Extract user agent
     const userAgent = req.headers['user-agent'] || 'unknown';
 
-    return this.adminService.login(
+    const result = await this.adminService.login(
       dto.username,
       dto.password,
       ipAddress,
       userAgent,
     );
+
+    // SECURITY FIX: Set admin token in httpOnly cookie (XSS-proof)
+    // Token is NOT accessible via JavaScript, only sent automatically with requests
+    res.cookie('admin_token', result.data.token, {
+      httpOnly: true, // CRITICAL: Prevents XSS attacks
+      secure: process.env.NODE_ENV === 'production', // HTTPS only in production
+      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      path: '/', // Available for all routes
+    });
+
+    // Return success without exposing token in response body
+    return {
+      success: true,
+      data: {
+        role: 'admin',
+        expires_at: result.data.expires_at,
+        message: 'Login successful. Token stored securely in httpOnly cookie.',
+      },
+    };
   }
 
+  /**
+   * Validate admin session
+   * SECURITY FIX: Reads token from httpOnly cookie instead of Authorization header
+   */
   @Post('validate')
-  async validate(@Headers('authorization') authHeader: string) {
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      throw new UnauthorizedException('Missing admin token');
+  async validate(@Req() req: Request) {
+    // SECURITY FIX: Read token from httpOnly cookie
+    const token = req.cookies?.admin_token;
+
+    if (!token) {
+      throw new UnauthorizedException('Missing admin session. Please login.');
     }
 
-    const token = authHeader.replace('Bearer ', '').trim();
     return this.adminService.validateAdminSession(token);
+  }
+
+  /**
+   * Admin logout
+   * SECURITY FIX: Clears httpOnly cookie
+   */
+  @Post('logout')
+  async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    const token = req.cookies?.admin_token;
+
+    // Clear the httpOnly cookie
+    res.clearCookie('admin_token', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+      path: '/',
+    });
+
+    // If token exists, invalidate session in database
+    if (token) {
+      try {
+        await this.adminService.logout(token);
+      } catch (error) {
+        // Session might already be invalid, that's ok
+      }
+    }
+
+    return {
+      success: true,
+      message: 'Logged out successfully',
+    };
   }
 
   /**
