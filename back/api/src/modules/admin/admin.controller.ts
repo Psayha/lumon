@@ -16,6 +16,22 @@ import { Throttle } from '@nestjs/throttler';
 import { AdminService } from './admin.service';
 import { AdminGuard } from './admin.guard';
 import { AdminLoginDto, UpdateUserLimitsDto } from './dto/admin-login.dto';
+import {
+  CreateAbExperimentDto,
+  UpdateAbExperimentDto,
+  GetAbExperimentStatsDto,
+} from './dto/ab-experiment.dto';
+import {
+  DeleteUserDto,
+  BanUserDto,
+  ClearUserHistoryDto,
+  ResetUserLimitsDto,
+} from './dto/user-operations.dto';
+import {
+  RestoreBackupDto,
+  DeleteBackupDto,
+  RunHealthCheckDto,
+} from './dto/backup-operations.dto';
 import { CsrfTokenService } from '@/common/services/csrf-token.service';
 import { CleanupService } from '@/common/services/cleanup.service';
 
@@ -172,20 +188,20 @@ export class AdminController {
 
   @Post('user-delete')
   @UseGuards(AdminGuard)
-  async deleteUser(@Body() body: { user_id: string }) {
-    return this.adminService.deleteUser(body.user_id);
+  async deleteUser(@Body() dto: DeleteUserDto) {
+    return this.adminService.deleteUser(dto.user_id);
   }
 
   @Post('user-ban')
   @UseGuards(AdminGuard)
-  async banUser(@Body() body: { user_id: string; company_id: string }) {
-    return this.adminService.banUser(body.user_id, body.company_id);
+  async banUser(@Body() dto: BanUserDto) {
+    return this.adminService.banUser(dto.user_id, dto.company_id);
   }
 
   @Post('user-history-clear')
   @UseGuards(AdminGuard)
-  async clearUserHistory(@Body() body: { user_id: string }) {
-    return this.adminService.clearUserHistory(body.user_id);
+  async clearUserHistory(@Body() dto: ClearUserHistoryDto) {
+    return this.adminService.clearUserHistory(dto.user_id);
   }
 
   // ============ Company Management ============
@@ -219,8 +235,8 @@ export class AdminController {
 
   @Post('user-limits-reset')
   @UseGuards(AdminGuard)
-  async resetUserLimits(@Body() body: { user_id: string }) {
-    return this.adminService.resetUserLimits(body.user_id);
+  async resetUserLimits(@Body() dto: ResetUserLimitsDto) {
+    return this.adminService.resetUserLimits(dto.user_id);
   }
 
   // ============ Platform Stats ============
@@ -268,20 +284,20 @@ export class AdminController {
 
   @Post('ab-experiment-create')
   @UseGuards(AdminGuard)
-  async createAbExperiment(@Body() body: any) {
-    return this.adminService.createAbExperiment(body);
+  async createAbExperiment(@Body() dto: CreateAbExperimentDto) {
+    return this.adminService.createAbExperiment(dto);
   }
 
   @Post('ab-experiment-update')
   @UseGuards(AdminGuard)
-  async updateAbExperiment(@Body() body: any) {
-    return this.adminService.updateAbExperiment(body.experiment_id, body);
+  async updateAbExperiment(@Body() dto: UpdateAbExperimentDto) {
+    return this.adminService.updateAbExperiment(dto.experiment_id, dto);
   }
 
   @Post('ab-experiment-stats')
   @UseGuards(AdminGuard)
-  async getAbExperimentStats(@Body() body: { experiment_id: string }) {
-    return this.adminService.getAbExperimentStats(body.experiment_id);
+  async getAbExperimentStats(@Body() dto: GetAbExperimentStatsDto) {
+    return this.adminService.getAbExperimentStats(dto.experiment_id);
   }
 
   // ============ Document Management (Stubs - Not Yet Migrated) ============
@@ -322,14 +338,14 @@ export class AdminController {
 
   @Post('backup-restore')
   @UseGuards(AdminGuard)
-  async restoreBackup(@Body() body: { backup_id: string; file_path: string }) {
-    return this.adminService.restoreBackup(body.backup_id, body.file_path);
+  async restoreBackup(@Body() dto: RestoreBackupDto) {
+    return this.adminService.restoreBackup(dto.backup_id, dto.file_path);
   }
 
   @Post('backup-delete')
   @UseGuards(AdminGuard)
-  async deleteBackup(@Body() body: { backup_id: string }) {
-    return this.adminService.deleteBackup(body.backup_id);
+  async deleteBackup(@Body() dto: DeleteBackupDto) {
+    return this.adminService.deleteBackup(dto.backup_id);
   }
 
   @Get('health-check-list')
@@ -340,8 +356,8 @@ export class AdminController {
 
   @Post('health-check')
   @UseGuards(AdminGuard)
-  async runHealthCheck(@Body() body: { service?: string }) {
-    return this.adminService.runHealthCheck(body.service || 'all');
+  async runHealthCheck(@Body() dto: RunHealthCheckDto) {
+    return this.adminService.runHealthCheck(dto.service || 'all');
   }
 
   // ============ System Maintenance ============
