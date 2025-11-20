@@ -39,7 +39,7 @@ export const LogsTab: React.FC = () => {
       if (filterAction) params.append('action', filterAction);
 
       const endpoint = `${ADMIN_API_CONFIG.endpoints.adminLogsList}?${params}`;
-      const data = await adminApiRequest(endpoint);
+      const data = await adminApiRequest<LogEntry[]>(endpoint);
       if (data.success && data.data) {
         setLogs(data.data);
         setTotal(data.pagination?.total || 0);
@@ -47,8 +47,9 @@ export const LogsTab: React.FC = () => {
         const errorMsg = data.message || 'Ошибка сервера: не удалось загрузить логи';
         showToast('error', errorMsg);
       }
-    } catch (error: any) {
-      showToast('error', error?.message || 'Ошибка при загрузке логов');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Ошибка при загрузке логов';
+      showToast('error', errorMessage);
     } finally {
       setIsLoading(false);
     }

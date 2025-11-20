@@ -99,10 +99,10 @@ export const getAdminHeaders = (): Record<string, string> => {
 };
 
 // Helper function for making admin API requests
-export const adminApiRequest = async <T = any>(
+export const adminApiRequest = async <T = unknown>(
   endpoint: string,
   options: RequestInit = {}
-): Promise<{ success: boolean; data?: T; message?: string; pagination?: any }> => {
+): Promise<{ success: boolean; data?: T; message?: string; pagination?: { page: number; limit: number; total: number } }> => {
   const url = endpoint.startsWith('http') ? endpoint : getAdminApiUrl(endpoint);
   const headers = getAdminHeaders();
 
@@ -117,7 +117,7 @@ export const adminApiRequest = async <T = any>(
 
     const responseText = await response.text();
     const contentType = response.headers.get('content-type');
-    let data: any;
+    let data: unknown;
 
     if (!responseText || responseText.trim() === '') {
       if (!response.ok) {
@@ -135,7 +135,7 @@ export const adminApiRequest = async <T = any>(
     if (contentType && contentType.includes('application/json')) {
       try {
         data = JSON.parse(responseText);
-      } catch (_jsonError) {
+      } catch {
         return {
           success: false,
           message: `Ошибка сервера ${response.status}: Неверный формат ответа`,
@@ -150,24 +150,26 @@ export const adminApiRequest = async <T = any>(
       }
       return {
         success: true,
-        data: responseText as any,
+        data: responseText as T,
       };
     }
 
     if (!response.ok) {
-      const errorMessage = data?.message || data?.error || `Ошибка сервера: ${response.status} ${response.statusText || 'Internal Server Error'}`;
+      const parsedData = data as { message?: string; error?: string; data?: T };
+      const errorMessage = parsedData?.message || parsedData?.error || `Ошибка сервера: ${response.status} ${response.statusText || 'Internal Server Error'}`;
       return {
         success: false,
         message: errorMessage,
-        data: data?.data,
+        data: parsedData?.data,
       };
     }
 
-    return data;
-  } catch (error: any) {
+    return data as { success: boolean; data?: T; message?: string; pagination?: { page: number; limit: number; total: number } };
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Ошибка подключения к серверу';
     return {
       success: false,
-      message: error.message || 'Ошибка подключения к серверу',
+      message: errorMessage,
     };
   }
 };
