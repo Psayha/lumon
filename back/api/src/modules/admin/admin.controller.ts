@@ -14,10 +14,14 @@ import { Throttle } from '@nestjs/throttler';
 import { AdminService } from './admin.service';
 import { AdminGuard } from './admin.guard';
 import { AdminLoginDto, UpdateUserLimitsDto } from './dto/admin-login.dto';
+import { CsrfTokenService } from '@/common/services/csrf-token.service';
 
 @Controller('webhook/admin')
 export class AdminController {
-  constructor(private readonly adminService: AdminService) {}
+  constructor(
+    private readonly adminService: AdminService,
+    private readonly csrfTokenService: CsrfTokenService,
+  ) {}
 
   // ============ Auth Endpoints ============
 
@@ -54,6 +58,28 @@ export class AdminController {
 
     const token = authHeader.replace('Bearer ', '').trim();
     return this.adminService.validateAdminSession(token);
+  }
+
+  /**
+   * GET /webhook/admin/csrf-token
+   * Generate CSRF token for authenticated admin
+   * SECURITY: Used for protecting critical admin operations
+   */
+  @Get('csrf-token')
+  @UseGuards(AdminGuard)
+  async getCsrfToken(@Headers('authorization') authHeader: string) {
+    const token = authHeader.replace('Bearer ', '').trim();
+
+    // Generate CSRF token using admin session token as identifier
+    const csrfToken = this.csrfTokenService.generateToken(token);
+
+    return {
+      success: true,
+      data: {
+        csrf_token: csrfToken,
+        expires_in_minutes: 60,
+      },
+    };
   }
 
   // ============ User Management ============

@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
@@ -11,6 +11,7 @@ import { AdminModule } from './modules/admin/admin.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { UserLimitsModule } from './modules/user-limits/user-limits.module';
 import { HealthModule } from './modules/health/health.module';
+import { CsrfProtectionMiddleware } from './common/middleware/csrf-protection.middleware';
 
 @Module({
   imports: [
@@ -59,4 +60,9 @@ import { HealthModule } from './modules/health/health.module';
     },
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    // SECURITY: Apply CSRF protection to all routes
+    consumer.apply(CsrfProtectionMiddleware).forRoutes('*');
+  }
+}

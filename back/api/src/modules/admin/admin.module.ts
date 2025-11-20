@@ -20,6 +20,7 @@ import {
   LoginAttempt,
 } from '@entities';
 import { LockoutService } from '@/common/services/lockout.service';
+import { CsrfTokenService } from '@/common/services/csrf-token.service';
 
 @Module({
   imports: [
@@ -41,7 +42,7 @@ import { LockoutService } from '@/common/services/lockout.service';
     ]),
   ],
   controllers: [AdminController],
-  providers: [AdminService, AdminGuard, LockoutService],
+  providers: [AdminService, AdminGuard, LockoutService, CsrfTokenService],
   exports: [AdminService, AdminGuard, TypeOrmModule],
 })
 export class AdminModule {}

@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner, Table, Index } from 'typeorm';
+import { MigrationInterface, QueryRunner, Table, TableIndex } from 'typeorm';
 
 /**
  * SECURITY: Create login_attempts table to track failed login attempts
@@ -76,7 +76,7 @@ export class CreateLoginAttemptsTable1763620077000
     // Create indexes for efficient lookups
     await queryRunner.createIndex(
       'login_attempts',
-      new Index({
+      new TableIndex({
         name: 'IDX_login_attempts_identifier',
         columnNames: ['identifier'],
       }),
@@ -84,7 +84,7 @@ export class CreateLoginAttemptsTable1763620077000
 
     await queryRunner.createIndex(
       'login_attempts',
-      new Index({
+      new TableIndex({
         name: 'IDX_login_attempts_identifier_time',
         columnNames: ['identifier', 'attempt_time'],
       }),
@@ -92,7 +92,7 @@ export class CreateLoginAttemptsTable1763620077000
 
     await queryRunner.createIndex(
       'login_attempts',
-      new Index({
+      new TableIndex({
         name: 'IDX_login_attempts_locked',
         columnNames: ['is_locked', 'locked_until'],
       }),
