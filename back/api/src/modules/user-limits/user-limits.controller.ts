@@ -22,17 +22,17 @@ export class UserLimitsController {
   /**
    * POST /webhook/rate-limit-check
    * Replaces: rate-limit.check.json workflow
+   * SECURITY FIX: Removed max_requests and window_minutes from body
+   * These are now defined server-side in rate-limits.config.ts
    */
   @Post('rate-limit-check')
   async checkRateLimit(
     @CurrentUser() user: CurrentUserData,
-    @Body() body: { endpoint: string; max_requests?: number; window_minutes?: number },
+    @Body() body: { endpoint: string },
   ) {
     const result = await this.userLimitsService.checkRateLimit(
       user.id,
       body.endpoint,
-      body.max_requests,
-      body.window_minutes,
     );
 
     return {
