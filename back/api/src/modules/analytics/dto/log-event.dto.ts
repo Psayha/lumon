@@ -1,4 +1,5 @@
 import { IsString, IsNotEmpty, IsOptional, IsObject, MaxLength } from 'class-validator';
+import { ValidateJsonb } from '@/common/decorators/validate-jsonb.decorator';
 
 export class LogEventDto {
   @IsString()
@@ -18,5 +19,9 @@ export class LogEventDto {
 
   @IsObject()
   @IsOptional()
-  meta?: Record<string, any>; // TODO: Add size validation for metadata object
+  @ValidateJsonb({
+    maxDepth: 5, // Prevent deep nesting attacks
+    maxSize: 50 * 1024, // 50KB max - prevent DoS
+  })
+  meta?: Record<string, any>; // SECURITY FIX: JSONB validation applied
 }
