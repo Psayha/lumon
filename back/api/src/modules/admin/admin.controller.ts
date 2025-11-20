@@ -7,6 +7,7 @@ import {
   UseGuards,
   Headers,
   UnauthorizedException,
+  BadRequestException,
   Req,
   Res,
 } from '@nestjs/common';
@@ -155,8 +156,17 @@ export class AdminController {
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
-    const pageNum = page ? parseInt(page, 10) || undefined : undefined;
-    const limitNum = limit ? parseInt(limit, 10) || undefined : undefined;
+    // SECURITY FIX: Validate parsed numbers are positive
+    const pageNum = page ? parseInt(page, 10) : undefined;
+    const limitNum = limit ? parseInt(limit, 10) : undefined;
+
+    if (pageNum !== undefined && (isNaN(pageNum) || pageNum < 1)) {
+      throw new BadRequestException('Invalid page: must be a positive number');
+    }
+    if (limitNum !== undefined && (isNaN(limitNum) || limitNum < 1)) {
+      throw new BadRequestException('Invalid limit: must be a positive number');
+    }
+
     return this.adminService.listUsers(pageNum, limitNum);
   }
 
@@ -182,8 +192,11 @@ export class AdminController {
 
   @Get('companies-list')
   @UseGuards(AdminGuard)
-  async listCompanies() {
-    return this.adminService.listCompanies();
+  async listCompanies(
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ) {
+    return this.adminService.listCompanies(page, limit);
   }
 
   // ============ User Limits ============
@@ -228,8 +241,17 @@ export class AdminController {
     @Query('action') action?: string,
     @Query('user_id') userId?: string,
   ) {
-    const limitNum = limit ? parseInt(limit, 10) || undefined : undefined;
-    const offsetNum = offset ? parseInt(offset, 10) || undefined : undefined;
+    // SECURITY FIX: Validate parsed numbers are non-negative
+    const limitNum = limit ? parseInt(limit, 10) : undefined;
+    const offsetNum = offset ? parseInt(offset, 10) : undefined;
+
+    if (limitNum !== undefined && (isNaN(limitNum) || limitNum < 1)) {
+      throw new BadRequestException('Invalid limit: must be a positive number');
+    }
+    if (offsetNum !== undefined && (isNaN(offsetNum) || offsetNum < 0)) {
+      throw new BadRequestException('Invalid offset: must be a non-negative number');
+    }
+
     // Convert offset to page number
     const page = offsetNum && limitNum ? Math.floor(offsetNum / limitNum) + 1 : undefined;
 

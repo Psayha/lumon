@@ -276,9 +276,15 @@ export class AuthService {
     language_code: string;
     app_version: string;
   }) {
+    // SECURITY FIX: Validate telegram_id is a valid number
+    const telegramId = Number(data.telegram_id);
+    if (isNaN(telegramId) || !isFinite(telegramId)) {
+      throw new BadRequestException('Invalid telegram_id: must be a valid number');
+    }
+
     // Check if user exists
     let user = await this.userRepository.findOne({
-      where: { telegram_id: Number(data.telegram_id) },
+      where: { telegram_id: telegramId },
     });
 
     if (user) {
@@ -294,7 +300,7 @@ export class AuthService {
     } else {
       // Create new user
       user = await this.userRepository.save({
-        telegram_id: Number(data.telegram_id),
+        telegram_id: telegramId,
         first_name: data.first_name,
         last_name: data.last_name,
         username: data.username,

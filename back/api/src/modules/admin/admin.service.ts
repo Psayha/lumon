@@ -274,14 +274,26 @@ export class AdminService {
    * List all companies
    * Replaces: admin.companies-list.json
    */
-  async listCompanies() {
-    const companies = await this.companyRepository.find({
+  async listCompanies(page = 1, limit = 50) {
+    // SECURITY FIX: Add pagination to prevent DoS
+    const validatedPage = Math.max(1, Math.min(page || 1, 10000));
+    const validatedLimit = Math.max(1, Math.min(limit || 50, 100));
+
+    const [companies, total] = await this.companyRepository.findAndCount({
       order: { created_at: 'DESC' },
+      take: validatedLimit,
+      skip: (validatedPage - 1) * validatedLimit,
     });
 
     return {
       success: true,
       data: companies,
+      pagination: {
+        page: validatedPage,
+        limit: validatedLimit,
+        total,
+        totalPages: Math.ceil(total / validatedLimit),
+      },
     };
   }
 

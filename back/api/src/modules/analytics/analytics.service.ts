@@ -46,10 +46,13 @@ export class AnalyticsService {
    * Get analytics for user
    */
   async getUserAnalytics(userId: string, limit = 100) {
+    // SECURITY FIX: Validate limit parameter to prevent DoS
+    const validatedLimit = Math.max(1, Math.min(limit || 100, 200));
+
     const events = await this.auditRepository.find({
       where: { user_id: userId },
       order: { created_at: 'DESC' },
-      take: limit,
+      take: validatedLimit,
     });
 
     return {
@@ -61,13 +64,16 @@ export class AnalyticsService {
   /**
    * Get analytics summary
    */
-  async getAnalyticsSummary(userId?: string) {
+  async getAnalyticsSummary(userId?: string, limit = 500) {
     const where = userId ? { user_id: userId } : {};
+
+    // SECURITY FIX: Validate limit parameter instead of hardcoded 1000
+    const validatedLimit = Math.max(1, Math.min(limit || 500, 1000));
 
     const events = await this.auditRepository.find({
       where,
       order: { created_at: 'DESC' },
-      take: 1000,
+      take: validatedLimit,
     });
 
     // Group by action

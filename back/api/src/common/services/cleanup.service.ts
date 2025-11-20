@@ -101,7 +101,7 @@ export class CleanupService {
       cutoffTime.setDate(cutoffTime.getDate() - 7);
 
       const deleted = await this.rateLimitRepository.delete({
-        created_at: LessThan(cutoffTime),
+        window_start: LessThan(cutoffTime),
       });
 
       this.logger.log(
@@ -154,7 +154,7 @@ export class CleanupService {
       cutoffTime.setDate(cutoffTime.getDate() - retentionDays);
 
       const deleted = await this.auditEventRepository.delete({
-        timestamp: LessThan(cutoffTime),
+        created_at: LessThan(cutoffTime),
       });
 
       this.logger.log(
@@ -226,7 +226,7 @@ export class CleanupService {
         where: { expires_at: LessThan(now) },
       }),
       this.rateLimitRepository.count({
-        where: { created_at: LessThan(cutoffTime) },
+        where: { window_start: LessThan(cutoffTime) },
       }),
       this.loginAttemptRepository.count({
         where: {
@@ -235,7 +235,7 @@ export class CleanupService {
         },
       }),
       this.auditEventRepository.count({
-        where: { timestamp: LessThan(cutoffTime) },
+        where: { created_at: LessThan(cutoffTime) },
       }),
     ]);
 
