@@ -1,5 +1,6 @@
 import { useEffect, useRef, useCallback, useTransition } from "react";
 import { useState } from "react";
+import { toast } from "sonner";
 import {
     FileText,
     BarChart3,
@@ -383,9 +384,9 @@ export function AnimatedAIChat({
 
         // Проверяем поддержку Web Speech API
         const SpeechRecognitionConstructor = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-        
+
         if (!SpeechRecognitionConstructor) {
-            alert('Ваш браузер не поддерживает распознавание речи. Попробуйте использовать Chrome или Edge.');
+            toast.error('Ваш браузер не поддерживает распознавание речи. Попробуйте использовать Chrome или Edge.');
             return;
         }
 
@@ -437,9 +438,9 @@ export function AnimatedAIChat({
                 }
                 
                 if (event.error === 'not-allowed') {
-                    alert('Доступ к микрофону запрещен. Разрешите доступ к микрофону в настройках браузера.');
+                    toast.error('Доступ к микрофону запрещен. Разрешите доступ к микрофону в настройках браузера.');
                 } else if (event.error === 'no-speech') {
-                    alert('Речь не распознана. Попробуйте еще раз.');
+                    toast.warning('Речь не распознана. Попробуйте еще раз.');
                 }
             };
 
@@ -554,11 +555,11 @@ export function AnimatedAIChat({
                 }
             } else {
                 console.error('[AnimatedAIChat] Failed to delete chat:', result.error);
-                alert(`Ошибка удаления чата: ${result.error}`);
+                toast.error(`Ошибка удаления чата: ${result.error}`);
             }
         } catch (error) {
             console.error('[AnimatedAIChat] Error deleting chat:', error);
-            alert(`Ошибка удаления чата: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            toast.error(`Ошибка удаления чата: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
     };
 
