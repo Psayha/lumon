@@ -10,6 +10,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { AuthInitDto } from './dto/auth-init.dto';
 import { createHmac } from 'crypto';
 import { hashToken } from '@/common/utils/hash-token';
+import { safeJsonParse } from '@/common/utils/safe-json-parse';
 
 @Injectable()
 export class AuthService {
@@ -246,7 +247,9 @@ export class AuthService {
 
     let user: any;
     try {
-      user = JSON.parse(userStr);
+      // SECURITY FIX: Use safe JSON parse to prevent prototype pollution
+      // Regular JSON.parse can pollute Object.prototype with __proto__
+      user = safeJsonParse(userStr);
     } catch (parseError) {
       throw new Error(`Failed to parse user JSON: ${(parseError as Error).message}`);
     }
