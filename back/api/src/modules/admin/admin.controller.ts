@@ -7,64 +7,10 @@ import {
   UseGuards,
   Headers,
   UnauthorizedException,
-  Injectable,
-  CanActivate,
-  ExecutionContext,
 } from '@nestjs/common';
 import { AdminService } from './admin.service';
+import { AdminGuard } from './admin.guard';
 import { AdminLoginDto, UpdateUserLimitsDto } from './dto/admin-login.dto';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Session } from '@entities';
-
-// SECURITY FIX: Proper admin guard with database validation
-@Injectable()
-class AdminGuard implements CanActivate {
-  constructor(
-    @InjectRepository(Session)
-    private sessionRepository: Repository<Session>,
-  ) {}
-
-  async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context.switchToHttp().getRequest();
-    const authHeader = request.headers.authorization;
-
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      throw new UnauthorizedException('Missing admin token');
-    }
-
-    const token = authHeader.replace('Bearer ', '').trim();
-
-    // SECURITY FIX: Validate token in database
-    const session = await this.sessionRepository.findOne({
-      where: {
-        session_token: token,
-        is_active: true,
-      },
-    });
-
-    if (!session) {
-      throw new UnauthorizedException('Invalid admin token');
-    }
-
-    // Check if session expired
-    if (session.expires_at < new Date()) {
-      throw new UnauthorizedException('Admin session expired');
-    }
-
-    // Verify this is admin session (check user_id is null for admin sessions)
-    if (session.user_id !== null) {
-      throw new UnauthorizedException('Not an admin session');
-    }
-
-    // Update last activity
-    await this.sessionRepository.update(session.id, {
-      last_activity_at: new Date(),
-    });
-
-    return true;
-  }
-}
 
 @Controller('webhook/admin')
 export class AdminController {

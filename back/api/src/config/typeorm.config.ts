@@ -12,6 +12,8 @@ export const typeOrmConfig: DataSourceOptions = {
   password: process.env.DB_PASSWORD,
   database: process.env.DB_DATABASE || 'lumon',
   entities,
+  migrations: ['src/migrations/**/*.ts'],
+  migrationsRun: false, // Don't auto-run migrations, run them manually
   synchronize: false, // NEVER use synchronize in production!
   logging: process.env.NODE_ENV === 'development',
   // SECURITY FIX: Enable proper SSL verification

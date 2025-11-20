@@ -9,6 +9,7 @@ import {
   User,
   Company,
   Session,
+  AdminSession,
   UserLimit,
   AuditEvent,
   Chat,
@@ -40,6 +41,8 @@ export class AdminService {
     private companyRepository: Repository<Company>,
     @InjectRepository(Session)
     private sessionRepository: Repository<Session>,
+    @InjectRepository(AdminSession)
+    private adminSessionRepository: Repository<AdminSession>,
     @InjectRepository(UserLimit)
     private userLimitRepository: Repository<UserLimit>,
     @InjectRepository(AuditEvent)
@@ -70,17 +73,15 @@ export class AdminService {
       throw new UnauthorizedException('Invalid admin credentials');
     }
 
-    // SECURITY FIX: Store admin session in database
+    // SECURITY FIX: Store admin session in dedicated admin_sessions table
     const sessionToken = uuidv4();
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + 24); // 24 hours for admin
 
-    // Create admin session (user_id = null for admin sessions)
-    await this.sessionRepository.save({
+    // Create admin session in admin_sessions table
+    await this.adminSessionRepository.save({
       session_token: sessionToken,
-      user_id: null, // null indicates admin session
-      company_id: null,
-      role: null,
+      admin_username: username,
       expires_at: expiresAt,
       is_active: true,
     });
@@ -100,12 +101,11 @@ export class AdminService {
    * Replaces: admin.validate.json
    */
   async validateAdminSession(token: string) {
-    // SECURITY FIX: Validate admin session in database
-    const session = await this.sessionRepository.findOne({
+    // SECURITY FIX: Validate admin session in admin_sessions table
+    const session = await this.adminSessionRepository.findOne({
       where: {
         session_token: token,
         is_active: true,
-        user_id: null, // Admin sessions have null user_id
       },
     });
 
@@ -118,10 +118,16 @@ export class AdminService {
       throw new UnauthorizedException('Admin session expired');
     }
 
+    // Update last activity
+    await this.adminSessionRepository.update(session.id, {
+      last_activity_at: new Date(),
+    });
+
     return {
       success: true,
       data: {
         role: 'admin',
+        username: session.admin_username,
         expires_at: session.expires_at,
       },
     };

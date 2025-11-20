@@ -2,6 +2,7 @@
 export { User } from './user.entity';
 export { Company } from './company.entity';
 export { Session, UserRole } from './session.entity';
+export { AdminSession } from './admin-session.entity';
 export { UserCompany } from './user-company.entity';
 export { Chat } from './chat.entity';
 export { Message, MessageRole } from './message.entity';
@@ -19,6 +20,7 @@ export { Backup } from './backup.entity';
 import { User } from './user.entity';
 import { Company } from './company.entity';
 import { Session } from './session.entity';
+import { AdminSession } from './admin-session.entity';
 import { UserCompany } from './user-company.entity';
 import { Chat } from './chat.entity';
 import { Message } from './message.entity';
@@ -37,6 +39,7 @@ export const entities = [
   User,
   Company,
   Session,
+  AdminSession,
   UserCompany,
   Chat,
   Message,

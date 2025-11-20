@@ -2,10 +2,12 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AdminController } from './admin.controller';
 import { AdminService } from './admin.service';
+import { AdminGuard } from './admin.guard';
 import {
   User,
   Company,
   Session,
+  AdminSession,
   UserLimit,
   AuditEvent,
   Chat,
@@ -22,6 +24,7 @@ import {
       User,
       Company,
       Session,
+      AdminSession,
       UserLimit,
       AuditEvent,
       Chat,
@@ -33,7 +36,7 @@ import {
     ]),
   ],
   controllers: [AdminController],
-  providers: [AdminService],
-  exports: [AdminService, TypeOrmModule], // Export Session repository for AdminGuard
+  providers: [AdminService, AdminGuard],
+  exports: [AdminService, AdminGuard, TypeOrmModule],
 })
 export class AdminModule {}
