@@ -100,11 +100,11 @@ if (shouldLoadEruda) {
   import('eruda').then((module) => {
     const eruda = module.default;
     
-    // Инициализация с настройками
+    // Инициализация с настройками (без shadow DOM для совместимости с React)
     eruda.init({
       container: document.body,
-      tool: ['console', 'elements', 'network', 'resources', 'info', 'snippets', 'sources'],
-      useShadowDom: true,
+      tool: ['console', 'network', 'resources', 'info'], // Убрали elements и sources
+      useShadowDom: false, // Отключили shadow DOM для совместимости с React
       autoScale: true,
       defaults: {
         displaySize: 50,
@@ -123,6 +123,7 @@ if (shouldLoadEruda) {
     console.error('[Eruda] Failed to load:', err);
   });
 }
+
 
 
 // Telegram Web App: запрос fullscreen режима
