@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, useTransition } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { useState } from "react";
 import { toast } from "sonner";
 import {
@@ -16,6 +16,7 @@ import { InputArea } from "./InputArea";
 import { ChatHistory } from "./ChatHistory";
 import { useViewerGenerationLimit } from "../../hooks/useViewerGenerationLimit";
 import { getChatHistory, deleteChat, type Message as ApiMessage } from "../../utils/api";
+import { logger } from "../../lib/logger";
 
 function useAutoResizeTextarea({
     value,
@@ -101,22 +102,6 @@ export function AnimatedAIChat({
     onMessageSave,
     onChatIdChange
 }: AnimatedAIChatProps) {
-    // Логируем напрямую в window для гарантии
-    useEffect(() => {
-        if (typeof window !== 'undefined') {
-            (window as any).__ANIMATED_AI_CHAT_RENDERED__ = true;
-            (window as any).__ANIMATED_AI_CHAT_ON_MESSAGE_SAVE__ = !!onMessageSave;
-            console.log('[AnimatedAIChat] 🔵 COMPONENT RENDERED', { 
-                hasOnMessageSave: !!onMessageSave, 
-                chatId,
-                isListening: externalIsListening,
-                isRecognizing: externalIsRecognizing
-            });
-            console.warn('[AnimatedAIChat] ⚠️ COMPONENT RENDERED WARN');
-            console.error('[AnimatedAIChat] ❌ COMPONENT RENDERED ERROR');
-        }
-    }, [onMessageSave, chatId, externalIsListening, externalIsRecognizing]);
-    
     const [value, setValue] = useState("");
     const [messages, setMessages] = useState<Message[]>([]);
     const [isTyping, setIsTyping] = useState(false);
@@ -127,7 +112,7 @@ export function AnimatedAIChat({
     const [showCommandPalette, setShowCommandPalette] = useState(false);
     const [showChatHistory, setShowChatHistory] = useState(false);
     const [activeSuggestion] = useState(0);
-    const [, startTransition] = useTransition();
+    const currentChatIdRef = useRef<string | null>(null);
     
     // Лимит генераций для viewer
     const { canGenerate, incrementGeneration, isViewer } = useViewerGenerationLimit();
@@ -178,40 +163,43 @@ export function AnimatedAIChat({
     // Загрузка истории чата при изменении chatId
     useEffect(() => {
         const loadChatHistory = async () => {
-            // Загружаем историю только если есть chatId и он не null
+            // Инициализация чата
             if (!chatId) {
-                console.log('[AnimatedAIChat] No chatId, skipping history load');
+                // Если chatId не передан, мы не загружаем историю, а ждем первого сообщения
+                logger.log('[AnimatedAIChat] No chatId provided, waiting for first message');
+                setMessages([]);
                 return;
             }
 
-            // ВАЖНО: Не загружаем историю если уже есть сообщения
-            // Это происходит когда чат только что создан и user message уже в UI
-            // Загрузка истории очистит эти сообщения и создаст дубликат чата
-            if (messages.length > 0) {
-                console.log('[AnimatedAIChat] Messages already exist, skipping history load to prevent duplicate chat');
-                return;
+            // Если chatId изменился, сбрасываем состояние
+            if (chatId !== currentChatIdRef.current) {
+                logger.log('[AnimatedAIChat] ChatId changed:', { from: currentChatIdRef.current, to: chatId });
+                setMessages([]);
+                currentChatIdRef.current = chatId;
             }
-
-            console.log('[AnimatedAIChat] Loading chat history for chatId:', chatId);
 
             try {
+                logger.log('[AnimatedAIChat] Loading history for chat:', chatId);
                 const response = await getChatHistory(chatId);
-                if (response.success && response.data) {
-                    // Преобразуем формат сообщений из API в формат компонента
-                    const formattedMessages = response.data.map((msg: ApiMessage) => ({
+                
+                if (response.success && response.data && response.data.length > 0) {
+                    // Преобразуем историю в формат сообщений
+                    const formattedMessages: Message[] = response.data.map((msg: ApiMessage) => ({
                         id: msg.id || '',
                         text: msg.content,
                         isUser: msg.role === 'user',
                         timestamp: msg.created_at ? new Date(msg.created_at) : new Date()
                     }));
-
-                    console.log('[AnimatedAIChat] Loaded', formattedMessages.length, 'messages from history');
+                    
                     setMessages(formattedMessages);
+                    logger.log('[AnimatedAIChat] History loaded:', formattedMessages.length, 'messages');
                 } else {
-                    console.error('[AnimatedAIChat] Failed to load chat history:', response.error);
+                    setMessages([]);
+                    logger.log('[AnimatedAIChat] History is empty or failed to load');
                 }
             } catch (error) {
-                console.error('[AnimatedAIChat] Error loading chat history:', error);
+                logger.error('[AnimatedAIChat] Failed to load history:', error);
+                toast.error('Не удалось загрузить историю чата');
             }
         };
 
@@ -250,24 +238,12 @@ export function AnimatedAIChat({
     ];
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-        console.log('[AnimatedAIChat] 🔵 handleKeyDown', { 
-            key: e.key, 
-            shiftKey: e.shiftKey,
-            value: value?.substring(0, 50),
-            valueTrimmed: value?.trim(),
-            hasValue: !!value.trim()
-        });
-        
         if (e.key === "Escape") {
                 setShowCommandPalette(false);
         } else if (e.key === "Enter" && !e.shiftKey) {
-            console.log('[AnimatedAIChat] 🔵 Enter pressed (without Shift)');
             e.preventDefault();
             if (value.trim()) {
-                console.log('[AnimatedAIChat] 🔵 Calling handleSendMessage from handleKeyDown');
                 handleSendMessage();
-            } else {
-                console.log('[AnimatedAIChat] ⚠️ Enter pressed but value is empty');
             }
         }
     };
@@ -292,125 +268,113 @@ export function AnimatedAIChat({
                 return `Я получил ваше сообщение: "${message}". Как AI-помощник Lumon, я готов помочь с бизнес-задачами. Уточните, пожалуйста, что именно вас интересует?`;
             }
         } catch (error) {
-            console.error('Ошибка при обращении к AI:', error);
+            logger.error('Ошибка при обращении к AI:', error);
             return 'Извините, произошла ошибка при обработке вашего запроса. Попробуйте еще раз.';
         }
     };
 
     const handleSendMessage = async () => {
-        // Логируем напрямую в window для гарантии
-        if (typeof window !== 'undefined') {
-            (window as any).__HANDLE_SEND_MESSAGE_CALLED__ = true;
-        }
-        console.log('[AnimatedAIChat] 🔵 handleSendMessage CALLED', { 
-            value: value?.substring(0, 50), 
-            valueLength: value?.length,
-            valueTrimmed: value?.trim(),
-            chatId, 
-            hasOnMessageSave: !!onMessageSave,
-            isListening,
-            isRecognizing
-        });
-        console.warn('[AnimatedAIChat] ⚠️⚠️⚠️ handleSendMessage WARN');
-        console.error('[AnimatedAIChat] ❌❌❌ handleSendMessage ERROR');
-        
         if (isListening || isRecognizing) {
-            console.log('[AnimatedAIChat] ⚠️ Blocked: isListening or isRecognizing');
             return;
         }
         
         if (!value.trim()) {
-            console.log('[AnimatedAIChat] ⚠️ Blocked: empty value');
             return;
         }
         
-        console.log('[AnimatedAIChat] ✅ Proceeding with message send');
-        
         if (value.trim()) {
-            // Проверяем лимит генераций для viewer
-            if (isViewer && !canGenerate) {
-                const limitMessage: Message = {
+            try {
+                // Проверяем лимит генераций для viewer
+                if (isViewer && !canGenerate) {
+                    const limitMessage: Message = {
+                        id: Date.now().toString(),
+                        text: `❌ Вы достигли дневного лимита генераций (3 в сутки). Лимит обновится завтра. Для снятия ограничений подключите компанию.`,
+                        isUser: false,
+                        timestamp: new Date()
+                    };
+                    setMessages(prev => [...prev, limitMessage]);
+                    setValue("");
+                    setTimeout(() => {
+                        adjustHeight(true);
+                    }, 0);
+                    return;
+                }
+
+                const userMessage: Message = {
                     id: Date.now().toString(),
-                    text: `❌ Вы достигли дневного лимита генераций (3 в сутки). Лимит обновится завтра. Для снятия ограничений подключите компанию.`,
-                    isUser: false,
+                    text: value,
+                    isUser: true,
                     timestamp: new Date()
                 };
-                setMessages(prev => [...prev, limitMessage]);
+
+                setMessages(prev => [...prev, userMessage]);
                 setValue("");
+                setIsTyping(true);
+                onTypingChange?.(true);
+                
+                // Сбрасываем высоту textarea
                 setTimeout(() => {
                     adjustHeight(true);
                 }, 0);
-                return;
-            }
-            
-            const userMessage: Message = {
-                id: Date.now().toString(),
-                text: value.trim(),
-                isUser: true,
-                timestamp: new Date()
-            };
 
-            setMessages(prev => [...prev, userMessage]);
-            setValue("");
-            // Сбрасываем высоту после очистки значения
-            setTimeout(() => {
-                adjustHeight(true);
-            }, 0);
-
-            // Сохраняем пользовательское сообщение (создаст чат если нет)
-            if (onMessageSave) {
-                try {
-                    await onMessageSave(userMessage.text, 'user', userMessage.id);
-                } catch (error) {
-                    // Не блокируем отправку сообщения при ошибке сохранения
-                    console.error('[AnimatedAIChat] Error saving user message:', error);
+                // Сохраняем сообщение пользователя
+                if (onMessageSave && chatId) {
+                    try {
+                        await onMessageSave(userMessage.text, 'user', userMessage.id);
+                    } catch (error) {
+                        logger.error('[AnimatedAIChat] Failed to save user message:', error);
+                    }
                 }
-            }
 
-            startTransition(() => {
-                setIsTyping(true);
-                onTypingChange?.(true);
-            });
-
-            try {
-                // Увеличиваем счётчик генераций для viewer (перед вызовом AI)
-                if (!incrementGeneration()) {
-                    // Лимит превышен (хотя уже проверили выше, но для надёжности)
-                    return;
-                }
-                
-                const aiResponse = await sendToAI(userMessage.text);
+                // Отправляем запрос к AI
+                // TODO: Реализовать реальный запрос к AI через API
+                // Пока используем заглушку sendToAI
+                const responseText = await sendToAI(userMessage.text);
                 
                 const aiMessage: Message = {
                     id: (Date.now() + 1).toString(),
-                    text: aiResponse,
+                    text: responseText,
                     isUser: false,
                     timestamp: new Date()
                 };
 
                 setMessages(prev => [...prev, aiMessage]);
-                
-                // Сохраняем ответ AI в БД
-                if (onMessageSave) {
+
+                // Сохраняем ответ AI
+                if (onMessageSave && chatId) {
                     try {
-                        console.log('[AnimatedAIChat] Saving assistant message...');
-                        // Не проверяем chatId здесь, так как он может быть устаревшим в замыкании
-                        // Родительский компонент (VoiceAssistantPage) сам найдет актуальный chatId в store
                         await onMessageSave(aiMessage.text, 'assistant', aiMessage.id);
-                        console.log('[AnimatedAIChat] ✅ Assistant message saved successfully');
                     } catch (error) {
-                        console.error('[AnimatedAIChat] ❌ Error saving assistant message:', error);
-                        // Не показываем тост здесь, так как родитель уже может показать ошибку
+                        logger.error('[AnimatedAIChat] Failed to save AI message:', error);
                     }
                 }
+
+                // Увеличиваем счетчик генераций
+                incrementGeneration();
+
             } catch (error) {
-                console.error('Ошибка при получении ответа от AI:', error);
+                logger.error('Ошибка при получении ответа от AI:', error);
+                toast.error('Произошла ошибка при общении с AI');
             } finally {
                 setIsTyping(false);
                 onTypingChange?.(false);
             }
         }
     };
+
+    interface SpeechRecognitionEvent {
+        results: {
+            [index: number]: {
+                [index: number]: {
+                    transcript: string;
+                };
+            };
+        };
+    }
+
+    interface SpeechRecognitionErrorEvent {
+        error: string;
+    }
 
     interface SpeechRecognitionInstance {
         lang: string;
@@ -419,10 +383,10 @@ export function AnimatedAIChat({
         start(): void;
         stop(): void;
         abort(): void;
-        onstart: ((ev: Event) => any) | null;
-        onresult: ((ev: any) => any) | null;
-        onerror: ((ev: any) => any) | null;
-        onend: ((ev: Event) => any) | null;
+        onstart: ((ev: Event) => unknown) | null;
+        onresult: ((ev: SpeechRecognitionEvent) => unknown) | null;
+        onerror: ((ev: SpeechRecognitionErrorEvent) => unknown) | null;
+        onend: ((ev: Event) => unknown) | null;
     }
 
     const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
@@ -464,7 +428,7 @@ export function AnimatedAIChat({
                 }
             };
 
-            recognition.onresult = (event: any) => {
+            recognition.onresult = (event: SpeechRecognitionEvent) => {
                 const transcript = event.results[0][0].transcript;
                 
                 if (onRecognizingChange) {
@@ -481,8 +445,8 @@ export function AnimatedAIChat({
                 }, 500);
             };
 
-            recognition.onerror = (event: any) => {
-                console.error('Speech recognition error:', event.error);
+            recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+                logger.error('Speech recognition error:', event.error);
                 
                 if (onListeningChange) {
                     onListeningChange(false);
@@ -507,7 +471,7 @@ export function AnimatedAIChat({
             try {
                 recognition.start();
             } catch (error) {
-                console.error('Failed to start recognition:', error);
+                logger.error('Failed to start recognition:', error);
                 if (onListeningChange) {
                     onListeningChange(false);
                 }

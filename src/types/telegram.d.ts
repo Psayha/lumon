@@ -1,41 +1,141 @@
-// Минимальные типы Telegram WebApp с progressive enhancement
-export type TelegramWebApp = {
-  ready: () => void;
-  close: () => void;
-  BackButton: { show: () => void; hide: () => void; onClick: (cb: () => void) => void };
-  MainButton?: { show: () => void; hide: () => void; setText: (t: string) => void; onClick: (cb: () => void) => void; showProgress?: () => void; hideProgress?: () => void };
-  BottomButton?: { show: () => void; hide: () => void; setText: (t: string) => void; onClick: (cb: () => void) => void };
-  SecondaryButton?: { show: () => void; hide: () => void };
-  SettingsButton?: { show: () => void; hide: () => void };
-  HapticFeedback?: { impactOccurred: (s: 'light' | 'medium' | 'heavy') => void };
-  requestFullscreen?: () => void;
-  exitFullscreen?: () => void;
-  isFullscreen?: boolean;
-  addToHomeScreen?: () => Promise<void> | void;
-  shareMessage?: (payload: any) => Promise<void> | void;
-  downloadFile?: (payload: any) => Promise<void> | void;
-  readTextFromClipboard?: () => Promise<string>;
-  showScanQrPopup?: (payload?: any) => void;
-  closeScanQrPopup?: () => void;
-  requestWriteAccess?: () => Promise<any> | void;
-  requestContact?: () => Promise<any> | void;
-  hideKeyboard?: () => void;
-  enableVerticalSwipes?: () => void;
-  disableVerticalSwipes?: () => void;
-  LocationManager?: { requestLocation?: () => Promise<any> | void };
-  CloudStorage?: { setItem?: (k: string, v: string) => Promise<void> | void };
-  DeviceStorage?: { setItem?: (k: string, v: string) => Promise<void> | void };
-  SecureStorage?: { setItem?: (k: string, v: string) => Promise<void> | void };
-  onEvent?: (event: string, handler: (payload?: any) => void) => void;
-  initData?: string;
-  initDataUnsafe?: { user?: any; theme_params?: Record<string, any> };
-  colorScheme?: 'light' | 'dark';
-};
+export declare global {
+  interface TelegramThemeParams {
+    bg_color?: string;
+    text_color?: string;
+    hint_color?: string;
+    link_color?: string;
+    button_color?: string;
+    button_text_color?: string;
+    secondary_bg_color?: string;
+    header_bg_color?: string;
+    accent_text_color?: string;
+    section_bg_color?: string;
+    section_header_text_color?: string;
+    subtitle_text_color?: string;
+    destructive_text_color?: string;
+  }
 
-declare global {
-  interface Window { Telegram?: { WebApp?: TelegramWebApp } }
+  interface TelegramWebAppUser {
+    id: number;
+    is_bot?: boolean;
+    first_name: string;
+    last_name?: string;
+    username?: string;
+    language_code?: string;
+    is_premium?: boolean;
+    added_to_attachment_menu?: boolean;
+    allows_write_to_pm?: boolean;
+    photo_url?: string;
+  }
+
+  interface TelegramWebAppInitData {
+    query_id?: string;
+    user?: TelegramWebAppUser;
+    receiver?: TelegramWebAppUser;
+    chat?: unknown;
+    chat_type?: string;
+    chat_instance?: string;
+    start_param?: string;
+    can_send_after?: number;
+    auth_date: number;
+    hash: string;
+  }
+
+  interface BackButton {
+    isVisible: boolean;
+    show: () => void;
+    hide: () => void;
+    onClick: (callback: () => void) => void;
+    offClick: (callback: () => void) => void;
+  }
+
+  interface MainButton {
+    text: string;
+    color: string;
+    textColor: string;
+    isVisible: boolean;
+    isActive: boolean;
+    isProgressVisible: boolean;
+    setText: (text: string) => void;
+    onClick: (callback: () => void) => void;
+    offClick: (callback: () => void) => void;
+    show: () => void;
+    hide: () => void;
+    enable: () => void;
+    disable: () => void;
+    showProgress: (leaveActive: boolean) => void;
+    hideProgress: () => void;
+    setParams: (params: {
+      text?: string;
+      color?: string;
+      textColor?: string;
+      is_active?: boolean;
+      is_visible?: boolean;
+    }) => void;
+  }
+
+  interface HapticFeedback {
+    impactOccurred: (style: 'light' | 'medium' | 'heavy' | 'rigid' | 'soft') => void;
+    notificationOccurred: (type: 'error' | 'success' | 'warning') => void;
+    selectionChanged: () => void;
+  }
+
+  interface TelegramWebApp {
+    initData: string;
+    initDataUnsafe: TelegramWebAppInitData;
+    version: string;
+    platform: string;
+    colorScheme: 'light' | 'dark';
+    themeParams: TelegramThemeParams;
+    isExpanded: boolean;
+    viewportHeight: number;
+    viewportStableHeight: number;
+    headerColor: string;
+    backgroundColor: string;
+    isClosingConfirmationEnabled: boolean;
+    BackButton: BackButton;
+    MainButton: MainButton;
+    HapticFeedback: HapticFeedback;
+    onEvent: (eventType: string, eventHandler: () => void) => void;
+    offEvent: (eventType: string, eventHandler: () => void) => void;
+    sendData: (data: unknown) => void;
+    ready: () => void;
+    expand: () => void;
+    close: () => void;
+    requestFullscreen: () => void;
+    setHeaderColor: (color: string) => void;
+    setBackgroundColor: (color: string) => void;
+    setBottomBarColor: (color: string) => void;
+    enableClosingConfirmation: () => void;
+    disableClosingConfirmation: () => void;
+    showPopup: (params: unknown, callback?: (id?: string) => void) => void;
+    showAlert: (message: string, callback?: () => void) => void;
+    showConfirm: (message: string, callback?: (ok: boolean) => void) => void;
+    showScanQrPopup: (params: unknown, callback?: (text: string) => boolean) => void;
+    closeScanQrPopup: () => void;
+    readTextFromClipboard: (callback?: (text: string) => void) => void;
+    requestWriteAccess: (callback?: (allowed: boolean) => void) => void;
+    switchInlineQuery: (query: string, choose_chat_types?: string[]) => void;
+    openLink: (url: string, options?: { try_instant_view?: boolean }) => void;
+    openTelegramLink: (url: string) => void;
+    openInvoice: (url: string, callback?: (status: string) => void) => void;
+    safeAreaInset?: {
+      top: number;
+      bottom: number;
+      left: number;
+      right: number;
+    };
+    contentSafeAreaInset?: {
+      top: number;
+      bottom: number;
+      left: number;
+      right: number;
+    };
+  }
+
+  interface Window {
+    Telegram?: {
+      WebApp: TelegramWebApp;
+    };
+  }
 }
-
-export {};
-
-

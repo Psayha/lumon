@@ -3,18 +3,20 @@ import { motion } from 'framer-motion';
 import { Brain, Sparkles, Zap } from 'lucide-react';
 import { useTelegram } from '../hooks/useTelegram';
 
+import { logger } from '../lib/logger';
+
 interface ModernSplashScreenProps {
   children: React.ReactNode;
 }
 
 export const ModernSplashScreen: React.FC<ModernSplashScreenProps> = ({ children }) => {
-  console.log('[SplashScreen] Компонент ModernSplashScreen монтируется');
+  logger.log('[SplashScreen] Компонент ModernSplashScreen монтируется');
   const [isLoading, setIsLoading] = useState(true);
   const { tg, isReady } = useTelegram();
   const startTimeRef = useRef<number>(Date.now());
   const MIN_LOADING_TIME = 2000; // Минимум 2 секунды показа загрузочного экрана
   
-  console.log('[SplashScreen] useTelegram результат:', { hasTg: !!tg, isReady });
+  logger.log('[SplashScreen] useTelegram результат:', { hasTg: !!tg, isReady });
 
   // Отслеживаем готовность Telegram и скрываем экран загрузки
   // Загрузочный экран показывается минимум 2 секунды для сбора данных

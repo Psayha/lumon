@@ -3,20 +3,21 @@ import ReactDOM from 'react-dom/client'
 import { Toaster } from 'sonner'
 import App from './App.tsx'
 import './index.css'
+import { logger } from './lib/logger'
 
 // Инициализация темы: по умолчанию используем системную
 const initializeTheme = () => {
   // Telegram Mini App интеграция: если доступно, используем colorScheme
-  const tg = (window as any).Telegram?.WebApp;
+  const tg = window.Telegram?.WebApp;
   if (tg) {
     const applyFromTelegram = () => {
-      const params = tg.initDataUnsafe?.theme_params || tg.themeParams || {};
-      const bg = params.bg_color || '#ffffff';
-      const text = params.text_color || '#000000';
-      const hint = params.hint_color || '#e5e5e5';
-      const secondaryBg = params.secondary_bg_color || '#f8f9fa';
-      const button = params.button_color || '#2481cc';
-      const buttonText = params.button_text_color || '#ffffff';
+      const themeParams = tg.themeParams || {};
+      const bg = themeParams.bg_color || '#ffffff';
+      const text = themeParams.text_color || '#000000';
+      const hint = themeParams.hint_color || '#e5e5e5';
+      const secondaryBg = themeParams.secondary_bg_color || '#f8f9fa';
+      const button = themeParams.button_color || '#2481cc';
+      const buttonText = themeParams.button_text_color || '#ffffff';
       const root = document.documentElement;
       root.style.setProperty('--bg-primary', bg);
       root.style.setProperty('--bg-secondary', secondaryBg);
@@ -33,7 +34,7 @@ const initializeTheme = () => {
     applyFromTelegram();
     try {
       tg.onEvent?.('themeChanged', applyFromTelegram);
-    } catch (_) {
+    } catch {
       // Ignore if onEvent is not available
     }
   }
@@ -65,9 +66,9 @@ const initializeTheme = () => {
 // Инициализируем тему до рендера
 initializeTheme();
 
-console.log('[Main] Инициализация приложения, проверка Telegram SDK...');
-const tgCheck = (window as any)?.Telegram?.WebApp;
-console.log('[Main] Telegram SDK при загрузке:', { 
+logger.log('[Main] Инициализация приложения, проверка Telegram SDK...');
+const tgCheck = window.Telegram?.WebApp;
+logger.log('[Main] Telegram SDK при загрузке:', { 
   exists: !!tgCheck, 
   hasReady: typeof tgCheck?.ready === 'function',
   hasExpand: typeof tgCheck?.expand === 'function',
@@ -76,17 +77,17 @@ console.log('[Main] Telegram SDK при загрузке:', {
 });
 
 // Проверяем наличие Telegram SDK ПЕРЕД рендером React
-console.log('[Bootstrap] Проверка перед рендером React...');
+logger.log('[Bootstrap] Проверка перед рендером React...');
 const preRenderCheck = () => {
-  const tgPre = (window as any)?.Telegram?.WebApp;
+  const tgPre = window.Telegram?.WebApp;
   if (tgPre) {
-    console.log('[Bootstrap] ✅ Telegram SDK обнаружен ДО рендера React:', {
+    logger.log('[Bootstrap] ✅ Telegram SDK обнаружен ДО рендера React:', {
       version: tgPre.version,
       platform: tgPre.platform,
       hasInitData: !!tgPre.initData
     });
   } else {
-    console.warn('[Bootstrap] ⚠️ Telegram SDK НЕ обнаружен ДО рендера React');
+    logger.warn('[Bootstrap] ⚠️ Telegram SDK НЕ обнаружен ДО рендера React');
   }
 };
 preRenderCheck();
@@ -109,6 +110,7 @@ if (shouldLoadEruda) {
       defaults: {
         displaySize: 50,
         transparency: 0.9,
+        theme: 'Dracula',
       }
     });
     
@@ -118,22 +120,22 @@ if (shouldLoadEruda) {
     // Скрываем панель по умолчанию, показываем только кнопку
     eruda.hide();
     
-    console.log('[Eruda] Mobile DevTools initialized - button on right center');
+    logger.log('[Eruda] Initialized in production mode');
   }).catch((err) => {
-    console.error('[Eruda] Failed to load:', err);
+    logger.error('[Eruda] Failed to load:', err);
   });
 }
 
 
 
 // Telegram Web App: запрос fullscreen режима
-const tgForFullscreen = (window as any)?.Telegram?.WebApp;
+const tgForFullscreen = window.Telegram?.WebApp;
 if (tgForFullscreen && typeof tgForFullscreen.requestFullscreen === 'function') {
   try {
     tgForFullscreen.requestFullscreen();
-    console.log('[Telegram] Fullscreen mode requested');
+    logger.log('[Telegram] Fullscreen mode requested');
   } catch (error) {
-    console.warn('[Telegram] Failed to request fullscreen:', error);
+    logger.warn('[Telegram] Failed to request fullscreen:', error);
   }
 }
 

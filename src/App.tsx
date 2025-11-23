@@ -316,27 +316,29 @@ const App: React.FC = () => {
     // Применяем тему Telegram к CSS-переменным и классу dark
     useEffect(() => {
       if (!isReady || !tg) return;
-      const params = (tg as any).initDataUnsafe?.theme_params || (tg as any).themeParams || {};
-      const bg = params.bg_color || '#ffffff';
-      const text = params.text_color || '#000000';
-      const hint = params.hint_color || '#e5e5e5';
-      const secondaryBg = params.secondary_bg_color || '#f8f9fa';
-      const button = params.button_color || '#2481cc';
-      const buttonText = params.button_text_color || '#ffffff';
+      
+      const webApp = tg as unknown as TelegramWebApp;
+      const themeParams = webApp.themeParams || {};
+      const bg = themeParams.bg_color || '#ffffff';
+      const text = themeParams.text_color || '#000000';
+      const hint = themeParams.hint_color || '#e5e5e5';
+      const secondaryBg = themeParams.secondary_bg_color || '#f8f9fa';
+      const button = themeParams.button_color || '#2481cc';
+      const buttonText = themeParams.button_text_color || '#ffffff';
 
       try {
         // Эти методы могут быть не доступны в старых версиях API (например, 6.0)
-        if (tg.setHeaderColor) {
-          tg.setHeaderColor(bg);
+        if (webApp.setHeaderColor) {
+          webApp.setHeaderColor(bg);
         }
-        if (tg.setBackgroundColor) {
-          tg.setBackgroundColor(bg);
+        if (webApp.setBackgroundColor) {
+          webApp.setBackgroundColor(bg);
         }
         // Сентябрь 2024+: нижняя панель
-        if ((tg as any).setBottomBarColor) {
-          (tg as any).setBottomBarColor(bg);
+        if (webApp.setBottomBarColor) {
+          webApp.setBottomBarColor(bg);
         }
-      } catch (_error) {
+      } catch {
         // Тихая обработка - методы могут быть не поддерживаемы в старых версиях
         logger.debug('[Telegram] Некоторые методы UI не поддерживаются в текущей версии API');
       }
@@ -355,38 +357,40 @@ const App: React.FC = () => {
       root.style.setProperty('--tg-button-text', buttonText);
 
       // Переключаем dark-класс согласно Telegram colorScheme
-      const isDark = (tg as any).colorScheme === 'dark';
+      const isDark = webApp.colorScheme === 'dark';
       root.classList.toggle('dark', isDark);
       document.body.classList.toggle('dark', isDark);
     }, [isReady, tg]);
 
     // Подписка на изменения темы (WebApp.onEvent('themeChanged'))
     useEffect(() => {
-      if (!isReady || !tg || !(tg as any).onEvent) return;
+      if (!isReady || !tg || !tg.onEvent) return;
+      const webApp = tg as unknown as TelegramWebApp;
+      
       const onThemeChanged = () => {
         // Тригерим эффект применения темы, изменив зависимость через no-op
         // Здесь достаточно форснуть re-render сменой location.key, но проще напрямую запустить установку стилей
-        const params = (tg as any).initDataUnsafe?.theme_params || (tg as any).themeParams || {};
-        const bg = params.bg_color || '#ffffff';
-        const text = params.text_color || '#000000';
-        const hint = params.hint_color || '#e5e5e5';
-        const secondaryBg = params.secondary_bg_color || '#f8f9fa';
-        const button = params.button_color || '#2481cc';
-        const buttonText = params.button_text_color || '#ffffff';
+        const themeParams = webApp.themeParams || {};
+        const bg = themeParams.bg_color || '#ffffff';
+        const text = themeParams.text_color || '#000000';
+        const hint = themeParams.hint_color || '#e5e5e5';
+        const secondaryBg = themeParams.secondary_bg_color || '#f8f9fa';
+        const button = themeParams.button_color || '#2481cc';
+        const buttonText = themeParams.button_text_color || '#ffffff';
         try {
           // Эти методы могут быть не доступны в старых версиях API (например, 6.0)
-          if (tg.setHeaderColor) {
-            tg.setHeaderColor(bg);
+          if (webApp.setHeaderColor) {
+            webApp.setHeaderColor(bg);
           }
-          if (tg.setBackgroundColor) {
-            tg.setBackgroundColor(bg);
+          if (webApp.setBackgroundColor) {
+            webApp.setBackgroundColor(bg);
           }
-          if ((tg as any).setBottomBarColor) {
-            (tg as any).setBottomBarColor(bg);
+          if (webApp.setBottomBarColor) {
+            webApp.setBottomBarColor(bg);
           }
-        } catch (_error) {
+        } catch {
           // Тихая обработка - методы могут быть не поддерживаемы в старых версиях
-          console.debug('[Telegram] Некоторые методы UI не поддерживаются в текущей версии API');
+          logger.debug('[Telegram] Некоторые методы UI не поддерживаются в текущей версии API');
         }
         const root = document.documentElement;
         root.style.setProperty('--bg-primary', bg);
@@ -398,13 +402,13 @@ const App: React.FC = () => {
         root.style.setProperty('--gradient-to', bg);
         root.style.setProperty('--tg-button', button);
         root.style.setProperty('--tg-button-text', buttonText);
-        const isDark = (tg as any).colorScheme === 'dark';
+        const isDark = webApp.colorScheme === 'dark';
         root.classList.toggle('dark', isDark);
         document.body.classList.toggle('dark', isDark);
       };
-      (tg as any).onEvent('themeChanged', onThemeChanged);
+      webApp.onEvent('themeChanged', onThemeChanged);
       return () => {
-        (tg as any).offEvent?.('themeChanged', onThemeChanged);
+        webApp.offEvent?.('themeChanged', onThemeChanged);
       };
     }, [isReady, tg]);
 
@@ -414,7 +418,7 @@ const App: React.FC = () => {
 
       // Проверяем наличие BackButton (не поддерживается в версиях API < 6.1)
       if (!tg.BackButton) {
-        console.warn('[Telegram] BackButton не поддерживается в текущей версии API');
+        logger.warn('[Telegram] BackButton не поддерживается в текущей версии API');
         return;
       }
 
@@ -425,7 +429,7 @@ const App: React.FC = () => {
         try {
           tg.BackButton.hide();
         } catch (error) {
-          console.warn('[Telegram] Ошибка при скрытии BackButton:', error);
+          logger.warn('[Telegram] Ошибка при скрытии BackButton:', error);
         }
         return;
       }
@@ -445,15 +449,18 @@ const App: React.FC = () => {
           }
         });
       } catch (error) {
-        console.warn('[Telegram] Ошибка при работе с BackButton:', error);
+        logger.warn('[Telegram] Ошибка при работе с BackButton:', error);
       }
     }, [isReady, tg, location.pathname, navigate]);
 
     // Слушаем safe-area Telegram и маппим в CSS переменные
+    // Слушаем safe-area Telegram и маппим в CSS переменные
     useEffect(() => {
       if (!isReady || !tg) return;
+      const webApp = tg as unknown as TelegramWebApp;
+      
       const applySafeArea = () => {
-        const inset = (tg as any).safeAreaInset || (tg as any).contentSafeAreaInset;
+        const inset = webApp.safeAreaInset || webApp.contentSafeAreaInset;
         if (!inset) return;
         const root = document.documentElement;
         if (inset.top != null) root.style.setProperty('--safe-top', `${inset.top}px`);
@@ -462,11 +469,11 @@ const App: React.FC = () => {
         if (inset.left != null) root.style.setProperty('--safe-left', `${inset.left}px`);
       };
       applySafeArea();
-      (tg as any).onEvent?.('safeAreaChanged', applySafeArea);
-      (tg as any).onEvent?.('contentSafeAreaChanged', applySafeArea);
+      webApp.onEvent?.('safeAreaChanged', applySafeArea);
+      webApp.onEvent?.('contentSafeAreaChanged', applySafeArea);
       return () => {
-        (tg as any).offEvent?.('safeAreaChanged', applySafeArea);
-        (tg as any).offEvent?.('contentSafeAreaChanged', applySafeArea);
+        webApp.offEvent?.('safeAreaChanged', applySafeArea);
+        webApp.offEvent?.('contentSafeAreaChanged', applySafeArea);
       };
     }, [isReady, tg]);
 
