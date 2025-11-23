@@ -383,9 +383,21 @@ export function AnimatedAIChat({
                 
                 // Сохраняем ответ AI в БД
                 if (onMessageSave) {
-                    onMessageSave(aiMessage.text, 'assistant', aiMessage.id).catch(error => {
-                        console.error('[AnimatedAIChat] Error saving assistant message:', error);
-                    });
+                    try {
+                        // Проверяем что chatId существует перед сохранением
+                        if (!chatId) {
+                            console.error('[AnimatedAIChat] ❌ Cannot save assistant message: chatId is null');
+                            toast.error('Ошибка: чат не создан. Попробуйте обновить страницу.');
+                            return;
+                        }
+                        
+                        console.log('[AnimatedAIChat] Saving assistant message to chat:', chatId);
+                        await onMessageSave(aiMessage.text, 'assistant', aiMessage.id);
+                        console.log('[AnimatedAIChat] ✅ Assistant message saved successfully');
+                    } catch (error) {
+                        console.error('[AnimatedAIChat] ❌ Error saving assistant message:', error);
+                        toast.error('Не удалось сохранить ответ ИИ');
+                    }
                 }
             } catch (error) {
                 console.error('Ошибка при получении ответа от AI:', error);

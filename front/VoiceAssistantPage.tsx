@@ -113,6 +113,10 @@ const VoiceAssistantPage: React.FC = () => {
                     }
 
                     currentChatId = chatData.data.id;
+                    
+                    // Важно: обновляем chatId в store СРАЗУ после создания
+                    // чтобы AnimatedAIChat получил новый chatId ДО того как 
+                    // assistant message попытается сохраниться
                     setChatId(currentChatId);
                     
                     console.log('[VoiceAssistantPage] ✅ Chat created:', currentChatId);
