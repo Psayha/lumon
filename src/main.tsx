@@ -92,11 +92,34 @@ const preRenderCheck = () => {
 preRenderCheck();
 
 // Инициализация Eruda (мобильный DevTools)
-// Показываем только в development или если в localStorage установлен флаг
-if (import.meta.env.DEV || localStorage.getItem('eruda_enabled') === 'true') {
-  import('eruda').then((eruda) => {
-    eruda.default.init();
-    console.log('[Eruda] Mobile DevTools initialized');
+// Показываем в development или если в localStorage установлен флаг
+const shouldLoadEruda = import.meta.env.DEV || localStorage.getItem('eruda_enabled') === 'true';
+
+if (shouldLoadEruda) {
+  import('eruda').then((module) => {
+    const eruda = module.default;
+    
+    // Инициализация с настройками
+    eruda.init({
+      container: document.body,
+      tool: ['console', 'elements', 'network', 'resources', 'info', 'snippets', 'sources'],
+      useShadowDom: true,
+      autoScale: true,
+      defaults: {
+        displaySize: 50,
+        transparency: 0.9,
+      }
+    });
+    
+    // Настройка позиции кнопки вызова (справа по центру)
+    eruda.position({ x: window.innerWidth - 50, y: window.innerHeight / 2 });
+    
+    // Скрываем панель по умолчанию, показываем только кнопку
+    eruda.hide();
+    
+    console.log('[Eruda] Mobile DevTools initialized - button on right center');
+  }).catch((err) => {
+    console.error('[Eruda] Failed to load:', err);
   });
 }
 
@@ -110,6 +133,7 @@ if (tgForFullscreen && typeof tgForFullscreen.requestFullscreen === 'function') 
     console.warn('[Telegram] Failed to request fullscreen:', error);
   }
 }
+
 
 
 ReactDOM.createRoot(document.getElementById('root')!).render(

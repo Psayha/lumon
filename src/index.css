@@ -236,13 +236,27 @@ html {
   }
 }
 
-/* Eruda DevTools icon positioning - right center */
-.eruda-entry-btn {
+/* Eruda DevTools button positioning and styling */
+/* Кнопка вызова консоли - справа по центру */
+.eruda-entry-btn,
+#eruda .eruda-entry-btn,
+[class*="eruda"] .eruda-entry-btn {
   position: fixed !important;
   right: 8px !important;
   top: 50% !important;
   transform: translateY(-50%) !important;
   bottom: auto !important;
   left: auto !important;
-  z-index: 9999 !important;
+  z-index: 99999 !important;
+  width: 40px !important;
+  height: 40px !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: flex !important;
+  pointer-events: auto !important;
+}
+
+/* Убедимся что кнопка всегда видна */
+#eruda {
+  z-index: 99999 !important;
 }
