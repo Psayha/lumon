@@ -8,6 +8,7 @@ import { Repository } from 'typeorm';
 import {
   Chat,
   Message,
+  MessageRole,
   AuditEvent,
   IdempotencyKey,
 } from '@entities';
@@ -208,10 +209,10 @@ export class ChatService {
     });
 
     // Update chat title with first user message
-    if (dto.role === 'user' && (chat.title === 'New Chat' || chat.title === 'Новый чат' || !chat.title || chat.title === '')) {
+    if (dto.role === MessageRole.USER && (chat.title === 'New Chat' || chat.title === 'Новый чат' || !chat.title || chat.title === '')) {
       // Check if this is the first user message
       const userMessageCount = await this.messageRepository.count({
-        where: { chat_id: dto.chat_id, role: 'user' },
+        where: { chat_id: dto.chat_id, role: MessageRole.USER },
       });
 
       if (userMessageCount === 1) {
