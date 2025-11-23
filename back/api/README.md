@@ -47,19 +47,20 @@ curl https://n8n.psayha.ru/health
 
 Новый NestJS бэкенд vs старый n8n:
 
-| Характеристика | n8n Workflows | NestJS API | Улучшение |
-|---------------|---------------|------------|-----------|
-| **Производительность** | ~500 req/s | ~10,000 req/s | **20x** |
-| **Latency** | ~200ms | ~20ms | **10x** |
-| **Memory** | ~500MB | ~150MB | **3x меньше** |
-| **Type Safety** | ❌ | ✅ TypeScript | ✅ |
-| **Testability** | ❌ | ✅ Unit + E2E | ✅ |
-| **Maintainability** | 🟡 Low | 🟢 High | ✅ |
-| **Scalability** | 🟡 Limited | 🟢 Unlimited | ✅ |
+| Характеристика         | n8n Workflows | NestJS API    | Улучшение     |
+| ---------------------- | ------------- | ------------- | ------------- |
+| **Производительность** | ~500 req/s    | ~10,000 req/s | **20x**       |
+| **Latency**            | ~200ms        | ~20ms         | **10x**       |
+| **Memory**             | ~500MB        | ~150MB        | **3x меньше** |
+| **Type Safety**        | ❌            | ✅ TypeScript | ✅            |
+| **Testability**        | ❌            | ✅ Unit + E2E | ✅            |
+| **Maintainability**    | 🟡 Low        | 🟢 High       | ✅            |
+| **Scalability**        | 🟡 Limited    | 🟢 Unlimited  | ✅            |
 
 ## 🚀 Quick Start
 
 ### Prerequisites
+
 - Node.js 18+ (LTS)
 - PostgreSQL 14+ (you already have Supabase)
 - npm or yarn
@@ -117,6 +118,7 @@ The API will be available at `http://localhost:3000`
 The API uses your existing Supabase PostgreSQL database. **No migrations needed** - it works with the current schema!
 
 All tables are already created by your existing migrations:
+
 - users
 - sessions
 - chats
@@ -130,6 +132,7 @@ All tables are already created by your existing migrations:
 ## 🔄 Migration Path from n8n
 
 ### Option 1: Parallel Run (Recommended)
+
 1. Keep n8n running on port 5678
 2. Start NestJS API on port 3000
 3. Update frontend to point to port 3000 (change `VITE_API_URL`)
@@ -137,6 +140,7 @@ All tables are already created by your existing migrations:
 5. Once stable, shutdown n8n
 
 ### Option 2: Direct Switch
+
 1. Shutdown n8n
 2. Start NestJS API on port 3000
 3. Update nginx to proxy to port 3000 instead of 5678
@@ -155,6 +159,7 @@ The token is returned from `/webhook/auth-init-v2` endpoint.
 ## 📝 API Examples
 
 ### Initialize Auth (Telegram Login)
+
 ```bash
 curl -X POST http://localhost:3000/webhook/auth-init-v2 \
   -H "Content-Type: application/json" \
@@ -165,6 +170,7 @@ curl -X POST http://localhost:3000/webhook/auth-init-v2 \
 ```
 
 ### Create Chat
+
 ```bash
 curl -X POST http://localhost:3000/webhook/chat-create \
   -H "Authorization: Bearer <your-token>" \
@@ -173,6 +179,7 @@ curl -X POST http://localhost:3000/webhook/chat-create \
 ```
 
 ### Save Message (with Idempotency)
+
 ```bash
 curl -X POST http://localhost:3000/webhook/chat-save-message \
   -H "Authorization: Bearer <your-token>" \
@@ -231,13 +238,13 @@ npm run test:cov
 
 ## 📊 Performance Comparison
 
-| Metric | n8n Workflows | NestJS API | Improvement |
-|--------|---------------|------------|-------------|
-| Requests/sec | ~500 | ~10,000 | **20x** |
-| Latency (avg) | ~200ms | ~20ms | **10x faster** |
-| Memory usage | ~500MB | ~150MB | **3x less** |
-| Code maintainability | Low | High | ✅ |
-| Team scalability | Hard | Easy | ✅ |
+| Metric               | n8n Workflows | NestJS API | Improvement    |
+| -------------------- | ------------- | ---------- | -------------- |
+| Requests/sec         | ~500          | ~10,000    | **20x**        |
+| Latency (avg)        | ~200ms        | ~20ms      | **10x faster** |
+| Memory usage         | ~500MB        | ~150MB     | **3x less**    |
+| Code maintainability | Low           | High       | ✅             |
+| Team scalability     | Hard          | Easy       | ✅             |
 
 ## 🔜 Next Steps
 
@@ -258,15 +265,18 @@ npm run test:cov
 ## 🐛 Troubleshooting
 
 **Database connection error?**
+
 - Check `DB_HOST`, `DB_USERNAME`, `DB_PASSWORD` in `.env`
 - Ensure Supabase allows connections from your IP
 - Set `DB_SSL=true` for Supabase
 
 **Port already in use?**
+
 - Change `PORT` in `.env`
 - Or kill process: `kill -9 $(lsof -t -i:3000)`
 
 **Frontend returns 401 Unauthorized?**
+
 - Check session token is valid
 - Session expires after 7 days
 - Re-login via `/webhook/auth-init-v2`
@@ -291,6 +301,7 @@ sudo bash /home/user/lumon/back/api/health-check.sh
 ```
 
 Проверяет:
+
 - ✅ Systemd service status
 - ✅ Порты (3000, 5432)
 - ✅ Docker контейнеры
@@ -358,17 +369,20 @@ sudo bash /home/user/lumon/back/api/health-check.sh
 ## 🎯 Следующие шаги
 
 ### Immediate (Week 1)
+
 - [ ] Настроить мониторинг (Grafana/Prometheus)
 - [ ] Automated backups PostgreSQL
 - [ ] Error alerting (Telegram bot)
 
 ### Short-term (Month 1)
+
 - [ ] Redis кэширование
 - [ ] WebSocket для realtime чата
 - [ ] File upload support (S3/MinIO)
 - [ ] CI/CD pipeline (GitHub Actions)
 
 ### Long-term (Quarter 1)
+
 - [ ] GraphQL API
 - [ ] Kubernetes deployment
 - [ ] Microservices architecture
@@ -384,6 +398,7 @@ sudo bash /home/user/lumon/back/api/health-check.sh
 **Status:** ✅ Production
 
 **Tech Stack:**
+
 - NestJS 10.x
 - TypeScript 5.x
 - TypeORM 0.3.x
