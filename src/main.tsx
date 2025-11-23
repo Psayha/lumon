@@ -92,8 +92,9 @@ const preRenderCheck = () => {
 preRenderCheck();
 
 // Инициализация Eruda (мобильный DevTools)
-// Показываем в development или если в localStorage установлен флаг
-const shouldLoadEruda = import.meta.env.DEV || localStorage.getItem('eruda_enabled') === 'true';
+// ВРЕМЕННО: Включено для production во время разработки приложения
+// TODO: Отключить для production когда появятся реальные клиенты
+const shouldLoadEruda = true; // import.meta.env.DEV || localStorage.getItem('eruda_enabled') === 'true';
 
 if (shouldLoadEruda) {
   import('eruda').then((module) => {
@@ -122,6 +123,7 @@ if (shouldLoadEruda) {
     console.error('[Eruda] Failed to load:', err);
   });
 }
+
 
 // Telegram Web App: запрос fullscreen режима
 const tgForFullscreen = (window as any)?.Telegram?.WebApp;
