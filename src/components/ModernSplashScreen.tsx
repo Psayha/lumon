@@ -109,11 +109,12 @@ export const ModernSplashScreen: React.FC<ModernSplashScreenProps> = ({ children
         <div className="relative z-10 text-center max-w-md mx-auto px-6">
           {/* Логотип с современным дизайном */}
           <motion.div
-            className="relative mb-10"
-            initial={{ scale: 0.9, opacity: 0, y: 20 }}
-            animate={{ scale: 1, opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
-          >
+        className="relative z-10 flex flex-col items-center"
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 1.05 }}
+        transition={{ duration: 0.4, ease: "easeOut" }}
+      >
             <div className="w-28 h-28 mx-auto bg-white/90 dark:bg-slate-800/90 backdrop-blur-2xl rounded-3xl shadow-2xl border-2 border-white/30 dark:border-slate-700/50 flex items-center justify-center relative overflow-hidden">
               {/* Анимированный градиентный фон */}
               <motion.div
