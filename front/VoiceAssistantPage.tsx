@@ -131,11 +131,18 @@ const VoiceAssistantPage: React.FC = () => {
                     console.error('[VoiceAssistantPage] ❌ Error creating chat:', createError);
                     throw new Error('Failed to create chat. Please try again.');
                   }
+                } else if (!currentChatId && role === 'assistant') {
+                  // Для assistant message получаем chatId из store
+                  // потому что props могут быть устаревшими
+                  currentChatId = useChatStore.getState().chatId;
+                  console.log('[VoiceAssistantPage] 📥 Got chatId from store for assistant:', currentChatId);
                 }
 
                 // Проверяем что чат создан
                 if (!currentChatId) {
-                  throw new Error('Chat ID is required to save message');
+                  const errorMsg = `Chat ID is required to save ${role} message`;
+                  console.error('[VoiceAssistantPage] ❌', errorMsg);
+                  throw new Error(errorMsg);
                 }
 
                 // Сохраняем сообщение
