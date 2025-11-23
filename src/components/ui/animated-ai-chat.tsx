@@ -184,6 +184,14 @@ export function AnimatedAIChat({
                 return;
             }
 
+            // ВАЖНО: Не загружаем историю если уже есть сообщения
+            // Это происходит когда чат только что создан и user message уже в UI
+            // Загрузка истории очистит эти сообщения и создаст дубликат чата
+            if (messages.length > 0) {
+                console.log('[AnimatedAIChat] Messages already exist, skipping history load to prevent duplicate chat');
+                return;
+            }
+
             console.log('[AnimatedAIChat] Loading chat history for chatId:', chatId);
 
             try {
@@ -208,7 +216,8 @@ export function AnimatedAIChat({
         };
 
         loadChatHistory();
-    }, [chatId]);
+    }, [chatId]); // Убрали messages из dependencies чтобы избежать бесконечного цикла
+
 
     const isListening = externalIsListening ?? false;
     const isRecognizing = externalIsRecognizing ?? false;
