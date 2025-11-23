@@ -393,19 +393,14 @@ export function AnimatedAIChat({
                 // Сохраняем ответ AI в БД
                 if (onMessageSave) {
                     try {
-                        // Проверяем что chatId существует перед сохранением
-                        if (!chatId) {
-                            console.error('[AnimatedAIChat] ❌ Cannot save assistant message: chatId is null');
-                            toast.error('Ошибка: чат не создан. Попробуйте обновить страницу.');
-                            return;
-                        }
-                        
-                        console.log('[AnimatedAIChat] Saving assistant message to chat:', chatId);
+                        console.log('[AnimatedAIChat] Saving assistant message...');
+                        // Не проверяем chatId здесь, так как он может быть устаревшим в замыкании
+                        // Родительский компонент (VoiceAssistantPage) сам найдет актуальный chatId в store
                         await onMessageSave(aiMessage.text, 'assistant', aiMessage.id);
                         console.log('[AnimatedAIChat] ✅ Assistant message saved successfully');
                     } catch (error) {
                         console.error('[AnimatedAIChat] ❌ Error saving assistant message:', error);
-                        toast.error('Не удалось сохранить ответ ИИ');
+                        // Не показываем тост здесь, так как родитель уже может показать ошибку
                     }
                 }
             } catch (error) {
