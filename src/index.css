@@ -27,8 +27,16 @@
 body {
   background-color: var(--bg-primary);
   color: var(--text-primary);
-  transition: background-color 0.3s ease, color 0.3s ease;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
+  font-family:
+    'Inter',
+    -apple-system,
+    BlinkMacSystemFont,
+    'SF Pro Text',
+    system-ui,
+    sans-serif;
   font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -39,12 +47,21 @@ body {
 
 /* Плавные переходы для всех элементов */
 * {
-  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease,
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
 }
 
 /* Градиентный фон для страниц */
 .gradient-bg {
-  background: linear-gradient(135deg, var(--gradient-from) 0%, var(--gradient-via) 50%, var(--gradient-to) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--gradient-from) 0%,
+    var(--gradient-via) 50%,
+    var(--gradient-to) 100%
+  );
 }
 
 /* Скрытие скроллбара */
@@ -118,10 +135,18 @@ html {
   padding-left: var(--safe-left);
 }
 
-.pt-safe { padding-top: var(--safe-top); }
-.pr-safe { padding-right: var(--safe-right); }
-.pb-safe { padding-bottom: var(--safe-bottom); }
-.pl-safe { padding-left: var(--safe-left); }
+.pt-safe {
+  padding-top: var(--safe-top);
+}
+.pr-safe {
+  padding-right: var(--safe-right);
+}
+.pb-safe {
+  padding-bottom: var(--safe-bottom);
+}
+.pl-safe {
+  padding-left: var(--safe-left);
+}
 
 /* Анимации для SplashScreen */
 @keyframes fadeIn {
@@ -145,7 +170,8 @@ html {
 
 /* Точная пульсация для логотипа */
 @keyframes precisePulse {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
     opacity: 1;
   }
@@ -199,7 +225,24 @@ html {
 
 /* Tailwind utility classes for animation delays */
 @layer utilities {
-  .animate-delay-0 { animation-delay: 0s; }
-  .animate-delay-200 { animation-delay: 0.2s; }
-  .animate-delay-400 { animation-delay: 0.4s; }
+  .animate-delay-0 {
+    animation-delay: 0s;
+  }
+  .animate-delay-200 {
+    animation-delay: 0.2s;
+  }
+  .animate-delay-400 {
+    animation-delay: 0.4s;
+  }
+}
+
+/* Eruda DevTools icon positioning - right center */
+.eruda-entry-btn {
+  position: fixed !important;
+  right: 8px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  bottom: auto !important;
+  left: auto !important;
+  z-index: 9999 !important;
 }
