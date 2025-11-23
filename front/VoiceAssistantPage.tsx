@@ -19,51 +19,6 @@ const VoiceAssistantPage: React.FC = () => {
   // Use Zustand store for chat state
   const chatId = useChatStore((state) => state.chatId);
   const setChatId = useChatStore((state) => state.setChatId);
-  const isCreatingChat = useChatStore((state) => state.isCreatingChat);
-  const setChatCreating = useChatStore((state) => state.setChatCreating);
-  const setChatCreated = useChatStore((state) => state.setChatCreated);
-  const setChatCreationError = useChatStore((state) => state.setChatCreationError);
-
-  // Функция создания чата
-  async function createChatDirect(title: string) {
-    const token = localStorage.getItem('session_token');
-    if (!token) {
-      throw new Error('No session token in localStorage');
-    }
-
-    const url = getApiUrl(API_CONFIG.endpoints.chatCreate);
-
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({
-        title: title,
-        session_token: token
-      })
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('[createChatDirect] Error:', { 
-        status: response.status, 
-        errorText 
-      });
-      throw new Error(`HTTP ${response.status}: ${errorText}`);
-    }
-
-    const data = await response.json();
-    console.log('[createChatDirect] Success:', data);
-    
-    if (!data.success || !data.data?.id) {
-      throw new Error(data.message || 'Invalid response format');
-    }
-    
-    return data;
-  }
 
   // Фиксируем страницу - предотвращаем скролл body
   useEffect(() => {
@@ -76,55 +31,9 @@ const VoiceAssistantPage: React.FC = () => {
     };
   }, []);
 
-  // Создаем чат при открытии страницы
-  useEffect(() => {
-    const initializeChat = async () => {
-      // Если уже есть chatId, ничего не делаем
-      if (chatId) {
-        console.log('[VoiceAssistantPage] Chat already exists:', chatId);
-        return;
-      }
-
-      // Если чат уже создается, не создаем повторно
-      if (isCreatingChat) {
-        console.log('[VoiceAssistantPage] Chat is already being created');
-        return;
-      }
-
-      const token = localStorage.getItem('session_token');
-      if (!token) {
-        console.error('[VoiceAssistantPage] No session token, skipping chat creation');
-        return;
-      }
-
-      console.log('[VoiceAssistantPage] Initializing new chat on page load...');
-      setChatCreating();
-
-      try {
-        const chatResponse = await createChatDirect('New Chat');
-
-        if (chatResponse.success && chatResponse.data?.id) {
-          const newChatId = chatResponse.data.id;
-          console.log('[VoiceAssistantPage] ✅ Chat created on init:', newChatId);
-          setChatCreated(newChatId);
-
-          await trackEvent({
-            action: 'chat_created',
-            resource: 'chat',
-            resource_id: newChatId,
-            meta: { source: 'voice_assistant', trigger: 'page_load' },
-          });
-        } else {
-          throw new Error('Failed to create chat');
-        }
-      } catch (error) {
-        console.error('[VoiceAssistantPage] ❌ Error creating chat on init:', error);
-        setChatCreationError(error instanceof Error ? error.message : 'Unknown error');
-      }
-    };
-
-    initializeChat();
-  }, []); // Запускаем только один раз при монтировании
+  // REMOVED: Auto-create chat on page load
+  // Chat will be created automatically on first user message
+  // This matches ChatGPT/Claude behavior
 
   return (
     <>
@@ -171,27 +80,58 @@ const VoiceAssistantPage: React.FC = () => {
                   throw new Error('Session token is required. Please log in again.');
                 }
 
-                // Ждем создания чата, если он еще не создан
+                // Создаем чат при первом сообщении (если еще не создан)
                 let currentChatId = chatId;
-                if (!currentChatId) {
-                  console.log('[VoiceAssistantPage] ⏳ Waiting for chat to be created...');
+                if (!currentChatId && role === 'user') {
+                  console.log('[VoiceAssistantPage] 🆕 Creating new chat on first message...');
+                  
+                  try {
+                    // Используем первые 100 символов сообщения как название чата
+                    const chatTitle = message.substring(0, 100);
+                    
+                    const response = await fetch(getApiUrl(API_CONFIG.endpoints.chatCreate), {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                      },
+                      body: JSON.stringify({
+                        title: chatTitle,
+                        session_token: token
+                      })
+                    });
 
-                  const maxWaitTime = 10000; // 10 seconds max
-                  const startTime = Date.now();
-
-                  while (Date.now() - startTime < maxWaitTime) {
-                    await new Promise(resolve => setTimeout(resolve, 100));
-                    currentChatId = useChatStore.getState().chatId;
-
-                    if (currentChatId) {
-                      console.log('[VoiceAssistantPage] ✅ Chat is ready:', currentChatId);
-                      break;
+                    if (!response.ok) {
+                      throw new Error(`Failed to create chat: ${response.status}`);
                     }
-                  }
 
-                  if (!currentChatId) {
-                    throw new Error('Chat creation timeout');
+                    const chatData = await response.json();
+                    
+                    if (!chatData.success || !chatData.data?.id) {
+                      throw new Error('Invalid chat creation response');
+                    }
+
+                    currentChatId = chatData.data.id;
+                    setChatId(currentChatId);
+                    
+                    console.log('[VoiceAssistantPage] ✅ Chat created:', currentChatId);
+
+                    await trackEvent({
+                      action: 'chat_created',
+                      resource: 'chat',
+                      resource_id: currentChatId,
+                      meta: { source: 'voice_assistant', trigger: 'first_message' },
+                    });
+                  } catch (createError) {
+                    console.error('[VoiceAssistantPage] ❌ Error creating chat:', createError);
+                    throw new Error('Failed to create chat. Please try again.');
                   }
+                }
+
+                // Проверяем что чат создан
+                if (!currentChatId) {
+                  throw new Error('Chat ID is required to save message');
                 }
 
                 // Сохраняем сообщение

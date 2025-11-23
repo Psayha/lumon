@@ -139,6 +139,58 @@ export class ChatService {
   }
 
   /**
+   * Rename chat
+   * 
+   * SECURITY: Proper access control
+   * - Users can only rename their own chats
+   * - Owners can rename any company chat
+   */
+  async renameChat(chatId: string, newTitle: string, user: CurrentUserData) {
+    // Check access
+    const chat = await this.chatRepository.findOne({
+      where: { id: chatId },
+    });
+
+    if (!chat) {
+      throw new NotFoundException('Chat not found');
+    }
+
+    // Check ownership based on role
+    let hasAccess = false;
+
+    if (chat.user_id === user.id) {
+      // User owns the chat - always allowed
+      hasAccess = true;
+    } else if (
+      user.role === 'owner' &&
+      user.company_id &&
+      chat.company_id === user.company_id
+    ) {
+      // Owner can rename any company chat
+      hasAccess = true;
+    }
+
+    if (!hasAccess) {
+      throw new ForbiddenException('Access denied');
+    }
+
+    // Update chat title
+    await this.chatRepository.update(
+      { id: chatId },
+      { title: newTitle },
+    );
+
+    return {
+      success: true,
+      message: 'Chat renamed successfully',
+      data: {
+        id: chatId,
+        title: newTitle,
+      },
+    };
+  }
+
+  /**
    * Save message with idempotency support
    * Replaces: save-message.json workflow (the most complex one!)
    */

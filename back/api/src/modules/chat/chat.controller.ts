@@ -10,6 +10,7 @@ import {
 import { ChatService } from './chat.service';
 import { CreateChatDto } from './dto/create-chat.dto';
 import { SaveMessageDto } from './dto/save-message.dto';
+import { RenameChatDto } from './dto/rename-chat.dto';
 import { AuthGuard } from '@/common/guards/auth.guard';
 import {
   CurrentUser,
@@ -52,6 +53,18 @@ export class ChatController {
     @CurrentUser() user: CurrentUserData,
   ) {
     return this.chatService.deleteChat(chatId, user);
+  }
+
+  /**
+   * POST /webhook/chat-rename
+   * Rename a chat
+   */
+  @Post('chat-rename')
+  async renameChat(
+    @Body() dto: RenameChatDto,
+    @CurrentUser() user: CurrentUserData,
+  ) {
+    return this.chatService.renameChat(dto.chat_id, dto.title, user);
   }
 
   /**
