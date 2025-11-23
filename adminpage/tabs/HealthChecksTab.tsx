@@ -52,8 +52,11 @@ export const HealthChecksTab: React.FC = () => {
         if (data.data.system_status) {
           setSystemStatus(data.data.system_status);
         }
-        if (data.data.health_checks) {
+        if (Array.isArray(data.data.health_checks)) {
           setHealthChecks(data.data.health_checks);
+        } else if (data.data.health_checks) {
+             console.error('Expected array for health_checks but got:', data.data.health_checks);
+             setHealthChecks([]);
         }
       } else {
         showToast('error', data.message || 'Не удалось загрузить health checks');

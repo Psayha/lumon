@@ -54,11 +54,13 @@ export const UsersTab: React.FC = () => {
 
       const endpoint = `${ADMIN_API_CONFIG.endpoints.adminUsersList}?${params}`;
       const data = await adminApiRequest<User[]>(endpoint);
-      if (data.success && data.data) {
+      if (data.success && Array.isArray(data.data)) {
         setUsers(data.data);
       } else {
         const errorMsg = data.message || 'Ошибка сервера: не удалось загрузить пользователей';
+        console.error('Expected array but got:', data.data);
         showToast('error', errorMsg);
+        setUsers([]);
       }
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Ошибка при загрузке пользователей';
@@ -178,7 +180,7 @@ export const UsersTab: React.FC = () => {
     }
   };
 
-  const filteredUsers = users.filter((user) => {
+  const filteredUsers = (Array.isArray(users) ? users : []).filter((user) => {
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
     return (

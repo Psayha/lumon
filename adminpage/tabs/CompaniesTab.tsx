@@ -29,12 +29,14 @@ export const CompaniesTab: React.FC = () => {
     setError(null);
     try {
       const data = await adminApiRequest<Company[]>(ADMIN_API_CONFIG.endpoints.adminCompaniesList);
-      if (data.success && data.data) {
+      if (data.success && Array.isArray(data.data)) {
         setCompanies(data.data);
       } else {
-        const errorMsg = data.message || 'Ошибка сервера: не удалось загрузить компании';
+        console.error('Expected array but got:', data.data);
+        const errorMsg = data.message || 'Ошибка сервера: неверный формат данных';
         setError(errorMsg);
         showToast('error', errorMsg);
+        setCompanies([]);
       }
     } catch (error: any) {
       const errorMsg = error?.message || 'Ошибка при загрузке компаний';
@@ -49,7 +51,7 @@ export const CompaniesTab: React.FC = () => {
     loadCompanies();
   }, []);
 
-  const filteredCompanies = companies.filter((company) =>
+  const filteredCompanies = (Array.isArray(companies) ? companies : []).filter((company) =>
     company.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 

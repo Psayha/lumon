@@ -30,11 +30,13 @@ export const ABTestingTab: React.FC = () => {
     setIsLoading(true);
     try {
       const data = await adminApiRequest<Experiment[]>(ADMIN_API_CONFIG.endpoints.adminAbExperimentsList);
-      if (data.success && data.data) {
+      if (data.success && Array.isArray(data.data)) {
         setExperiments(data.data);
       } else {
         const errorMsg = data.message || 'Ошибка сервера: не удалось загрузить эксперименты';
+        console.error('Expected array but got:', data.data);
         showToast('error', errorMsg);
+        setExperiments([]);
       }
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Ошибка при загрузке экспериментов';

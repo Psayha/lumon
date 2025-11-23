@@ -40,12 +40,14 @@ export const LogsTab: React.FC = () => {
 
       const endpoint = `${ADMIN_API_CONFIG.endpoints.adminLogsList}?${params}`;
       const data = await adminApiRequest<LogEntry[]>(endpoint);
-      if (data.success && data.data) {
+      if (data.success && Array.isArray(data.data)) {
         setLogs(data.data);
         setTotal(data.pagination?.total || 0);
       } else {
         const errorMsg = data.message || 'Ошибка сервера: не удалось загрузить логи';
+        console.error('Expected array but got:', data.data);
         showToast('error', errorMsg);
+        setLogs([]);
       }
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Ошибка при загрузке логов';
@@ -59,7 +61,7 @@ export const LogsTab: React.FC = () => {
     loadLogs();
   }, [currentPage, filterAction]);
 
-  const filteredLogs = logs.filter((log) => {
+  const filteredLogs = (Array.isArray(logs) ? logs : []).filter((log) => {
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
     return (

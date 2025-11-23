@@ -22,11 +22,13 @@ export const BackupsTab: React.FC = () => {
     setIsLoading(true);
     try {
       const data = await adminApiRequest<Backup[]>(ADMIN_API_CONFIG.endpoints.backupList);
-      if (data.success && data.data) {
+      if (data.success && Array.isArray(data.data)) {
         setBackups(data.data);
       } else {
         const errorMsg = data.message || 'Не удалось загрузить бэкапы';
+        console.error('Expected array but got:', data.data);
         showToast('error', errorMsg);
+        setBackups([]);
       }
     } catch (error: any) {
       showToast('error', error?.message || 'Ошибка при загрузке бэкапов');
