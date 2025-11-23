@@ -91,6 +91,27 @@ const preRenderCheck = () => {
 };
 preRenderCheck();
 
+// Инициализация Eruda (мобильный DevTools)
+// Показываем только в development или если в localStorage установлен флаг
+if (import.meta.env.DEV || localStorage.getItem('eruda_enabled') === 'true') {
+  import('eruda').then((eruda) => {
+    eruda.default.init();
+    console.log('[Eruda] Mobile DevTools initialized');
+  });
+}
+
+// Telegram Web App: запрос fullscreen режима
+const tgForFullscreen = (window as any)?.Telegram?.WebApp;
+if (tgForFullscreen && typeof tgForFullscreen.requestFullscreen === 'function') {
+  try {
+    tgForFullscreen.requestFullscreen();
+    console.log('[Telegram] Fullscreen mode requested');
+  } catch (error) {
+    console.warn('[Telegram] Failed to request fullscreen:', error);
+  }
+}
+
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <App />

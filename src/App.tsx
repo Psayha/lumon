@@ -8,7 +8,6 @@ import { AuthGuard } from './components/AuthGuard';
 import { PageGuard } from './components/PageGuard';
 import { useTelegram, isTelegramWebApp } from './hooks/useTelegram';
 import { logger } from './lib/logger';
-import DebugLogger from './components/DebugLogger';
 
 // Lazy loading компонентов для лучшей производительности
 const MenuPage = lazy(() => import('../front/MenuPage'));
@@ -17,7 +16,6 @@ const CRMPage = lazy(() => import('../front/CRMPage'));
 const AnalyticsPage = lazy(() => import('../front/AnalyticsPage'));
 const KnowledgeBasePage = lazy(() => import('../front/KnowledgeBasePage'));
 const PricingPage = lazy(() => import('../front/PricingPage'));
-const ApiTestPage = lazy(() => import('../front/ApiTestPage'));
 
 // Fallback компонент для Suspense
 const LoadingFallback: React.FC = () => (
@@ -35,7 +33,7 @@ const LoadingFallback: React.FC = () => (
         transition={{
           duration: 6,
           repeat: Infinity,
-          ease: "easeInOut"
+          ease: 'easeInOut',
         }}
       />
       <motion.div
@@ -49,8 +47,8 @@ const LoadingFallback: React.FC = () => (
         transition={{
           duration: 7,
           repeat: Infinity,
-          ease: "easeInOut",
-          delay: 1.5
+          ease: 'easeInOut',
+          delay: 1.5,
         }}
       />
     </div>
@@ -61,7 +59,7 @@ const LoadingFallback: React.FC = () => (
         className="relative mb-8"
         initial={{ scale: 0.9, opacity: 0, y: 20 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, ease: "easeOut" }}
+        transition={{ duration: 0.8, ease: 'easeOut' }}
       >
         <div className="w-28 h-28 mx-auto bg-white/90 dark:bg-slate-800/90 backdrop-blur-2xl rounded-3xl shadow-2xl border-2 border-white/30 dark:border-slate-700/50 flex items-center justify-center relative overflow-hidden">
           {/* Анимированный градиентный фон */}
@@ -69,18 +67,18 @@ const LoadingFallback: React.FC = () => (
             className="absolute inset-0"
             animate={{
               background: [
-                "linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(99, 102, 241, 0.15) 50%, rgba(147, 51, 234, 0.15) 100%)",
-                "linear-gradient(135deg, rgba(147, 51, 234, 0.15) 0%, rgba(59, 130, 246, 0.15) 50%, rgba(99, 102, 241, 0.15) 100%)",
-                "linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(147, 51, 234, 0.15) 50%, rgba(59, 130, 246, 0.15) 100%)"
-              ]
+                'linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(99, 102, 241, 0.15) 50%, rgba(147, 51, 234, 0.15) 100%)',
+                'linear-gradient(135deg, rgba(147, 51, 234, 0.15) 0%, rgba(59, 130, 246, 0.15) 50%, rgba(99, 102, 241, 0.15) 100%)',
+                'linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(147, 51, 234, 0.15) 50%, rgba(59, 130, 246, 0.15) 100%)',
+              ],
             }}
             transition={{
               duration: 4,
               repeat: Infinity,
-              ease: "linear"
+              ease: 'linear',
             }}
           />
-          
+
           {/* Свечение вокруг иконки */}
           <motion.div
             className="absolute inset-0 bg-gradient-to-br from-blue-400/20 to-indigo-400/20 rounded-3xl"
@@ -91,28 +89,28 @@ const LoadingFallback: React.FC = () => (
             transition={{
               duration: 2,
               repeat: Infinity,
-              ease: "easeInOut"
+              ease: 'easeInOut',
             }}
           />
-          
+
           {/* Иконка с плавным вращением */}
           <motion.div
             className="relative z-10"
             animate={{
               rotate: [0, 360],
-              scale: [1, 1.05, 1]
+              scale: [1, 1.05, 1],
             }}
             transition={{
               rotate: {
                 duration: 10,
                 repeat: Infinity,
-                ease: "linear"
+                ease: 'linear',
               },
               scale: {
                 duration: 2.5,
                 repeat: Infinity,
-                ease: "easeInOut"
-              }
+                ease: 'easeInOut',
+              },
             }}
           >
             <Brain className="w-14 h-14 text-blue-600 dark:text-blue-400" strokeWidth={1.5} />
@@ -129,7 +127,7 @@ const LoadingFallback: React.FC = () => (
             transition={{
               duration: 3,
               repeat: Infinity,
-              ease: "easeInOut"
+              ease: 'easeInOut',
             }}
           >
             <Sparkles className="w-5 h-5 text-yellow-500 dark:text-yellow-400" />
@@ -145,8 +143,8 @@ const LoadingFallback: React.FC = () => (
             transition={{
               duration: 2.5,
               repeat: Infinity,
-              ease: "easeInOut",
-              delay: 0.5
+              ease: 'easeInOut',
+              delay: 0.5,
             }}
           >
             <Zap className="w-4 h-4 text-indigo-500 dark:text-indigo-400" />
@@ -159,11 +157,11 @@ const LoadingFallback: React.FC = () => (
         className="text-4xl font-bold mb-3 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 dark:from-blue-400 dark:via-indigo-400 dark:to-purple-400 bg-clip-text text-transparent"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3, duration: 0.8, ease: "easeOut" }}
+        transition={{ delay: 0.3, duration: 0.8, ease: 'easeOut' }}
       >
         Lumon
       </motion.h2>
-      
+
       <motion.p
         className="text-lg text-slate-600 dark:text-slate-400 mb-8 font-medium tracking-wide"
         initial={{ opacity: 0 }}
@@ -193,7 +191,7 @@ const LoadingFallback: React.FC = () => (
               duration: 1.2,
               repeat: Infinity,
               delay: index * 0.2,
-              ease: "easeInOut"
+              ease: 'easeInOut',
             }}
           />
         ))}
@@ -204,7 +202,7 @@ const LoadingFallback: React.FC = () => (
 
 const App: React.FC = () => {
   logger.log('[App] Компонент App монтируется');
-  
+
   // Проверяем, запущено ли приложение через Telegram
   const [isTelegram, setIsTelegram] = useState<boolean | null>(null);
 
@@ -214,17 +212,19 @@ const App: React.FC = () => {
     const maxAttempts = 15; // 15 попыток = 3 секунды (увеличено для надежности)
     let positiveResults = 0; // Счетчик положительных результатов
     const requiredPositiveChecks = 3; // Требуем минимум 3 положительных проверки подряд
-    
+
     const checkTelegram = () => {
       attempts++;
       const result = isTelegramWebApp();
       logger.log(`[App] Проверка Telegram (попытка ${attempts}):`, result);
-      
+
       if (result) {
         positiveResults++;
         // Требуем несколько положительных проверок подряд для надежности
         if (positiveResults >= requiredPositiveChecks) {
-          logger.log(`[App] Telegram подтвержден (${positiveResults} проверок подряд), показываем приложение`);
+          logger.log(
+            `[App] Telegram подтвержден (${positiveResults} проверок подряд), показываем приложение`
+          );
           setIsTelegram(true);
           return;
         }
@@ -235,19 +235,21 @@ const App: React.FC = () => {
         // Если проверка вернула false, сбрасываем счетчик положительных
         positiveResults = 0;
       }
-      
+
       // Если это последняя попытка или прошло достаточно времени
       if (attempts >= maxAttempts) {
-        logger.log('[App] Telegram не обнаружен после всех попыток, показываем страницу "Только для Telegram"');
+        logger.log(
+          '[App] Telegram не обнаружен после всех попыток, показываем страницу "Только для Telegram"'
+        );
         logger.log('[App] Итоги проверки:', {
           attempts,
           positiveResults,
-          requiredPositiveChecks
+          requiredPositiveChecks,
         });
         setIsTelegram(false);
         return;
       }
-      
+
       // Продолжаем проверку
       setTimeout(checkTelegram, 200);
     };
@@ -270,7 +272,7 @@ const App: React.FC = () => {
       </ModernSplashScreen>
     );
   }
-  
+
   const TelegramUIManager: React.FC = () => {
     logger.log('[App] TelegramUIManager монтируется');
     const location = useLocation();
@@ -279,31 +281,34 @@ const App: React.FC = () => {
 
     // Автопродление сессии каждые 4 минуты
     useEffect(() => {
-      const refreshInterval = setInterval(async () => {
-        const token = localStorage.getItem('session_token');
-        if (!token) return;
+      const refreshInterval = setInterval(
+        async () => {
+          const token = localStorage.getItem('session_token');
+          if (!token) return;
 
-        try {
-          const response = await fetch('/webhook/auth-refresh', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({ token })
-          });
+          try {
+            const response = await fetch('/webhook/auth-refresh', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({ token }),
+            });
 
-          if (response.ok) {
-            const data = await response.json();
-            if (data.success && data.data?.session_token) {
-              localStorage.setItem('session_token', data.data.session_token);
-              logger.log('[App] Session refreshed successfully');
+            if (response.ok) {
+              const data = await response.json();
+              if (data.success && data.data?.session_token) {
+                localStorage.setItem('session_token', data.data.session_token);
+                logger.log('[App] Session refreshed successfully');
+              }
             }
+          } catch (error) {
+            logger.warn('[App] Session refresh failed:', error);
           }
-        } catch (error) {
-          logger.warn('[App] Session refresh failed:', error);
-        }
-      }, 4 * 60 * 1000); // 4 минуты
+        },
+        4 * 60 * 1000
+      ); // 4 минуты
 
       return () => clearInterval(refreshInterval);
     }, []);
@@ -406,7 +411,7 @@ const App: React.FC = () => {
     // Логика Back/Close: на главной скрываем Back, на внутренних показываем и возвращаемся назад
     useEffect(() => {
       if (!isReady || !tg) return;
-      
+
       // Проверяем наличие BackButton (не поддерживается в версиях API < 6.1)
       if (!tg.BackButton) {
         console.warn('[Telegram] BackButton не поддерживается в текущей версии API');
@@ -414,7 +419,7 @@ const App: React.FC = () => {
       }
 
       const isRoot = location.pathname === '/';
-      
+
       if (isRoot) {
         // На главной странице скрываем BackButton - системная кнопка закрыть будет закрывать приложение
         try {
@@ -428,7 +433,7 @@ const App: React.FC = () => {
       // На внутренних страницах показываем BackButton - системная кнопка закрыть будет работать как "назад"
       try {
         tg.BackButton.show();
-        
+
         // Настраиваем обработчик: при нажатии на системную кнопку закрыть возвращаемся назад в истории
         tg.BackButton.onClick(() => {
           const historyLength = window.history.length;
@@ -475,11 +480,11 @@ const App: React.FC = () => {
           <Router>
             <TelegramUIManager />
             <AuthGuard>
-            <Suspense fallback={<LoadingFallback />}>
-              <div className="app-content">
-                <Routes>
-                  <Route path="/" element={<MenuPage />} />
-                  <Route path="/voice-assistant" element={<VoiceAssistantPage />} />
+              <Suspense fallback={<LoadingFallback />}>
+                <div className="app-content">
+                  <Routes>
+                    <Route path="/" element={<MenuPage />} />
+                    <Route path="/voice-assistant" element={<VoiceAssistantPage />} />
                     <Route
                       path="/app/crm"
                       element={
@@ -504,16 +509,13 @@ const App: React.FC = () => {
                         </PageGuard>
                       }
                     />
-                  <Route path="/app/payment" element={<PricingPage />} />
-                  <Route path="/api-test" element={<ApiTestPage />} />
-                </Routes>
-              </div>
-            </Suspense>
+                    <Route path="/app/payment" element={<PricingPage />} />
+                  </Routes>
+                </div>
+              </Suspense>
             </AuthGuard>
           </Router>
         </ErrorBoundary>
-        {/* Debug Logger - показываем всегда для отладки */}
-        <DebugLogger />
       </div>
     </ModernSplashScreen>
   );
