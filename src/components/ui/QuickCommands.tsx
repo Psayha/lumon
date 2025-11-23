@@ -33,32 +33,29 @@ export const QuickCommands: React.FC<QuickCommandsProps> = ({
                         key={suggestion.prefix}
                         onClick={() => onSelect(index)}
                         className={cn(
-                            "flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs transition-all relative group min-w-0",
+                            "flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs relative group min-w-0 overflow-hidden", // Removed transition-all
                             isListening || selectedCommands.length > 0
                                 ? "bg-gray-100/50 dark:bg-white/[0.01] text-gray-400 dark:text-white/30 cursor-not-allowed"
-                                : "bg-gray-100/80 dark:bg-white/[0.02] hover:bg-gray-200/80 dark:hover:bg-white/[0.05] text-gray-700 dark:text-white/60 hover:text-gray-900 dark:hover:text-white/90"
+                                : "bg-gray-100/80 dark:bg-white/[0.02] text-gray-700 dark:text-white/60"
                         )}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.1 }}
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        whileHover={{ scale: 1.02, backgroundColor: "rgba(255, 255, 255, 0.05)" }}
+                        whileTap={{ scale: 0.98 }}
+                        transition={{ 
+                            duration: 0.3,
+                            delay: index * 0.05,
+                            ease: "easeOut"
+                        }}
                         disabled={isListening || selectedCommands.length > 0}
                     >
-                        <div className="w-3 h-3 flex items-center justify-center flex-shrink-0">
+                        <div className="w-3 h-3 flex items-center justify-center flex-shrink-0 relative z-10">
                             {suggestion.icon}
                         </div>
-                        <span className="text-xs font-medium truncate">{suggestion.label}</span>
-                        <motion.div
-                            className="absolute inset-0 border border-gray-300/20 dark:border-white/[0.05] rounded-md"
-                            initial={false}
-                            animate={{
-                                opacity: [0, 1],
-                                scale: [0.98, 1],
-                            }}
-                            transition={{
-                                duration: 0.3,
-                                ease: "easeOut",
-                            }}
-                        />
+                        <span className="text-xs font-medium truncate relative z-10">{suggestion.label}</span>
+                        
+                        {/* Static border instead of animated one to prevent flickering */}
+                        <div className="absolute inset-0 border border-gray-300/20 dark:border-white/[0.05] rounded-md pointer-events-none" />
                     </motion.button>
                 ))}
             </div>

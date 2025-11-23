@@ -53,7 +53,6 @@ export const Modal: React.FC<ModalProps> = ({
             text-left align-middle
             bg-white dark:bg-gray-800
             rounded-lg shadow-xl
-            transform transition-all
             border border-gray-200 dark:border-gray-700
           `}
         >

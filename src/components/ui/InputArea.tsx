@@ -82,7 +82,7 @@ export const InputArea: React.FC<InputAreaProps> = ({
 
                 <motion.div 
                     className={cn(
-                        "relative backdrop-blur-xl bg-white/60 dark:bg-white/[0.03] rounded-2xl shadow-2xl z-20 w-full transition-all duration-300",
+                        "relative backdrop-blur-xl bg-white/60 dark:bg-white/[0.03] rounded-2xl shadow-2xl z-20 w-full",
                         showCommandPalette ? "overflow-visible" : "overflow-hidden",
                         isRecognizing
                             ? "border-2 border-orange-500 dark:border-orange-400"
@@ -240,12 +240,11 @@ export const InputArea: React.FC<InputAreaProps> = ({
                             onClick={onAttachFile}
                             whileTap={!isListening && !isRecognizing ? { scale: 0.94 } : {}}
                             disabled={isListening || isRecognizing}
-                            className={cn(
-                                "p-2 rounded-lg transition-colors relative group",
-                                isListening || isRecognizing
-                                    ? "text-gray-400 dark:text-white/20 cursor-not-allowed opacity-50"
-                                    : "text-gray-500 dark:text-white/40 hover:text-gray-700 dark:hover:text-white/90 cursor-pointer"
-                            )}
+                            className={`p-2 rounded-xl transition-colors ${
+                                isListening 
+                                    ? 'bg-red-500 text-white shadow-lg shadow-red-500/30 animate-pulse' 
+                                    : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-200'
+                            }`}
                         >
                             <Paperclip className="w-4 h-4" />
                             <motion.span
@@ -383,7 +382,7 @@ export const InputArea: React.FC<InputAreaProps> = ({
                             whileTap={!isListening && !isRecognizing ? { scale: 0.98 } : {}}
                             disabled={isTyping || !value.trim() || isListening || isRecognizing}
                             className={cn(
-                                "px-3 py-2 rounded-lg text-sm font-medium transition-all",
+                                "px-3 py-2 rounded-lg text-sm font-medium transition-colors",
                                 "flex items-center justify-center",
                                 isListening || isRecognizing
                                     ? "bg-gray-200/50 dark:bg-white/[0.05] text-gray-500 dark:text-white/40 cursor-not-allowed"

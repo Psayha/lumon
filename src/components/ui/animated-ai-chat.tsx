@@ -649,9 +649,9 @@ export function AnimatedAIChat({
                 <div className={`w-full max-w-md mx-auto relative ${messages.length === 0 ? 'min-h-[calc(100vh-200px)] flex items-center py-8' : ''}`}>
                 <motion.div 
                     className={`relative z-0 ${messages.length > 0 ? 'space-y-6' : 'space-y-12 w-full'}`}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6, ease: "easeOut" }}
+                    initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{ duration: 0.4, ease: "easeOut" }}
                 >
                         {/* Приветственное сообщение */}
                         {messages.length === 0 && <WelcomeMessage />}

@@ -43,7 +43,7 @@ export const Card: React.FC<CardProps> = ({
         bg-white dark:bg-gray-800
         rounded-lg
         border border-gray-200 dark:border-gray-700
-        transition-all duration-300 ease-in-out
+        transition-shadow duration-300 ease-in-out
         ${getVariantClasses()}
         ${getPaddingClasses()}
         ${className}

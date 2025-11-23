@@ -25,7 +25,7 @@ export const AppFooter: React.FC<AppFooterProps> = ({
           {showHomeButton && (
             <button
               onClick={() => navigate('/')}
-              className="flex items-center justify-center w-8 h-8 rounded-lg bg-gray-600 hover:bg-gray-700 text-white shadow-lg transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+              className="flex items-center justify-center w-8 h-8 rounded-lg bg-gray-600 hover:bg-gray-700 text-white shadow-lg transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
               aria-label="Перейти на главную страницу"
             >
               <Home className="w-3 h-3" />
