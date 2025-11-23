@@ -25,9 +25,9 @@ export const MessageList: React.FC<MessageListProps> = ({ messages, isTyping }) 
                 <motion.div
                     key={message.id}
                     className={`flex ${message.isUser ? 'justify-end' : 'justify-start'} min-w-0`}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3 }}
+                    initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{ duration: 0.3, ease: "easeOut" }}
                 >
                     <div
                         className={`max-w-[80%] px-4 py-3 rounded-2xl break-words min-w-0 ${

@@ -127,12 +127,12 @@ const MenuPage: React.FC = () => {
             {menuItems.map((item, index) => (
               <motion.div
                 key={index}
-                initial={{ opacity: 0, y: 20, scale: 0.9 }}
+                initial={{ opacity: 0, y: 10, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -20, scale: 0.9 }}
+                exit={{ opacity: 0, y: -10, scale: 0.95 }}
                 transition={{ 
-                  duration: 0.4, 
-                  delay: index * 0.1,
+                  duration: 0.3, 
+                  delay: index * 0.05, // Faster stagger
                   ease: "easeOut"
                 }}
                 onHoverStart={() => setHoveredItem(index)}
