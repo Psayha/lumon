@@ -34,6 +34,7 @@ export const ADMIN_API_CONFIG = {
     // Admin Auth
     adminLogin: '/webhook/admin/login',
     adminValidate: '/webhook/admin/validate',
+    adminLogout: '/webhook/admin/logout',
 
     // Admin Companies
     adminCompaniesList: '/webhook/admin/companies-list',
@@ -84,18 +85,15 @@ export const getAdminApiUrl = (endpoint: string): string => {
 };
 
 // Default headers for Admin API requests
+// SECURITY: Authentication uses httpOnly cookies (set by backend)
+// Cookies are sent automatically by browser - no need for Authorization header
 export const getAdminHeaders = (): Record<string, string> => {
-  const headers: Record<string, string> = {
+  return {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
+    // Note: admin_token cookie is sent automatically by browser
+    // No need to manually add Authorization header
   };
-
-  const token = localStorage.getItem('admin_token');
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-
-  return headers;
 };
 
 // Helper function for making admin API requests
@@ -109,6 +107,7 @@ export const adminApiRequest = async <T = unknown>(
   try {
     const response = await fetch(url, {
       ...options,
+      credentials: 'include', // CRITICAL: Send httpOnly cookies with request
       headers: {
         ...headers,
         ...(options.headers || {}),

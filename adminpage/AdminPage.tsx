@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Building2, LogOut, Shield, HardDrive, Activity, FileSearch, Users, BarChart3, FlaskConical, Menu, X } from 'lucide-react';
 import { AdminLogin } from './components/AdminLogin';
 import { ToastProvider } from './components/Toast';
+import { getAdminApiUrl, ADMIN_API_CONFIG } from './config/api';
 import { CompaniesTab } from './tabs/CompaniesTab';
 // Hidden tabs - stub endpoints not yet migrated from n8n:
 // import { LegalDocsTab } from './tabs/LegalDocsTab';
@@ -19,21 +20,42 @@ const AdminPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'companies' | 'backups' | 'health' | 'logs' | 'users' | 'analytics' | 'ab-testing'>('companies');
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
-  // Проверка авторизации при загрузке
+  // Check authentication on load by validating cookie with backend
   useEffect(() => {
-    const adminToken = localStorage.getItem('admin_token');
-    if (adminToken) {
-      setIsAuthenticated(true);
-    }
+    const checkAuth = async () => {
+      try {
+        const response = await fetch(getAdminApiUrl(ADMIN_API_CONFIG.endpoints.adminValidate), {
+          method: 'POST',
+          credentials: 'include', // Send httpOnly cookie
+        });
+        const data = await response.json();
+        if (response.ok && data.success) {
+          setIsAuthenticated(true);
+        } else {
+          setIsAuthenticated(false);
+        }
+      } catch {
+        setIsAuthenticated(false);
+      }
+    };
+    checkAuth();
   }, []);
 
-  const handleLogin = (token: string) => {
-    localStorage.setItem('admin_token', token);
+  const handleLogin = () => {
+    // Cookie was set by backend during login
+    // Just update UI state
     setIsAuthenticated(true);
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('admin_token');
+  const handleLogout = async () => {
+    try {
+      await fetch(getAdminApiUrl(ADMIN_API_CONFIG.endpoints.adminLogout), {
+        method: 'POST',
+        credentials: 'include', // Send cookie to invalidate session
+      });
+    } catch {
+      // Ignore errors - we'll clear UI state anyway
+    }
     setIsAuthenticated(false);
   };
 

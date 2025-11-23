@@ -21,16 +21,19 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
     try {
       const response = await fetch(getAdminApiUrl(ADMIN_API_CONFIG.endpoints.adminLogin), {
         method: 'POST',
+        credentials: 'include', // CRITICAL: Allow server to set httpOnly cookie
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
       });
 
       if (response.ok) {
         const data = await response.json();
-        if (data.success && data.data?.token) {
-          onLogin(data.data.token);
+        if (data.success) {
+          // Backend has set httpOnly cookie automatically
+          // No need to handle token manually - just signal success
+          onLogin('authenticated'); // Signal that login succeeded
         } else {
-          setError('Неверный логин или пароль');
+          setError(data.message || 'Неверный логин или пароль');
         }
       } else {
         const errorData = await response.json().catch(() => ({}));
