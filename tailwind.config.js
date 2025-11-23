@@ -4,6 +4,7 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
     "./front/**/*.{js,ts,jsx,tsx}",
+    "./adminpage/**/*.{js,ts,jsx,tsx}",
   ],
   darkMode: 'class',
   theme: {
