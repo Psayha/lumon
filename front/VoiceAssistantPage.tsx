@@ -86,8 +86,8 @@ const VoiceAssistantPage: React.FC = () => {
                   console.log('[VoiceAssistantPage] 🆕 Creating new chat on first message...');
                   
                   try {
-                    // Используем первые 100 символов сообщения как название чата
-                    const chatTitle = message.substring(0, 100);
+                    // Используем первые 50 символов сообщения как название чата
+                    const chatTitle = message.substring(0, 50);
                     
                     const response = await fetch(getApiUrl(API_CONFIG.endpoints.chatCreate), {
                       method: 'POST',

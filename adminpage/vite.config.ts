@@ -1,13 +1,17 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname, resolve } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 export default defineConfig(({ mode }) => {
   return {
     plugins: [react()],
     // Запускаем сборку из каталога adminpage, выводим в ../dist-admin
     build: {
-      outDir: path.resolve(__dirname, '../dist-admin'),
+      outDir: resolve(__dirname, '../dist-admin'),
       emptyOutDir: true,
       target: 'es2020',
       sourcemap: mode === 'production' ? 'hidden' : true,
@@ -31,7 +35,8 @@ export default defineConfig(({ mode }) => {
       port: 5174,
       fs: {
         // Разрешаем импортировать файлы из родительской папки (../src/index.css)
-        allow: ['..']
+        allow: ['..'
+]
       }
     },
     esbuild: {
@@ -39,4 +44,3 @@ export default defineConfig(({ mode }) => {
     }
   };
 });
-
