@@ -39,9 +39,11 @@ export const ADMIN_API_CONFIG = {
     // Admin Companies
     adminCompaniesList: '/webhook/admin/companies-list',
 
-    // Admin Legal Docs (Stub endpoints - returns empty array)
+    // Admin Legal Docs
     adminLegalDocsList: '/webhook/admin/legal-docs-list',
+    adminLegalDocsCreate: '/webhook/admin/legal-docs-create',
     adminLegalDocsUpdate: '/webhook/admin/legal-docs-update',
+    adminLegalDocsDelete: '/webhook/admin/legal-docs-delete',
 
     // Admin AI Docs (Stub endpoints - returns empty array)
     adminAiDocsList: '/webhook/admin/ai-docs-list',
@@ -66,6 +68,8 @@ export const ADMIN_API_CONFIG = {
     adminUserLimitsUpdate: '/webhook/admin/user-limits-update',
     adminUserHistoryClear: '/webhook/admin/user-history-clear',
     adminUserDelete: '/webhook/admin/user-delete',
+    adminUserBindCompany: '/webhook/admin/user-bind-company',
+    adminUserUnbindCompany: '/webhook/admin/user-unbind-company',
 
     // Admin Analytics
     adminStatsPlatform: '/webhook/admin/stats-platform',

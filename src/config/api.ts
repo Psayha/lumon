@@ -61,6 +61,9 @@ export const API_CONFIG = {
 
     // Agents
     agentsGetDefault: '/agents/default',
+
+    // Contact
+    contactSendMessage: '/webhook/contact/send-message',
   },
   
   // Request timeout in milliseconds

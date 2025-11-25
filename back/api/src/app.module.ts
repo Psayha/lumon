@@ -15,6 +15,7 @@ import { HealthModule } from './modules/health/health.module';
 import { CleanupModule } from './modules/cleanup/cleanup.module';
 import { AgentsModule } from './modules/agents/agents.module';
 import { KnowledgeBaseModule } from './modules/knowledge-base/knowledge-base.module';
+import { ContactModule } from './modules/contact/contact.module';
 import { CsrfProtectionMiddleware } from './common/middleware/csrf-protection.middleware';
 import { HttpsEnforcementMiddleware } from './common/middleware/https-enforcement.middleware';
 
@@ -64,6 +65,7 @@ import { RequestLoggerMiddleware } from './common/middleware/request-logger.midd
     CleanupModule,
     AgentsModule,
     KnowledgeBaseModule,
+    ContactModule,
   ],
   providers: [
     // SECURITY FIX: Enable rate limiting globally

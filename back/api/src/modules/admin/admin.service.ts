@@ -22,6 +22,7 @@ import {
   Backup,
   UserCompany,
   UserRole,
+  LegalDoc,
 } from '@entities';
 import { v4 as uuidv4 } from 'uuid';
 import { spawn } from 'child_process';
@@ -65,6 +66,8 @@ export class AdminService {
     private backupRepository: Repository<Backup>,
     @InjectRepository(UserCompany)
     private userCompanyRepository: Repository<UserCompany>,
+    @InjectRepository(LegalDoc)
+    private legalDocRepository: Repository<LegalDoc>,
     private lockoutService: LockoutService,
   ) {}
 
@@ -1275,5 +1278,239 @@ export class AdminService {
     } catch (error) {
       throw new Error(`Failed to delete backup: ${(error as Error).message}`);
     }
+  }
+
+  /**
+   * Legal Docs Management
+   */
+  async listLegalDocs() {
+    const docs = await this.legalDocRepository.find({
+      order: { created_at: 'DESC' },
+    });
+
+    return {
+      success: true,
+      data: docs,
+    };
+  }
+
+  async createLegalDoc(data: {
+    title: string;
+    content: string;
+    version?: string;
+    is_active?: boolean;
+  }) {
+    const doc = await this.legalDocRepository.save({
+      title: data.title,
+      content: data.content,
+      version: data.version || '1.0',
+      is_active: data.is_active !== undefined ? data.is_active : true,
+    });
+
+    // Log audit event
+    this.logAuditEvent({
+      action: 'admin.legal_doc.create',
+      resource_type: 'legal_doc',
+      resource_id: doc.id,
+      metadata: {
+        title: doc.title,
+        version: doc.version,
+      },
+    }).catch((err) => console.error('Failed to log audit event:', err));
+
+    return {
+      success: true,
+      data: doc,
+    };
+  }
+
+  async updateLegalDoc(
+    id: string,
+    data: {
+      title?: string;
+      content?: string;
+      version?: string;
+      is_active?: boolean;
+    },
+  ) {
+    const doc = await this.legalDocRepository.findOne({ where: { id } });
+
+    if (!doc) {
+      throw new NotFoundException('Legal document not found');
+    }
+
+    await this.legalDocRepository.update(id, data);
+
+    const updated = await this.legalDocRepository.findOne({ where: { id } });
+
+    // Log audit event
+    this.logAuditEvent({
+      action: 'admin.legal_doc.update',
+      resource_type: 'legal_doc',
+      resource_id: id,
+      metadata: {
+        changes: data,
+      },
+    }).catch((err) => console.error('Failed to log audit event:', err));
+
+    return {
+      success: true,
+      data: updated,
+    };
+  }
+
+  async deleteLegalDoc(id: string) {
+    const doc = await this.legalDocRepository.findOne({ where: { id } });
+
+    if (!doc) {
+      throw new NotFoundException('Legal document not found');
+    }
+
+    await this.legalDocRepository.delete(id);
+
+    // Log audit event
+    this.logAuditEvent({
+      action: 'admin.legal_doc.delete',
+      resource_type: 'legal_doc',
+      resource_id: id,
+      metadata: {
+        title: doc.title,
+      },
+    }).catch((err) => console.error('Failed to log audit event:', err));
+
+    return {
+      success: true,
+      message: `Legal document "${doc.title}" deleted successfully`,
+    };
+  }
+
+  /**
+   * User-Company Binding
+   */
+  async bindUserToCompany(userId: string, companyId: string, role: UserRole) {
+    // Check if user exists
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Check if company exists
+    const company = await this.companyRepository.findOne({
+      where: { id: companyId },
+    });
+    if (!company) {
+      throw new NotFoundException('Company not found');
+    }
+
+    // Check if binding already exists
+    const existing = await this.userCompanyRepository.findOne({
+      where: {
+        user_id: userId,
+        company_id: companyId,
+      },
+    });
+
+    if (existing) {
+      // Update existing binding
+      await this.userCompanyRepository.update(existing.id, {
+        role,
+        is_active: true,
+      });
+
+      // Log audit event
+      this.logAuditEvent({
+        action: 'admin.user_company.update',
+        resource_type: 'user_company',
+        resource_id: existing.id,
+        metadata: {
+          user_id: userId,
+          company_id: companyId,
+          role,
+        },
+      }).catch((err) => console.error('Failed to log audit event:', err));
+
+      return {
+        success: true,
+        message: 'User-company binding updated',
+        data: { ...existing, role, is_active: true },
+      };
+    }
+
+    // Create new binding
+    const binding = await this.userCompanyRepository.save({
+      user_id: userId,
+      company_id: companyId,
+      role,
+      is_active: true,
+    });
+
+    // Log audit event
+    this.logAuditEvent({
+      action: 'admin.user_company.create',
+      resource_type: 'user_company',
+      resource_id: binding.id,
+      metadata: {
+        user_id: userId,
+        company_id: companyId,
+        role,
+      },
+    }).catch((err) => console.error('Failed to log audit event:', err));
+
+    return {
+      success: true,
+      message: 'User bound to company successfully',
+      data: binding,
+    };
+  }
+
+  async unbindUserFromCompany(userId: string, companyId: string) {
+    const binding = await this.userCompanyRepository.findOne({
+      where: {
+        user_id: userId,
+        company_id: companyId,
+      },
+    });
+
+    if (!binding) {
+      throw new NotFoundException('User-company binding not found');
+    }
+
+    // Check if user is the last owner
+    if (binding.role === UserRole.OWNER) {
+      const ownersCount = await this.userCompanyRepository.count({
+        where: {
+          company_id: companyId,
+          role: UserRole.OWNER,
+          is_active: true,
+        },
+      });
+
+      if (ownersCount <= 1) {
+        throw new BadRequestException(
+          'Cannot unbind the last owner of a company. Please assign another owner first.',
+        );
+      }
+    }
+
+    // Deactivate binding instead of deleting
+    await this.userCompanyRepository.update(binding.id, {
+      is_active: false,
+    });
+
+    // Log audit event
+    this.logAuditEvent({
+      action: 'admin.user_company.unbind',
+      resource_type: 'user_company',
+      resource_id: binding.id,
+      metadata: {
+        user_id: userId,
+        company_id: companyId,
+      },
+    }).catch((err) => console.error('Failed to log audit event:', err));
+
+    return {
+      success: true,
+      message: 'User unbound from company successfully',
+    };
   }
 }

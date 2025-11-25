@@ -18,6 +18,7 @@ import {
   Backup,
   UserCompany,
   LoginAttempt,
+  LegalDoc,
 } from '@entities';
 import { LockoutService } from '@/common/services/lockout.service';
 import { CsrfTokenService } from '@/common/services/csrf-token.service';
@@ -41,6 +42,7 @@ import { CleanupModule } from '../cleanup/cleanup.module';
       Backup,
       UserCompany,
       LoginAttempt,
+      LegalDoc,
     ]),
   ],
   controllers: [AdminController],

@@ -18,6 +18,7 @@ export { PlatformStats } from './platform-stats.entity';
 export { RateLimit } from './rate-limit.entity';
 export { Backup } from './backup.entity';
 export { LoginAttempt } from './login-attempt.entity';
+export { LegalDoc } from './legal-doc.entity';
 
 // Import for entities array
 import { User } from './user.entity';
@@ -37,6 +38,7 @@ import { PlatformStats } from './platform-stats.entity';
 import { RateLimit } from './rate-limit.entity';
 import { Backup } from './backup.entity';
 import { LoginAttempt } from './login-attempt.entity';
+import { LegalDoc } from './legal-doc.entity';
 
 // All entities array for TypeORM configuration
 export const entities = [
@@ -57,4 +59,5 @@ export const entities = [
   RateLimit,
   Backup,
   LoginAttempt,
+  LegalDoc,
 ];

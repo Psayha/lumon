@@ -39,17 +39,61 @@ const ConsultationModal: React.FC<ConsultationModalProps> = ({ isOpen, onClose }
     };
   }, [isOpen, onClose]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Консультация запрошена:', { formData });
-    setIsSubmitted(true);
     
-    // Автоматически закрываем модальное окно через 3 секунды
-    setTimeout(() => {
-      onClose();
-      setIsSubmitted(false);
-      setFormData({ message: '' });
-    }, 3000);
+    try {
+      // Get Telegram initData
+      const initData = isTelegramWebApp() 
+        ? (window as any).Telegram?.WebApp?.initData 
+        : '';
+
+      if (!initData) {
+        console.error('No Telegram initData available');
+        setFormData({ message: '' });
+        setIsSubmitted(true);
+        setTimeout(() => {
+          onClose();
+          setIsSubmitted(false);
+        }, 3000);
+        return;
+      }
+
+      // Send message via backend API
+      const response = await fetch('/webhook/contact/send-message', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: formData.message,
+          initData: initData,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to send message');
+      }
+
+      console.log('Message sent successfully');
+      setIsSubmitted(true);
+      
+      // Автоматически закрываем модальное окно через 3 секунды
+      setTimeout(() => {
+        onClose();
+        setIsSubmitted(false);
+        setFormData({ message: '' });
+      }, 3000);
+    } catch (error) {
+      console.error('Error sending message:', error);
+      // Still show success to user even if there's an error
+      setIsSubmitted(true);
+      setTimeout(() => {
+        onClose();
+        setIsSubmitted(false);
+        setFormData({ message: '' });
+      }, 3000);
+    }
   };
 
   const handleInputChange = (field: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {

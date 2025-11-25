@@ -5,9 +5,7 @@ import { AdminLogin } from './components/AdminLogin';
 import { ToastProvider } from './components/Toast';
 import { getAdminApiUrl, ADMIN_API_CONFIG } from './config/api';
 import { CompaniesTab } from './tabs/CompaniesTab';
-// Hidden tabs - stub endpoints not yet migrated from n8n:
-// import { LegalDocsTab } from './tabs/LegalDocsTab';
-// import { AIDocumentsTab } from './tabs/AIDocumentsTab';
+import { LegalDocsTab } from './tabs/LegalDocsTab';
 import { BackupsTab } from './tabs/BackupsTab';
 import { HealthChecksTab } from './tabs/HealthChecksTab';
 import { LogsTab } from './tabs/LogsTab';
@@ -19,7 +17,7 @@ import { KnowledgeBaseTab } from './tabs/knowledge-base/KnowledgeBaseTab';
 
 const AdminPage: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [activeTab, setActiveTab] = useState<'companies' | 'backups' | 'health' | 'logs' | 'users' | 'analytics' | 'ab-testing' | 'agents' | 'knowledge-base'>('companies');
+  const [activeTab, setActiveTab] = useState<'companies' | 'backups' | 'health' | 'logs' | 'users' | 'analytics' | 'ab-testing' | 'agents' | 'knowledge-base' | 'legal-docs'>('companies');
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   // Check authentication on load by validating cookie with backend
@@ -118,6 +116,7 @@ const AdminPage: React.FC = () => {
   const tabs = [
     { id: 'users' as const, label: 'Пользователи', icon: Users },
     { id: 'companies' as const, label: 'Компании', icon: Building2 },
+    { id: 'legal-docs' as const, label: 'Юр. документы', icon: ScrollText },
     { id: 'agents' as const, label: 'AI Agents', icon: Bot },
     { id: 'knowledge-base' as const, label: 'База Знаний', icon: FileSearch },
     { id: 'logs' as const, label: 'Логи', icon: ScrollText },
@@ -321,6 +320,17 @@ const AdminPage: React.FC = () => {
                     transition={{ duration: 0.2 }}
                   >
                     <AnalyticsTab />
+                  </motion.div>
+                )}
+                {activeTab === 'legal-docs' && (
+                  <motion.div
+                    key="legal-docs"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <LegalDocsTab />
                   </motion.div>
                 )}
 

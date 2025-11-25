@@ -250,7 +250,9 @@ export const UsersTab: React.FC = () => {
                           <div className="font-medium text-gray-900 dark:text-white">
                             {user.firstName || 'Без имени'} {user.lastName}
                           </div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400">@{user.username}</div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            @{user.username} • ID: {user.id.substring(0, 8)}...
+                          </div>
                         </div>
                       </div>
                     </td>

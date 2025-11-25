@@ -32,6 +32,15 @@ import {
   DeleteBackupDto,
   RunHealthCheckDto,
 } from './dto/backup-operations.dto';
+import {
+  CreateLegalDocDto,
+  UpdateLegalDocDto,
+  DeleteLegalDocDto,
+} from './dto/legal-doc.dto';
+import {
+  BindUserToCompanyDto,
+  UnbindUserFromCompanyDto,
+} from './dto/user-company.dto';
 import { CsrfTokenService } from '@/common/services/csrf-token.service';
 import { CleanupService } from '@/common/services/cleanup.service';
 
@@ -300,16 +309,30 @@ export class AdminController {
     return this.adminService.getAbExperimentStats(dto.experiment_id);
   }
 
-  // ============ Document Management (Stubs - Not Yet Migrated) ============
+  // ============ Document Management ============
 
   @Get('legal-docs-list')
   @UseGuards(AdminGuard)
   async listLegalDocs() {
-    return {
-      success: true,
-      data: [],
-      message: 'Legal docs management not yet migrated from n8n',
-    };
+    return this.adminService.listLegalDocs();
+  }
+
+  @Post('legal-docs-create')
+  @UseGuards(AdminGuard)
+  async createLegalDoc(@Body() dto: CreateLegalDocDto) {
+    return this.adminService.createLegalDoc(dto);
+  }
+
+  @Post('legal-docs-update')
+  @UseGuards(AdminGuard)
+  async updateLegalDoc(@Body() dto: UpdateLegalDocDto) {
+    return this.adminService.updateLegalDoc(dto.id, dto);
+  }
+
+  @Post('legal-docs-delete')
+  @UseGuards(AdminGuard)
+  async deleteLegalDoc(@Body() dto: DeleteLegalDocDto) {
+    return this.adminService.deleteLegalDoc(dto.id);
   }
 
   @Get('ai-docs-list')
@@ -320,6 +343,27 @@ export class AdminController {
       data: [],
       message: 'AI docs management not yet migrated from n8n',
     };
+  }
+
+  // ============ User-Company Binding ============
+
+  @Post('user-bind-company')
+  @UseGuards(AdminGuard)
+  async bindUserToCompany(@Body() dto: BindUserToCompanyDto) {
+    return this.adminService.bindUserToCompany(
+      dto.user_id,
+      dto.company_id,
+      dto.role as any,
+    );
+  }
+
+  @Post('user-unbind-company')
+  @UseGuards(AdminGuard)
+  async unbindUserFromCompany(@Body() dto: UnbindUserFromCompanyDto) {
+    return this.adminService.unbindUserFromCompany(
+      dto.user_id,
+      dto.company_id,
+    );
   }
 
   // ============ System Management (Stubs - Not Yet Migrated) ============
