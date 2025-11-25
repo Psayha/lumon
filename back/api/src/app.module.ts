@@ -13,6 +13,7 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { UserLimitsModule } from './modules/user-limits/user-limits.module';
 import { HealthModule } from './modules/health/health.module';
 import { CleanupModule } from './modules/cleanup/cleanup.module';
+import { AgentsModule } from './modules/agents/agents.module';
 import { CsrfProtectionMiddleware } from './common/middleware/csrf-protection.middleware';
 import { HttpsEnforcementMiddleware } from './common/middleware/https-enforcement.middleware';
 
@@ -58,6 +59,7 @@ import { HttpsEnforcementMiddleware } from './common/middleware/https-enforcemen
     UserLimitsModule,
     HealthModule,
     CleanupModule,
+    AgentsModule,
   ],
   providers: [
     // SECURITY FIX: Enable rate limiting globally

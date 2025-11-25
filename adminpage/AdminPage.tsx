@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Building2, LogOut, Shield, HardDrive, Activity, FileSearch, Users, BarChart3, FlaskConical, Menu, X } from 'lucide-react';
+import { Building2, LogOut, Shield, HardDrive, Activity, FileSearch, Users, BarChart3, FlaskConical, Menu, X, Bot } from 'lucide-react';
 import { AdminLogin } from './components/AdminLogin';
 import { ToastProvider } from './components/Toast';
 import { getAdminApiUrl, ADMIN_API_CONFIG } from './config/api';
@@ -14,10 +14,11 @@ import { LogsTab } from './tabs/LogsTab';
 import { UsersTab } from './tabs/UsersTab';
 import { AnalyticsTab } from './tabs/AnalyticsTab';
 import { ABTestingTab } from './tabs/ABTestingTab';
+import { AgentsTab } from './tabs/agents/AgentsTab';
 
 const AdminPage: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [activeTab, setActiveTab] = useState<'companies' | 'backups' | 'health' | 'logs' | 'users' | 'analytics' | 'ab-testing'>('companies');
+  const [activeTab, setActiveTab] = useState<'companies' | 'backups' | 'health' | 'logs' | 'users' | 'analytics' | 'ab-testing' | 'agents'>('companies');
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   // Check authentication on load by validating cookie with backend
@@ -115,6 +116,7 @@ const AdminPage: React.FC = () => {
 
   const tabs = [
     { id: 'companies' as const, label: 'Компании', icon: Building2 },
+    { id: 'agents' as const, label: 'AI Agents', icon: Bot },
     // Hidden: Legal Docs (stub endpoint - not yet migrated from n8n)
     // { id: 'legal' as const, label: 'Юр документы', icon: FileText },
     // Hidden: AI Docs (stub endpoint - not yet migrated from n8n)
@@ -244,6 +246,17 @@ const AdminPage: React.FC = () => {
                     transition={{ duration: 0.2 }}
                   >
                     <CompaniesTab />
+                  </motion.div>
+                )}
+                {activeTab === 'agents' && (
+                  <motion.div
+                    key="agents"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <AgentsTab />
                   </motion.div>
                 )}
                 {/* Hidden: Legal Docs tab - stub endpoint

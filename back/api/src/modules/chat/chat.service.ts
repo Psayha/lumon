@@ -18,6 +18,8 @@ import { CurrentUserData } from '@/common/decorators/current-user.decorator';
 import { v4 as uuidv4 } from 'uuid';
 import { filterXSS } from 'xss';
 
+import { AgentsService } from '../agents/agents.service';
+
 @Injectable()
 export class ChatService {
   constructor(
@@ -29,6 +31,7 @@ export class ChatService {
     private auditRepository: Repository<AuditEvent>,
     @InjectRepository(IdempotencyKey)
     private idempotencyRepository: Repository<IdempotencyKey>,
+    private agentsService: AgentsService,
   ) {}
 
   /**
@@ -325,7 +328,58 @@ export class ChatService {
         );
     }
 
+    // Generate AI response if user message
+    if (dto.role === MessageRole.USER) {
+        // Fire and forget AI generation
+        this.generateAIResponse(dto.chat_id, user).catch(err => 
+            console.error('Failed to generate AI response:', err)
+        );
+    }
+
     return response;
+  }
+
+  /**
+   * Generate AI response for a chat
+   */
+  async generateAIResponse(chatId: string, user: CurrentUserData) {
+    // Get chat history
+    const messages = await this.messageRepository.find({
+        where: { chat_id: chatId },
+        order: { created_at: 'ASC' },
+    });
+
+    // Format messages for OpenAI
+    const formattedMessages = messages.map(msg => ({
+        role: msg.role,
+        content: msg.content,
+    }));
+
+    // Get default agent (or specific agent if configured in chat)
+    const agent = await this.agentsService.getDefaultAgent();
+    
+    if (!agent) {
+        console.warn('No default agent configured');
+        return;
+    }
+
+    try {
+        const aiContent = await this.agentsService.generateResponse(agent.id, formattedMessages);
+
+        // Save AI message
+        await this.messageRepository.save({
+            chat_id: chatId,
+            role: MessageRole.ASSISTANT,
+            content: aiContent,
+            metadata: {
+                agent_id: agent.id,
+                model: agent.model,
+            },
+        });
+    } catch (error) {
+        console.error('Error generating AI response:', error);
+        // Optionally save error message to chat
+    }
   }
 
   /**
