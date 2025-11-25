@@ -56,9 +56,15 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
               
               setIsAuthReady(true);
               return;
+            } else if (validateResponse.status === 403) {
+              // Токен валиден, но документы не приняты
+              logger.warn('[AuthGuard] Legal documents not accepted (403), showing modal');
+              setShowLegalModal(true);
+              setIsAuthReady(true);
+              return;
             } else {
-              // Токен невалиден (401/403), удаляем его и продолжаем с auth-init
-              logger.warn('[AuthGuard] Токен невалиден, удаляем и продолжаем с auth-init');
+              // Токен невалиден (401), удаляем его и продолжаем с auth-init
+              logger.warn(`[AuthGuard] Токен невалиден (${validateResponse.status}), удаляем и продолжаем с auth-init`);
               localStorage.removeItem('session_token');
               localStorage.removeItem('user_context');
               // Продолжаем выполнение - переходим к auth-init
