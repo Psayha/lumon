@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Users, Search, Trash2, Sliders, RefreshCw } from 'lucide-react';
+import { Users, Search, Trash2, Sliders, RefreshCw, CheckCircle, XCircle, Settings, Unlock, Ban, X } from 'lucide-react';
 import { useToast } from '../components/Toast';
 import { adminApiRequest, ADMIN_API_CONFIG } from '../config/api';
 
@@ -20,6 +20,8 @@ interface User {
   }>;
   legalAcceptedAt?: string;
   legalVersion?: string;
+  // Optional fields for UI state (populated after fetching limits or derived)
+  isBanned?: boolean;
 }
 
 interface UserLimit {
@@ -41,8 +43,8 @@ export const UsersTab: React.FC = () => {
   const [limits, setLimits] = useState<UserLimit[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
-  const [limitsModalUser, setLimitsModalUser] = useState<User | null>(null);
-  const [newLimitValue, setNewLimitValue] = useState<number>(100);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [userLimits, setUserLimits] = useState<Record<string, number>>({});
   const { showToast } = useToast();
 
   const loadUsers = async () => {
@@ -69,9 +71,7 @@ export const UsersTab: React.FC = () => {
     }
   };
 
-
-
-  const loadLimits = async (userId: string) => {
+  const loadUserLimits = async (userId: string) => {
     try {
       const params = new URLSearchParams();
       params.append('user_id', userId);
@@ -79,16 +79,29 @@ export const UsersTab: React.FC = () => {
       const endpoint = `${ADMIN_API_CONFIG.endpoints.adminUserLimitsList}?${params}`;
       const data = await adminApiRequest<UserLimit[]>(endpoint);
       if (data.success && data.data) {
-        setLimits(data.data);
+        const limitsMap: Record<string, number> = {};
+        data.data.forEach(limit => {
+          limitsMap[limit.limitType] = limit.limitValue;
+        });
+        setUserLimits(limitsMap);
       }
     } catch (error) {
       console.error('Failed to load limits:', error);
+      showToast('error', 'Не удалось загрузить лимиты');
     }
   };
 
   useEffect(() => {
     loadUsers();
   }, []);
+
+  useEffect(() => {
+    if (selectedUser) {
+      loadUserLimits(selectedUser.id);
+    } else {
+      setUserLimits({});
+    }
+  }, [selectedUser]);
 
   const handleClearHistory = async (userId: string, username: string) => {
     if (!confirm(`Очистить всю историю пользователя ${username}?`)) return;
@@ -128,20 +141,33 @@ export const UsersTab: React.FC = () => {
     }
   };
 
-  const handleSetLimits = async (userId: string, limitValue: number) => {
+  const handleBanUser = async (userId: string, isBanned?: boolean) => {
+    // Note: The current backend implementation for 'banUser' requires a companyId and only bans from a company.
+    // There is no global ban endpoint in the provided AdminService.
+    // However, for this UI, we might be expecting a global ban or a specific company ban.
+    // Given the AdminService.banUser signature: banUser(userId, companyId)
+    // We need to know which company to ban them from.
+    // For now, I will assume we are banning them from their first company or show an error if no company.
+    
+    // TODO: Implement proper global ban or company selection.
+    // For now, let's just show a toast that this feature requires company context.
+    showToast('error', 'Блокировка доступна только в контексте компании');
+  };
+
+  const handleUpdateLimit = async (userId: string, limitType: string, limitValue: number) => {
     try {
       const data = await adminApiRequest(ADMIN_API_CONFIG.endpoints.adminUserLimitsUpdate, {
         method: 'POST',
         body: JSON.stringify({
           user_id: userId,
-          limit_type: 'daily_requests',
+          limit_type: limitType,
           limit_value: limitValue,
         }),
       });
       if (data.success) {
         showToast('success', 'Лимиты обновлены');
-        setLimitsModalUser(null);
-        await loadUsers();
+        // Update local state
+        setUserLimits(prev => ({ ...prev, [limitType]: limitValue }));
       } else {
         showToast('error', data.message || 'Не удалось обновить лимиты');
       }
@@ -204,7 +230,6 @@ export const UsersTab: React.FC = () => {
                   <th className="px-6 py-4">Пользователь</th>
                   <th className="px-6 py-4">Роль</th>
                   <th className="px-6 py-4">Компания</th>
-                  <th className="px-6 py-4">Лимиты (Использовано / Всего)</th>
                   <th className="px-6 py-4">Юр. доки</th>
                   <th className="px-6 py-4">Дата регистрации</th>
                   <th className="px-6 py-4 text-right">Действия</th>
@@ -219,43 +244,25 @@ export const UsersTab: React.FC = () => {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center text-blue-600 dark:text-blue-400 font-medium">
-                          {user.first_name?.[0]?.toUpperCase() || user.username?.[0]?.toUpperCase() || '?'}
+                          {user.firstName?.[0]?.toUpperCase() || user.username?.[0]?.toUpperCase() || '?'}
                         </div>
                         <div>
                           <div className="font-medium text-gray-900 dark:text-white">
-                            {user.first_name || 'Без имени'} {user.last_name}
+                            {user.firstName || 'Без имени'} {user.lastName}
                           </div>
                           <div className="text-xs text-gray-500 dark:text-gray-400">@{user.username}</div>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        user.role === 'admin'
-                          ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400'
-                          : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
-                      }`}>
-                        {user.role === 'admin' ? 'Администратор' : 'Пользователь'}
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
+                        Пользователь
                       </span>
                     </td>
                     <td className="px-6 py-4 text-gray-600 dark:text-gray-300">
-                      {user.company_id ? `Компания #${user.company_id}` : '—'}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="space-y-1">
-                        <div className="text-xs">
-                          <span className="text-gray-500">GPT-4:</span>{' '}
-                          <span className="font-medium text-gray-900 dark:text-white">
-                            {user.gpt4_requests_count} / {user.gpt4_limit === -1 ? '∞' : user.gpt4_limit}
-                          </span>
-                        </div>
-                        <div className="text-xs">
-                          <span className="text-gray-500">Claude:</span>{' '}
-                          <span className="font-medium text-gray-900 dark:text-white">
-                            {user.claude_requests_count} / {user.claude_limit === -1 ? '∞' : user.claude_limit}
-                          </span>
-                        </div>
-                      </div>
+                      {user.companies && user.companies.length > 0 
+                        ? user.companies.map(c => `Компания #${c.company_id}`).join(', ') 
+                        : '—'}
                     </td>
                     <td className="px-6 py-4">
                       {user.legalAcceptedAt ? (
@@ -271,7 +278,7 @@ export const UsersTab: React.FC = () => {
                       )}
                     </td>
                     <td className="px-6 py-4 text-gray-500 dark:text-gray-400 text-xs">
-                      {new Date(user.created_at || user.createdAt).toLocaleDateString()}
+                      {new Date(user.createdAt).toLocaleDateString()}
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
@@ -288,16 +295,16 @@ export const UsersTab: React.FC = () => {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleBanUser(user.id, user.is_banned);
+                            handleBanUser(user.id, user.isBanned);
                           }}
                           className={`p-1.5 rounded-lg transition-colors ${
-                            user.is_banned
+                            user.isBanned
                               ? 'text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20'
                               : 'text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20'
                           }`}
-                          title={user.is_banned ? 'Разблокировать' : 'Заблокировать'}
+                          title={user.isBanned ? 'Разблокировать' : 'Заблокировать'}
                         >
-                          {user.is_banned ? <Unlock className="w-4 h-4" /> : <Ban className="w-4 h-4" />}
+                          {user.isBanned ? <Unlock className="w-4 h-4" /> : <Ban className="w-4 h-4" />}
                         </button>
                         <button
                           onClick={(e) => {
@@ -344,7 +351,7 @@ export const UsersTab: React.FC = () => {
                       key={`gpt4-${limit}`}
                       onClick={() => handleUpdateLimit(selectedUser.id, 'gpt4_limit', limit)}
                       className={`px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
-                        selectedUser.gpt4_limit === limit
+                        (userLimits['gpt4_limit'] || 100) === limit
                           ? 'bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-900/30 dark:border-blue-800 dark:text-blue-400'
                           : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-blue-200 hover:bg-blue-50/50'
                       }`}
@@ -363,7 +370,7 @@ export const UsersTab: React.FC = () => {
                       key={`claude-${limit}`}
                       onClick={() => handleUpdateLimit(selectedUser.id, 'claude_limit', limit)}
                       className={`px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
-                        selectedUser.claude_limit === limit
+                        (userLimits['claude_limit'] || 100) === limit
                           ? 'bg-purple-50 border-purple-200 text-purple-700 dark:bg-purple-900/30 dark:border-purple-800 dark:text-purple-400'
                           : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-purple-200 hover:bg-purple-50/50'
                       }`}

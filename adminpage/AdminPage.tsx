@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Building2, LogOut, Shield, HardDrive, Activity, FileSearch, Users, BarChart3, Menu, X, Bot } from 'lucide-react';
+import { Building2, LogOut, Shield, Activity, FileSearch, Users, BarChart3, Menu, X, Bot, ScrollText, Database } from 'lucide-react';
 import { AdminLogin } from './components/AdminLogin';
 import { ToastProvider } from './components/Toast';
 import { getAdminApiUrl, ADMIN_API_CONFIG } from './config/api';
