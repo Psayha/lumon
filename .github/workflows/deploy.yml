@@ -1,251 +1,29 @@
-name: Deploy to Server (SSH)
+name: Deploy to Production
 
 on:
   push:
-    branches:
-      - main
-      - claude/n8n-nextjs-integration-011CUzUwzaJL8RuKyUxZTE1m
+    branches: [main]
   workflow_dispatch:
 
 jobs:
-  build-and-deploy:
-    name: Build and Deploy
+  deploy:
+    name: Trigger Server Deployment
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - name: Execute deploy.sh on server
+        uses: appleboy/ssh-action@v1.0.3
         with:
-          node-version: 20
-          cache: npm
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          script: |
+            echo "🚀 Triggering deployment script..."
+            # Go to project directory
+            cd /home/user/lumon
 
-      - name: Install dependencies
-        run: npm ci
+            # Run the deployment script with sudo
+            # Assuming the user has passwordless sudo rights or is root
+            sudo bash deploy.sh
 
-      - name: Build frontend
-        run: npm run build
-        env:
-          VITE_API_URL: ''
-
-      - name: Install admin panel dependencies
-        working-directory: adminpage
-        run: npm ci --no-audit --no-fund
-
-      - name: Build admin panel
-        working-directory: adminpage
-        run: npm run build
-        env:
-          VITE_API_URL: ''
-          NODE_ENV: production
-
-      - name: Verify builds
-        run: |
-          echo "🔍 Verifying build outputs..."
-          if [ ! -d "dist" ] || [ ! -f "dist/index.html" ]; then
-            echo "❌ Frontend build failed"
-            exit 1
-          fi
-          if [ ! -d "dist-admin" ] || [ ! -f "dist-admin/index.html" ]; then
-            echo "❌ Admin build failed"
-            exit 1
-          fi
-          echo "✅ All builds verified successfully"
-
-      - name: Setup SSH
-        run: |
-          mkdir -p ~/.ssh
-          echo "$SSH_KEY" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -p "$SSH_PORT" "$SSH_HOST" >> ~/.ssh/known_hosts
-        env:
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_PORT: ${{ secrets.SSH_PORT }}
-          SSH_KEY: ${{ secrets.SSH_KEY }}
-
-      - name: Ensure remote deploy directory exists
-        run: |
-          ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "mkdir -p $DEPLOY_PATH"
-        env:
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_PORT: ${{ secrets.SSH_PORT }}
-          SSH_USER: ${{ secrets.SSH_USER }}
-          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
-
-      - name: Calculate backend path
-        id: backend_path
-        run: |
-          DEPLOY_PATH="${{ secrets.DEPLOY_PATH }}"
-          BACKEND_PATH=$(dirname "$DEPLOY_PATH")/back
-          echo "path=$BACKEND_PATH" >> $GITHUB_OUTPUT
-          echo "Backend path will be: $BACKEND_PATH"
-
-      - name: Prepare backend migrations
-        run: |
-          mkdir -p back/supabase/migrations
-          cp -r base/supabase/migrations/* back/supabase/migrations/ || true
-
-      - name: Deploy frontend via rsync
-        run: |
-          rsync -avz --delete -e "ssh -i ~/.ssh/deploy_key -p $SSH_PORT" dist/ "$SSH_USER@$SSH_HOST:$DEPLOY_PATH"
-        env:
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_PORT: ${{ secrets.SSH_PORT }}
-          SSH_USER: ${{ secrets.SSH_USER }}
-          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
-
-      - name: Deploy admin panel via rsync
-        run: |
-          ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "mkdir -p /var/www/lumon2/dist-admin"
-          rsync -avz --delete -e "ssh -i ~/.ssh/deploy_key -p $SSH_PORT" dist-admin/ "$SSH_USER@$SSH_HOST:/var/www/lumon2/dist-admin/"
-        env:
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_PORT: ${{ secrets.SSH_PORT }}
-          SSH_USER: ${{ secrets.SSH_USER }}
-
-      - name: Ensure remote backend directory exists
-        run: |
-          ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "mkdir -p ${{ steps.backend_path.outputs.path }}"
-        env:
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_PORT: ${{ secrets.SSH_PORT }}
-          SSH_USER: ${{ secrets.SSH_USER }}
-
-      - name: Deploy backend via rsync
-        run: |
-          rsync -avz --delete -e "ssh -i ~/.ssh/deploy_key -p $SSH_PORT" back/ "$SSH_USER@$SSH_HOST:${{ steps.backend_path.outputs.path }}"
-        env:
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_PORT: ${{ secrets.SSH_PORT }}
-          SSH_USER: ${{ secrets.SSH_USER }}
-
-      - name: Setup .env file on server
-        run: |
-          ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "cd ${{ steps.backend_path.outputs.path }} && if [ -f .env.production ]; then cp .env.production .env; elif [ ! -f .env ]; then cp env.example .env; fi && echo 'N8N_SECURE_COOKIE=false' >> .env && sort -u .env -o .env"
-        env:
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_PORT: ${{ secrets.SSH_PORT }}
-          SSH_USER: ${{ secrets.SSH_USER }}
-
-      - name: Deploy backend services with Docker Compose (Supabase + n8n)
-        run: |
-          ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "cd ${{ steps.backend_path.outputs.path }} && DOCKER_BUILDKIT=1 docker compose up -d --build" || {
-            echo "⚠️ Docker Compose deployment failed, checking if services are already running..."
-            ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "cd ${{ steps.backend_path.outputs.path }} && docker compose ps"
-            exit 0
-          }
-        env:
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_PORT: ${{ secrets.SSH_PORT }}
-          SSH_USER: ${{ secrets.SSH_USER }}
-
-      - name: Deploy NestJS API - Install and Build
-        run: |
-          ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "bash -lc 'cd ${{ steps.backend_path.outputs.path }}/api && \
-            ([ -f .env ] || ([ -f .env.server.example ] && cp .env.server.example .env) || cp .env.example .env) && \
-            npm ci && \
-            npm run build'"
-        env:
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_PORT: ${{ secrets.SSH_PORT }}
-          SSH_USER: ${{ secrets.SSH_USER }}
-
-      - name: Deploy NestJS API - Restart Service
-        continue-on-error: true
-        run: |
-          ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "\
-            cd ${{ steps.backend_path.outputs.path }}/api && \
-            if command -v systemctl > /dev/null 2>&1; then \
-              if systemctl is-active --quiet lumon-api 2>/dev/null; then \
-                sudo systemctl restart lumon-api || echo '⚠️ systemctl restart failed'; \
-              else \
-                sudo cp lumon-api.service /etc/systemd/system/ && \
-                sudo systemctl daemon-reload && \
-                sudo systemctl enable lumon-api && \
-                sudo systemctl start lumon-api || echo '⚠️ systemctl start failed'; \
-              fi; \
-            elif command -v pm2 > /dev/null 2>&1; then \
-              pm2 delete lumon-api 2>/dev/null || true && \
-              pm2 start ecosystem.config.js && \
-              pm2 save; \
-            else \
-              echo '⚠️ Neither systemd nor PM2 available - skipping service restart'; \
-            fi"
-        env:
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_PORT: ${{ secrets.SSH_PORT }}
-          SSH_USER: ${{ secrets.SSH_USER }}
-
-      - name: Update nginx configuration
-        continue-on-error: true
-        run: |
-          ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "sudo cp ${{ steps.backend_path.outputs.path }}/api/nginx-lumon-api.conf /etc/nginx/sites-available/nginx-lumon-api.conf && \
-            sudo ln -sf /etc/nginx/sites-available/nginx-lumon-api.conf /etc/nginx/sites-enabled/ && \
-            sudo nginx -t && \
-            sudo systemctl reload nginx || echo '⚠️ Nginx reload failed'"
-        env:
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_PORT: ${{ secrets.SSH_PORT }}
-          SSH_USER: ${{ secrets.SSH_USER }}
-
-      - name: Wait for NestJS API to be ready
-        run: |
-          echo "⏳ Ждем запуска NestJS API (30 секунд)..."
-          sleep 30
-          ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "curl -f http://localhost:3000/health || echo '⚠️ API еще не готов (будет готов через минуту)'"
-        env:
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_PORT: ${{ secrets.SSH_PORT }}
-          SSH_USER: ${{ secrets.SSH_USER }}
-
-      - name: Smoke tests - проверка всех доменов
-        continue-on-error: true
-        run: |
-          echo "🧪 Запуск smoke-тестов..."
-
-          DOMAINS=(
-            "https://psayha.ru"
-            "https://n8n.psayha.ru"
-            "https://sb.psayha.ru"
-            "https://admin.psayha.ru"
-          )
-          
-          FAILED=0
-          
-          for DOMAIN in "${DOMAINS[@]}"; do
-            echo ""
-            echo "Проверка $DOMAIN..."
-            
-            # Проверка доступности
-            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$DOMAIN" || echo "000")
-            
-            if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "301" ] || [ "$HTTP_CODE" = "302" ] || [ "$HTTP_CODE" = "307" ] || [ "$HTTP_CODE" = "403" ]; then
-              echo "✅ $DOMAIN - OK (HTTP $HTTP_CODE)"
-            else
-              echo "❌ $DOMAIN - FAILED (HTTP $HTTP_CODE)"
-              FAILED=$((FAILED + 1))
-            fi
-            
-            # Проверка SSL сертификата
-            SSL_CHECK=$(curl -s -o /dev/null -w "%{ssl_verify_result}" --max-time 10 "$DOMAIN" || echo "1")
-            if [ "$SSL_CHECK" = "0" ]; then
-              echo "   ✅ SSL сертификат валиден"
-            else
-              echo "   ⚠️ SSL сертификат: код $SSL_CHECK"
-            fi
-          done
-          
-          echo ""
-          if [ $FAILED -eq 0 ]; then
-            echo "✅ Все smoke-тесты пройдены!"
-          else
-            echo "❌ Провалено тестов: $FAILED"
-            exit 1
-          fi
-        env:
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_PORT: ${{ secrets.SSH_PORT }}
-          SSH_USER: ${{ secrets.SSH_USER }}
-
+            echo "✅ Deployment script finished"
