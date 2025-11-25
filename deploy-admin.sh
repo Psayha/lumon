@@ -25,7 +25,7 @@ fi
 # Переменные
 PROJECT_DIR="/home/user/lumon"
 WEBROOT="/var/www/lumon2"
-BRANCH="claude/audit-build-process-019ziFnLhaYzsNk3yrSkrVSn"
+BRANCH="main"
 
 echo -e "${YELLOW}📂 Рабочая директория: ${PROJECT_DIR}${NC}"
 echo -e "${YELLOW}🌐 Веб-сервер: ${WEBROOT}${NC}"
@@ -63,6 +63,9 @@ echo ""
 
 # 3. Сборка админки
 echo -e "${GREEN}[3/7]${NC} 🏗️  Сборка админ-панели..."
+# Создание .env.production для корректного API URL
+echo "VITE_API_URL=https://psayha.ru" > .env.production
+
 npm run build
 echo -e "${GREEN}✓${NC} Сборка завершена"
 echo ""
