@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { RefreshCw, CheckCircle, XCircle, AlertCircle, Server, Cpu, HardDrive, MemoryStick, TrendingUp } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { RefreshCw, CheckCircle, XCircle, AlertCircle, Server, Cpu, HardDrive, MemoryStick, Database, Terminal } from 'lucide-react';
 import { useToast } from '../components/Toast';
 import { adminApiRequest, ADMIN_API_CONFIG } from '../config/api';
 
@@ -15,264 +15,162 @@ interface SystemMetrics {
   disk_usage_percent: number;
 }
 
-interface HealthCheck {
-  service_name: string;
-  status: string;
-  response_time_ms?: number;
-  error_message?: string;
-  checked_at: string;
-  metrics?: SystemMetrics;
+interface DatabaseTable {
+  schema: string;
+  table_name: string;
+  row_count: string;
+  total_size: string;
 }
 
-interface SystemStatus {
-  overall_status: string;
-  services_status: Record<string, string>;
-  last_checked_at: string;
-  system_metrics?: SystemMetrics;
+interface LogEntry {
+  timestamp: string;
+  level?: string;
+  message: string;
+  context?: string;
+  [key: string]: any;
 }
 
 interface HealthCheckResponse {
-  system_status?: SystemStatus;
-  health_checks?: HealthCheck[];
-  system_metrics?: SystemMetrics;
+  system_status?: {
+    overall_status: string;
+    services_status: Record<string, string>;
+    last_checked_at: string;
+    system_metrics?: SystemMetrics;
+  };
+  database_stats?: {
+    tables: DatabaseTable[];
+    total_size: string;
+  };
+  recent_logs?: LogEntry[];
 }
 
 export const HealthChecksTab: React.FC = () => {
-  const [systemStatus, setSystemStatus] = useState<SystemStatus | null>(null);
-  const [healthChecks, setHealthChecks] = useState<HealthCheck[]>([]);
-  const [_isLoading, _setIsLoading] = useState(true);
+  const [data, setData] = useState<HealthCheckResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [isChecking, setIsChecking] = useState(false);
   const { showToast } = useToast();
+  const logsEndRef = useRef<HTMLDivElement>(null);
 
   const loadHealthChecks = async () => {
-    _setIsLoading(true);
+    setIsLoading(true);
     try {
-      const data = await adminApiRequest<HealthCheckResponse>(ADMIN_API_CONFIG.endpoints.healthCheckList);
-      if (data.success && data.data) {
-        if (data.data.system_status) {
-          setSystemStatus(data.data.system_status);
-        }
-        if (Array.isArray(data.data.health_checks)) {
-          setHealthChecks(data.data.health_checks);
-        } else if (data.data.health_checks) {
-             console.error('Expected array for health_checks but got:', data.data.health_checks);
-             setHealthChecks([]);
-        }
+      const response = await adminApiRequest<HealthCheckResponse>(ADMIN_API_CONFIG.endpoints.healthCheckList);
+      if (response.success && response.data) {
+        setData(response.data);
       } else {
-        showToast('error', data.message || 'Не удалось загрузить health checks');
+        showToast('error', response.message || 'Не удалось загрузить данные');
       }
-    } catch (_error) {
-      showToast('error', 'Ошибка при загрузке health checks');
+    } catch (error) {
+      showToast('error', 'Ошибка при загрузке данных');
     } finally {
-      _setIsLoading(false);
+      setIsLoading(false);
     }
   };
 
   useEffect(() => {
     loadHealthChecks();
+    // Auto-refresh every 30 seconds
+    const interval = setInterval(loadHealthChecks, 30000);
+    return () => clearInterval(interval);
   }, []);
+
+  // Scroll logs to bottom on update
+  useEffect(() => {
+    if (logsEndRef.current) {
+      logsEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [data?.recent_logs]);
 
   const handleCheckAll = async () => {
     setIsChecking(true);
     try {
-      const data = await adminApiRequest(ADMIN_API_CONFIG.endpoints.healthCheck, {
+      const response = await adminApiRequest(ADMIN_API_CONFIG.endpoints.healthCheck, {
         method: 'POST',
         body: JSON.stringify({ service: 'all' }),
       });
-      if (data.success) {
+      if (response.success) {
         await loadHealthChecks();
         showToast('success', 'Проверка завершена');
       } else {
-        showToast('error', data.message || 'Не удалось выполнить проверку');
+        showToast('error', response.message || 'Не удалось выполнить проверку');
       }
-    } catch (_error) {
+    } catch (error) {
       showToast('error', 'Ошибка при проверке здоровья системы');
     } finally {
       setIsChecking(false);
     }
   };
 
-  const handleCheckService = async (serviceName: string) => {
-    try {
-      const data = await adminApiRequest(ADMIN_API_CONFIG.endpoints.healthCheck, {
-        method: 'POST',
-        body: JSON.stringify({ service: serviceName }),
-      });
-      if (data.success) {
-        await loadHealthChecks();
-        showToast('success', `Проверка ${serviceName} завершена`);
-      } else {
-        showToast('error', data.message || 'Не удалось выполнить проверку');
-      }
-    } catch (_error) {
-      showToast('error', 'Ошибка при проверке сервиса');
-    }
-  };
-
-  // Получить историю метрик для графиков
-  const getMetricsHistory = () => {
-    const systemChecks = healthChecks
-      .filter((check) => check.service_name === 'system' && check.metrics)
-      .sort((a, b) => new Date(a.checked_at).getTime() - new Date(b.checked_at).getTime())
-      .slice(-20); // Последние 20 проверок
-
-    return {
-      cpu: systemChecks.map((check) => ({
-        value: check.metrics?.cpu_usage_percent || 0,
-        time: new Date(check.checked_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
-      })),
-      memory: systemChecks.map((check) => ({
-        value: check.metrics?.memory_usage_percent || 0,
-        time: new Date(check.checked_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
-      })),
-      disk: systemChecks.map((check) => ({
-        value: check.metrics?.disk_usage_percent || 0,
-        time: new Date(check.checked_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
-      })),
-    };
-  };
-
-  const metricsHistory = getMetricsHistory();
-
-  const renderChart = (data: Array<{ value: number; time: string }>, color: string, label: string) => {
-    if (data.length === 0) return null;
-
-    const maxValue = Math.max(...data.map((d) => d.value), 100);
-    const chartHeight = 100;
-
-    return (
-      <div className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-        <div className="flex items-center gap-2 mb-3">
-          <TrendingUp className="w-4 h-4 text-gray-500" />
-          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{label}</span>
-        </div>
-        <div className="relative" style={{ height: `${chartHeight}px` }}>
-          <svg width="100%" height={chartHeight} className="overflow-visible">
-            <polyline
-              points={data
-                .map((d, i) => {
-                  const x = (i / (data.length - 1 || 1)) * 100;
-                  const y = chartHeight - (d.value / maxValue) * chartHeight;
-                  return `${x}%,${y}`;
-                })
-                .join(' ')}
-              fill="none"
-              stroke={color}
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-            {data.map((d, i) => {
-              const x = (i / (data.length - 1 || 1)) * 100;
-              const y = chartHeight - (d.value / maxValue) * chartHeight;
-              return (
-                <circle
-                  key={i}
-                  cx={`${x}%`}
-                  cy={y}
-                  r="3"
-                  fill={color}
-                  className="hover:r-4 transition-all"
-                />
-              );
-            })}
-          </svg>
-          <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
-            <span>{data[0]?.time}</span>
-            <span>{data[data.length - 1]?.time}</span>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'healthy':
-        return <CheckCircle className="w-5 h-5 text-green-500" />;
-      case 'unhealthy':
-        return <XCircle className="w-5 h-5 text-red-500" />;
-      case 'degraded':
-        return <AlertCircle className="w-5 h-5 text-yellow-500" />;
-      default:
-        return <AlertCircle className="w-5 h-5 text-gray-500" />;
+      case 'healthy': return <CheckCircle className="w-5 h-5 text-green-500" />;
+      case 'unhealthy': return <XCircle className="w-5 h-5 text-red-500" />;
+      case 'degraded': return <AlertCircle className="w-5 h-5 text-yellow-500" />;
+      default: return <AlertCircle className="w-5 h-5 text-gray-500" />;
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'healthy':
-        return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
-      case 'unhealthy':
-        return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
-      case 'degraded':
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400';
-      default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
+      case 'healthy': return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
+      case 'unhealthy': return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
+      case 'degraded': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400';
+      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
     }
   };
 
-  const services = ['n8n', 'postgresql', 'nginx', 'supabase-studio'];
+  if (isLoading && !data) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <RefreshCw className="w-8 h-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
+
+  const metrics = data?.system_status?.system_metrics;
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Health Checks</h2>
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">System Health & Monitoring</h2>
         <button
           onClick={handleCheckAll}
           disabled={isChecking}
           className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
         >
-          {isChecking ? (
-            <>
-              <RefreshCw className="w-4 h-4 animate-spin" />
-              Проверка...
-            </>
-          ) : (
-            <>
-              <RefreshCw className="w-4 h-4" />
-              Проверить все
-            </>
-          )}
+          {isChecking ? <RefreshCw className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+          {isChecking ? 'Checking...' : 'Refresh All'}
         </button>
       </div>
 
-      {systemStatus && (
+      {/* System Status & Metrics */}
+      {data?.system_status && (
         <div className="bg-white dark:bg-slate-800 rounded-lg shadow p-6">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
               <Server className="w-5 h-5" />
-              Общий статус системы
+              System Status
             </h3>
-            <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(systemStatus.overall_status)}`}>
-              {systemStatus.overall_status}
+            <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(data.system_status.overall_status)}`}>
+              {data.system_status.overall_status.toUpperCase()}
             </span>
           </div>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-            Последняя проверка: {new Date(systemStatus.last_checked_at).toLocaleString('ru-RU')}
-          </p>
-          
-          {systemStatus.system_metrics && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+
+          {metrics && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* CPU */}
               <div className="bg-gray-50 dark:bg-slate-700 rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Cpu className="w-4 h-4 text-blue-500" />
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">CPU</span>
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">CPU Usage</span>
                 </div>
                 <div className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {systemStatus.system_metrics.cpu_usage_percent.toFixed(1)}%
+                  {metrics.cpu_usage_percent.toFixed(1)}%
                 </div>
                 <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-2 mt-2">
                   <div
-                    className={`h-2 rounded-full ${
-                      systemStatus.system_metrics.cpu_usage_percent > 80
-                        ? 'bg-red-500'
-                        : systemStatus.system_metrics.cpu_usage_percent > 60
-                        ? 'bg-yellow-500'
-                        : 'bg-green-500'
-                    }`}
-                    style={{ width: `${Math.min(systemStatus.system_metrics.cpu_usage_percent, 100)}%` }}
+                    className={`h-2 rounded-full transition-all duration-500 ${metrics.cpu_usage_percent > 80 ? 'bg-red-500' : metrics.cpu_usage_percent > 60 ? 'bg-yellow-500' : 'bg-green-500'}`}
+                    style={{ width: `${Math.min(metrics.cpu_usage_percent, 100)}%` }}
                   />
                 </div>
               </div>
@@ -281,24 +179,18 @@ export const HealthChecksTab: React.FC = () => {
               <div className="bg-gray-50 dark:bg-slate-700 rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <MemoryStick className="w-4 h-4 text-purple-500" />
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Память</span>
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Memory</span>
                 </div>
                 <div className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {systemStatus.system_metrics.memory_usage_percent.toFixed(1)}%
+                  {metrics.memory_usage_percent.toFixed(1)}%
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  {systemStatus.system_metrics.memory_used_mb} MB / {systemStatus.system_metrics.memory_total_mb} MB
+                  {metrics.memory_used_mb} MB / {metrics.memory_total_mb} MB
                 </div>
                 <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-2 mt-2">
                   <div
-                    className={`h-2 rounded-full ${
-                      systemStatus.system_metrics.memory_usage_percent > 80
-                        ? 'bg-red-500'
-                        : systemStatus.system_metrics.memory_usage_percent > 60
-                        ? 'bg-yellow-500'
-                        : 'bg-green-500'
-                    }`}
-                    style={{ width: `${Math.min(systemStatus.system_metrics.memory_usage_percent, 100)}%` }}
+                    className={`h-2 rounded-full transition-all duration-500 ${metrics.memory_usage_percent > 80 ? 'bg-red-500' : metrics.memory_usage_percent > 60 ? 'bg-yellow-500' : 'bg-green-500'}`}
+                    style={{ width: `${Math.min(metrics.memory_usage_percent, 100)}%` }}
                   />
                 </div>
               </div>
@@ -307,94 +199,110 @@ export const HealthChecksTab: React.FC = () => {
               <div className="bg-gray-50 dark:bg-slate-700 rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <HardDrive className="w-4 h-4 text-green-500" />
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Диск</span>
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Disk</span>
                 </div>
                 <div className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {systemStatus.system_metrics.disk_usage_percent.toFixed(1)}%
+                  {metrics.disk_usage_percent.toFixed(1)}%
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  {systemStatus.system_metrics.disk_used_gb} GB / {systemStatus.system_metrics.disk_total_gb} GB
+                  {metrics.disk_used_gb} GB / {metrics.disk_total_gb} GB
                 </div>
                 <div className="w-full bg-gray-200 dark:bg-slate-600 rounded-full h-2 mt-2">
                   <div
-                    className={`h-2 rounded-full ${
-                      systemStatus.system_metrics.disk_usage_percent > 80
-                        ? 'bg-red-500'
-                        : systemStatus.system_metrics.disk_usage_percent > 60
-                        ? 'bg-yellow-500'
-                        : 'bg-green-500'
-                    }`}
-                    style={{ width: `${Math.min(systemStatus.system_metrics.disk_usage_percent, 100)}%` }}
+                    className={`h-2 rounded-full transition-all duration-500 ${metrics.disk_usage_percent > 80 ? 'bg-red-500' : metrics.disk_usage_percent > 60 ? 'bg-yellow-500' : 'bg-green-500'}`}
+                    style={{ width: `${Math.min(metrics.disk_usage_percent, 100)}%` }}
                   />
                 </div>
               </div>
             </div>
           )}
-        </div>
-      )}
 
-      {/* Графики метрик */}
-      {metricsHistory.cpu.length > 0 && (
-        <div className="mt-6">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">История метрик</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {renderChart(metricsHistory.cpu, '#3b82f6', 'CPU')}
-            {renderChart(metricsHistory.memory, '#a855f7', 'Память')}
-            {renderChart(metricsHistory.disk, '#10b981', 'Диск')}
+          {/* Services Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+            {Object.entries(data.system_status.services_status).map(([service, status]) => (
+              <div key={service} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-700 rounded-lg">
+                <span className="font-medium text-gray-700 dark:text-gray-300 capitalize">{service}</span>
+                <div className="flex items-center gap-2">
+                  {getStatusIcon(status)}
+                  <span className={`text-xs px-2 py-1 rounded ${getStatusColor(status)}`}>{status}</span>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-        {services.map((service) => {
-          const serviceStatus = systemStatus?.services_status[service] || 'unknown';
-          const latestCheck = healthChecks
-            .filter((check) => check.service_name === service)
-            .sort((a, b) => new Date(b.checked_at).getTime() - new Date(a.checked_at).getTime())[0];
-
-          return (
-            <div
-              key={service}
-              className="bg-white dark:bg-slate-800 rounded-lg shadow p-6"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white capitalize">
-                  {service}
-                </h3>
-                <div className="flex items-center gap-2">
-                  {getStatusIcon(serviceStatus)}
-                  <span className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(serviceStatus)}`}>
-                    {serviceStatus}
-                  </span>
-                </div>
-              </div>
-              {latestCheck && (
-                <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
-                  {latestCheck.response_time_ms && (
-                    <p>Время ответа: {latestCheck.response_time_ms} мс</p>
-                  )}
-                  {latestCheck.error_message && (
-                    <p className="text-red-600 dark:text-red-400">
-                      Ошибка: {latestCheck.error_message}
-                    </p>
-                  )}
-                  <p className="text-xs">
-                    Проверено: {new Date(latestCheck.checked_at).toLocaleString('ru-RU')}
-                  </p>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Database Statistics */}
+        {data?.database_stats && (
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <Database className="w-5 h-5" />
+                Database Statistics
+              </h3>
+              <span className="text-sm text-gray-500 dark:text-gray-400">
+                Total Size: {data.database_stats.total_size}
+              </span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-slate-700 dark:text-gray-400">
+                  <tr>
+                    <th className="px-4 py-2">Table</th>
+                    <th className="px-4 py-2 text-right">Rows</th>
+                    <th className="px-4 py-2 text-right">Size</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.database_stats.tables.slice(0, 10).map((table) => (
+                    <tr key={table.table_name} className="border-b dark:border-gray-700">
+                      <td className="px-4 py-2 font-medium text-gray-900 dark:text-white">{table.table_name}</td>
+                      <td className="px-4 py-2 text-right">{parseInt(table.row_count).toLocaleString()}</td>
+                      <td className="px-4 py-2 text-right">{table.total_size}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {data.database_stats.tables.length > 10 && (
+                <div className="text-center mt-2 text-xs text-gray-500">
+                  Showing top 10 of {data.database_stats.tables.length} tables
                 </div>
               )}
-              <button
-                onClick={() => handleCheckService(service)}
-                className="mt-4 w-full px-4 py-2 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-600 flex items-center justify-center gap-2"
-              >
-                <RefreshCw className="w-4 h-4" />
-                Проверить
-              </button>
             </div>
-          );
-        })}
+          </div>
+        )}
+
+        {/* System Logs */}
+        {data?.recent_logs && (
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow p-6 flex flex-col h-[500px]">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <Terminal className="w-5 h-5" />
+                Live System Logs
+              </h3>
+              <span className="text-xs text-gray-500">Last 50 lines</span>
+            </div>
+            <div className="flex-1 overflow-y-auto bg-gray-900 rounded-lg p-4 font-mono text-xs text-gray-300 space-y-1">
+              {data.recent_logs.length === 0 ? (
+                <div className="text-gray-500 italic">No logs available</div>
+              ) : (
+                data.recent_logs.map((log, index) => (
+                  <div key={index} className="break-all hover:bg-gray-800 p-0.5 rounded">
+                    <span className="text-gray-500">[{new Date(log.timestamp).toLocaleTimeString()}]</span>{' '}
+                    <span className={log.level === 'error' ? 'text-red-400' : log.level === 'warn' ? 'text-yellow-400' : 'text-green-400'}>
+                      {log.level?.toUpperCase() || 'INFO'}
+                    </span>{' '}
+                    <span className="text-white">{log.message}</span>
+                    {log.context && <span className="text-purple-400 ml-2">({log.context})</span>}
+                  </div>
+                ))
+              )}
+              <div ref={logsEndRef} />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
 };
-

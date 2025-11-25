@@ -775,25 +775,29 @@ export class AdminService {
   /**
    * List health checks
    */
+  /**
+   * List health checks
+   */
   async listHealthChecks() {
-    // В production версии здесь можно хранить health checks в БД
-    // Для демо возвращаем базовые метрики системы
     const systemMetrics = await this.getSystemMetrics();
+    const dbStats = await this.getDatabaseStats();
+    const recentLogs = await this.getRecentLogs(50);
 
     return {
       success: true,
       data: {
         system_status: {
-          overall_status: systemMetrics.cpu_usage_percent < 80 && systemMetrics.memory_usage_percent < 80 ? 'healthy' : 'degraded',
+          overall_status: systemMetrics.cpu_usage_percent < 90 && systemMetrics.memory_usage_percent < 90 ? 'healthy' : 'degraded',
           services_status: {
-            n8n: 'healthy',
+            api: 'healthy',
             postgresql: 'healthy',
-            nginx: 'healthy',
-            'supabase-studio': 'healthy',
+            redis: 'unknown', // If we add Redis later
           },
           last_checked_at: new Date().toISOString(),
           system_metrics: systemMetrics,
         },
+        database_stats: dbStats,
+        recent_logs: recentLogs,
         health_checks: [],
       },
     };
@@ -802,14 +806,31 @@ export class AdminService {
   /**
    * Run health check for specific service or all services
    */
+  /**
+   * Run health check for specific service or all services
+   */
   async runHealthCheck(service: string) {
     const systemMetrics = await this.getSystemMetrics();
+
+    // Check specific services
+    let status = 'healthy';
+    let errorMessage = undefined;
+
+    if (service === 'postgresql' || service === 'all') {
+      try {
+        await this.userRepository.query('SELECT 1');
+      } catch (e) {
+        status = 'unhealthy';
+        errorMessage = 'Database connection failed';
+      }
+    }
 
     return {
       success: true,
       data: {
         service,
-        status: 'healthy',
+        status,
+        error_message: errorMessage,
         checked_at: new Date().toISOString(),
         metrics: systemMetrics,
       },
@@ -818,27 +839,122 @@ export class AdminService {
   }
 
   /**
-   * Get system metrics
+   * Get system metrics using systeminformation
    */
   private async getSystemMetrics() {
-    // В production версии здесь можно использовать системные команды для получения реальных метрик
-    // Для демо возвращаем моковые данные
-    const totalMemoryMB = 8192; // 8GB
-    const usedMemoryMB = 4096; // 4GB
-    const totalDiskGB = 500;
-    const usedDiskGB = 150;
+    try {
+      // Dynamic import for systeminformation to avoid build issues if optional deps are missing
+      const si = await import('systeminformation');
+      
+      const [cpu, mem, fsSize] = await Promise.all([
+        si.currentLoad(),
+        si.mem(),
+        si.fsSize(),
+      ]);
 
-    return {
-      cpu_usage_percent: Math.random() * 30 + 10, // 10-40%
-      memory_total_mb: totalMemoryMB,
-      memory_used_mb: usedMemoryMB,
-      memory_available_mb: totalMemoryMB - usedMemoryMB,
-      memory_usage_percent: (usedMemoryMB / totalMemoryMB) * 100,
-      disk_total_gb: totalDiskGB,
-      disk_used_gb: usedDiskGB,
-      disk_available_gb: totalDiskGB - usedDiskGB,
-      disk_usage_percent: (usedDiskGB / totalDiskGB) * 100,
-    };
+      // Get main disk (usually mounted on /)
+      const mainDisk = fsSize.find(d => d.mount === '/') || fsSize[0];
+
+      return {
+        cpu_usage_percent: cpu.currentLoad,
+        memory_total_mb: Math.round(mem.total / 1024 / 1024),
+        memory_used_mb: Math.round(mem.active / 1024 / 1024),
+        memory_available_mb: Math.round(mem.available / 1024 / 1024),
+        memory_usage_percent: (mem.active / mem.total) * 100,
+        disk_total_gb: Math.round(mainDisk.size / 1024 / 1024 / 1024),
+        disk_used_gb: Math.round(mainDisk.used / 1024 / 1024 / 1024),
+        disk_available_gb: Math.round((mainDisk.size - mainDisk.used) / 1024 / 1024 / 1024),
+        disk_usage_percent: mainDisk.use,
+      };
+    } catch (error) {
+      console.error('Failed to get system metrics:', error);
+      // Fallback to basic process metrics
+      const memUsage = process.memoryUsage();
+      return {
+        cpu_usage_percent: 0,
+        memory_total_mb: Math.round(memUsage.heapTotal / 1024 / 1024),
+        memory_used_mb: Math.round(memUsage.heapUsed / 1024 / 1024),
+        memory_available_mb: 0,
+        memory_usage_percent: 0,
+        disk_total_gb: 0,
+        disk_used_gb: 0,
+        disk_available_gb: 0,
+        disk_usage_percent: 0,
+      };
+    }
+  }
+
+  /**
+   * Get database statistics
+   */
+  async getDatabaseStats() {
+    try {
+      // Get table sizes and row counts
+      const stats = await this.userRepository.query(`
+        SELECT
+          schemaname as schema,
+          relname as table_name,
+          n_live_tup as row_count,
+          pg_size_pretty(pg_total_relation_size(relid)) as total_size
+        FROM pg_stat_user_tables
+        ORDER BY n_live_tup DESC;
+      `);
+
+      // Get database size
+      const dbSize = await this.userRepository.query(`
+        SELECT pg_size_pretty(pg_database_size(current_database())) as size;
+      `);
+
+      return {
+        tables: stats,
+        total_size: dbSize[0]?.size || 'Unknown',
+      };
+    } catch (error) {
+      console.error('Failed to get DB stats:', error);
+      return { tables: [], total_size: 'Error' };
+    }
+  }
+
+  /**
+   * Get recent application logs
+   */
+  async getRecentLogs(lines = 100) {
+    const logFile = path.join(process.cwd(), 'logs', 'app.log');
+    
+    if (!fs.existsSync(logFile)) {
+      return [];
+    }
+
+    try {
+      // Read last N bytes to avoid reading huge files
+      // Assuming average line length ~200 bytes
+      const bufferSize = lines * 300; 
+      const stats = fs.statSync(logFile);
+      const start = Math.max(0, stats.size - bufferSize);
+      
+      const buffer = Buffer.alloc(Math.min(bufferSize, stats.size));
+      const fd = fs.openSync(logFile, 'r');
+      fs.readSync(fd, buffer, 0, buffer.length, start);
+      fs.closeSync(fd);
+
+      const content = buffer.toString('utf-8');
+      // Split by newline and parse JSON lines
+      return content
+        .split('\n')
+        .filter(line => line.trim())
+        .map(line => {
+          try {
+            return JSON.parse(line);
+          } catch {
+            return { message: line, timestamp: new Date().toISOString() };
+          }
+        })
+        .reverse() // Newest first
+        .slice(0, lines);
+    } catch (error) {
+      console.error('Failed to read logs:', error);
+      return [];
+    }
   }
 
   /**
