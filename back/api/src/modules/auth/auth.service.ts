@@ -128,6 +128,11 @@ export class AuthService {
       throw new UnauthorizedException('Session expired');
     }
 
+    // Check if legal documents are accepted
+    if (!session.user.legal_accepted_at) {
+      throw new ForbiddenException('Legal documents not accepted');
+    }
+
     // Fetch role from user_companies table
     const roleData = await this.getUserRoleAndCompany(session.user_id);
 
