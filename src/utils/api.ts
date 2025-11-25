@@ -708,3 +708,62 @@ export const trackEvent = async (event: AnalyticsEvent): Promise<ApiResponse<voi
   }
 };
 
+// Agent Types
+export interface Agent {
+  id: string;
+  name: string;
+  description?: string;
+  model: string;
+  system_prompt?: string;
+  temperature: number;
+  is_active: boolean;
+  is_default: boolean;
+  is_public: boolean;
+  quick_commands?: { label: string; prompt: string; icon: string }[];
+  created_at: string;
+}
+
+export interface GetDefaultAgentResponse {
+  success: boolean;
+  data: Agent;
+}
+
+// Get default agent
+export const getDefaultAgent = async (): Promise<ApiResponse<Agent>> => {
+  try {
+    const response = await fetchWithRetry(
+      getApiUrl(API_CONFIG.endpoints.agentsGetDefault),
+      {
+        method: 'GET',
+        headers: getDefaultHeaders(),
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      let errorMessage = `HTTP error! status: ${response.status}`;
+      try {
+        const errorJson = JSON.parse(errorText) as ApiErrorResponse;
+        errorMessage = errorJson.message || errorJson.error || errorMessage;
+      } catch {
+        errorMessage = errorText || errorMessage;
+      }
+      throw new Error(errorMessage);
+    }
+
+    const data = await response.json() as GetDefaultAgentResponse;
+    
+    if (!data.success || !data.data) {
+      throw new Error('Invalid response: missing success or data');
+    }
+    
+    return { success: true, data: data.data };
+  } catch (error) {
+    const errorMessage = getErrorMessage(error, 'Не удалось загрузить настройки ассистента');
+    logger.error('Error fetching default agent:', error);
+    return {
+      success: false,
+      error: errorMessage,
+    };
+  }
+};

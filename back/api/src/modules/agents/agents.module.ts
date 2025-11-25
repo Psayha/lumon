@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AgentsService } from './agents.service';
 import { AgentsController } from './agents.controller';
+import { AgentsPublicController } from './agents.public.controller';
 import { Agent, AdminSession, Session, UserCompany } from '@entities';
 import { ConfigModule } from '@nestjs/config';
 
@@ -10,7 +11,7 @@ import { ConfigModule } from '@nestjs/config';
     TypeOrmModule.forFeature([Agent, AdminSession, Session, UserCompany]),
     ConfigModule,
   ],
-  controllers: [AgentsController],
+  controllers: [AgentsController, AgentsPublicController],
   providers: [AgentsService],
   exports: [AgentsService],
 })

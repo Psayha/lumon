@@ -90,6 +90,7 @@ interface AnimatedAIChatProps {
     chatId?: string | null;
     onMessageSave?: (message: string, role: 'user' | 'assistant', messageId?: string) => Promise<void>;
     onChatIdChange?: (chatId: string | null) => void;
+    quickCommands?: { label: string; prompt: string; icon: string }[];
 }
 
 export function AnimatedAIChat({ 
@@ -100,7 +101,8 @@ export function AnimatedAIChat({
     onRecognizingChange,
     chatId,
     onMessageSave,
-    onChatIdChange
+    onChatIdChange,
+    quickCommands = []
 }: AnimatedAIChatProps) {
     const [value, setValue] = useState("");
     const [messages, setMessages] = useState<Message[]>([]);
@@ -210,32 +212,40 @@ export function AnimatedAIChat({
     const isListening = externalIsListening ?? false;
     const isRecognizing = externalIsRecognizing ?? false;
 
-    const commandSuggestions: CommandSuggestion[] = [
-        { 
-            prefix: "/resume",
-            label: "Создать резюме",
-            icon: <FileText className="w-4 h-4" />, 
-            description: "Помощь в создании профессионального резюме"
-        },
-        { 
-            prefix: "/kpi",
-            label: "Анализ KPI",
-            icon: <BarChart3 className="w-4 h-4" />, 
-            description: "Анализ ключевых показателей эффективности"
-        },
-        { 
-            prefix: "/sales",
-            label: "Скрипты продаж",
-            icon: <MessageSquare className="w-4 h-4" />, 
-            description: "Оптимизация скриптов для продаж"
-        },
-        { 
-            prefix: "/quality",
-            label: "Контроль качества",
-            icon: <CheckCircle className="w-4 h-4" />, 
-            description: "Управление качеством процессов"
-        }
-    ];
+    // Map quickCommands to CommandSuggestion format
+    const commandSuggestions: CommandSuggestion[] = quickCommands.length > 0 
+        ? quickCommands.map(cmd => ({
+            prefix: cmd.prompt, // Use prompt as prefix/value
+            label: cmd.label,
+            icon: <MessageSquare className="w-4 h-4" />, // Default icon for now, can be mapped if needed
+            description: cmd.prompt
+        }))
+        : [
+            { 
+                prefix: "/resume",
+                label: "Создать резюме",
+                icon: <FileText className="w-4 h-4" />, 
+                description: "Помощь в создании профессионального резюме"
+            },
+            { 
+                prefix: "/kpi",
+                label: "Анализ KPI",
+                icon: <BarChart3 className="w-4 h-4" />, 
+                description: "Анализ ключевых показателей эффективности"
+            },
+            { 
+                prefix: "/sales",
+                label: "Скрипты продаж",
+                icon: <MessageSquare className="w-4 h-4" />, 
+                description: "Оптимизация скриптов для продаж"
+            },
+            { 
+                prefix: "/quality",
+                label: "Контроль качества",
+                icon: <CheckCircle className="w-4 h-4" />, 
+                description: "Управление качеством процессов"
+            }
+        ];
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
         if (e.key === "Escape") {

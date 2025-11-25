@@ -21,9 +21,26 @@ const VoiceAssistantPage: React.FC = () => {
   const setChatId = useChatStore((state) => state.setChatId);
 
   // Фиксируем страницу - предотвращаем скролл body
+  const [agentCommands, setAgentCommands] = useState<{ label: string; prompt: string; icon: string }[]>([]);
+
   useEffect(() => {
     document.body.style.overflow = 'hidden';
     document.documentElement.style.overflow = 'hidden';
+
+    // Fetch default agent
+    const fetchAgent = async () => {
+      try {
+        const { getDefaultAgent } = await import('../src/utils/api');
+        const response = await getDefaultAgent();
+        if (response.success && response.data?.quick_commands) {
+          setAgentCommands(response.data.quick_commands);
+        }
+      } catch (error) {
+        console.error('Failed to fetch default agent:', error);
+      }
+    };
+
+    fetchAgent();
 
     return () => {
       document.body.style.overflow = '';
@@ -58,6 +75,7 @@ const VoiceAssistantPage: React.FC = () => {
             isRecognizing={isRecognizing}
             onRecognizingChange={setIsRecognizing}
             chatId={chatId}
+            quickCommands={agentCommands}
             onChatIdChange={(newChatId) => {
               console.log('[VoiceAssistantPage] Chat ID changed:', newChatId);
               setChatId(newChatId);

@@ -57,6 +57,9 @@ export const API_CONFIG = {
     createUser: '/webhook/create-user',
     getUser: '/webhook/get-user',
     trackEvent: '/webhook/analytics',
+
+    // Agents
+    agentsGetDefault: '/agents/default',
   },
   
   // Request timeout in milliseconds
