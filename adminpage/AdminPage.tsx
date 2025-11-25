@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Building2, LogOut, Shield, HardDrive, Activity, FileSearch, Users, BarChart3, FlaskConical, Menu, X, Bot } from 'lucide-react';
+import { Building2, LogOut, Shield, HardDrive, Activity, FileSearch, Users, BarChart3, Menu, X, Bot } from 'lucide-react';
 import { AdminLogin } from './components/AdminLogin';
 import { ToastProvider } from './components/Toast';
 import { getAdminApiUrl, ADMIN_API_CONFIG } from './config/api';
@@ -13,7 +13,7 @@ import { HealthChecksTab } from './tabs/HealthChecksTab';
 import { LogsTab } from './tabs/LogsTab';
 import { UsersTab } from './tabs/UsersTab';
 import { AnalyticsTab } from './tabs/AnalyticsTab';
-import { ABTestingTab } from './tabs/ABTestingTab';
+// import { ABTestingTab } from './tabs/ABTestingTab';
 import { AgentsTab } from './tabs/agents/AgentsTab';
 import { KnowledgeBaseTab } from './tabs/knowledge-base/KnowledgeBaseTab';
 
@@ -124,7 +124,7 @@ const AdminPage: React.FC = () => {
     { id: 'logs' as const, label: 'Логи', icon: FileSearch },
     { id: 'users' as const, label: 'Пользователи', icon: Users },
     { id: 'analytics' as const, label: 'Аналитика', icon: BarChart3 },
-    { id: 'ab-testing' as const, label: 'A/B Тесты', icon: FlaskConical },
+    // { id: 'ab-testing' as const, label: 'A/B Тесты', icon: FlaskConical },
   ];
 
   return (
@@ -323,17 +323,7 @@ const AdminPage: React.FC = () => {
                     <AnalyticsTab />
                   </motion.div>
                 )}
-                {activeTab === 'ab-testing' && (
-                  <motion.div
-                    key="ab-testing"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <ABTestingTab />
-                  </motion.div>
-                )}
+
               </AnimatePresence>
             </div>
           </div>

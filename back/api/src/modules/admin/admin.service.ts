@@ -153,6 +153,18 @@ export class AdminService {
       is_active: true,
     });
 
+    // Log audit event
+    this.logAuditEvent({
+      action: 'admin.login',
+      resource_type: 'admin_session',
+      resource_id: sessionToken, // Log the token (or maybe just 'session')? Better not log sensitive token. Let's log 'admin_session'
+      metadata: {
+        username,
+      },
+      ip: ipAddress || 'unknown',
+      user_agent: userAgent || 'unknown',
+    }).catch((err) => console.error('Failed to log audit event:', err));
+
     return {
       success: true,
       data: {
@@ -161,6 +173,30 @@ export class AdminService {
         expires_at: expiresAt,
       },
     };
+  }
+
+  private async logAuditEvent(data: {
+    user_id?: string;
+    action: string;
+    resource_type?: string;
+    resource_id?: string;
+    metadata?: Record<string, any>;
+    ip?: string;
+    user_agent?: string;
+  }) {
+    try {
+      await this.auditRepository.save({
+        user_id: data.user_id,
+        action: data.action,
+        resource_type: data.resource_type,
+        resource_id: data.resource_id,
+        metadata: data.metadata,
+        ip: data.ip,
+        user_agent: data.user_agent,
+      });
+    } catch (error) {
+      console.error('Failed to save audit event:', error);
+    }
   }
 
   /**
@@ -260,6 +296,8 @@ export class AdminService {
         company_id: uc.company_id,
         role: uc.role,
       })) || [],
+      legalAcceptedAt: user.legal_accepted_at,
+      legalVersion: user.legal_version,
     }));
 
     return {
@@ -339,6 +377,13 @@ export class AdminService {
     // Cascade delete will handle sessions, chats, messages, etc.
     await this.userRepository.delete(userId);
 
+    // Log audit event
+    this.logAuditEvent({
+      action: 'admin.user.delete',
+      resource_type: 'user',
+      resource_id: userId,
+    }).catch((err) => console.error('Failed to log audit event:', err));
+
     return {
       success: true,
       message: `User ${userId} deleted successfully`,
@@ -417,6 +462,18 @@ export class AdminService {
       },
     );
 
+    // Log audit event
+    this.logAuditEvent({
+      action: 'admin.user.ban',
+      resource_type: 'user',
+      resource_id: userId,
+      metadata: {
+        company_id: companyId,
+        previous_role: UserRole.MANAGER,
+        new_role: UserRole.VIEWER,
+      },
+    }).catch((err) => console.error('Failed to log audit event:', err));
+
     return {
       success: true,
       message: `User ${userId} has been banned from company ${companyId}. Role changed to viewer, all data deleted.`,
@@ -478,6 +535,18 @@ export class AdminService {
         current_usage: 0,
       });
     }
+
+    // Log audit event
+    this.logAuditEvent({
+      action: 'admin.user.limit_update',
+      resource_type: 'user_limit',
+      resource_id: userLimit.id,
+      metadata: {
+        user_id: userId,
+        limit_type: limitType,
+        limit_value: limitValue,
+      },
+    }).catch((err) => console.error('Failed to log audit event:', err));
 
     return {
       success: true,
@@ -719,6 +788,16 @@ export class AdminService {
 
       // Commit transaction
       await queryRunner.commitTransaction();
+
+      // Log audit event
+      this.logAuditEvent({
+        action: 'admin.user.history_clear',
+        resource_type: 'user',
+        resource_id: userId,
+        metadata: {
+          chats_deleted: chats.length,
+        },
+      }).catch((err) => console.error('Failed to log audit event:', err));
 
       return {
         success: true,

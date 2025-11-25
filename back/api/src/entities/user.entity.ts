@@ -38,6 +38,12 @@ export class User {
   @Column({ type: 'timestamptz', nullable: true })
   last_login_at!: Date;
 
+  @Column({ type: 'timestamptz', nullable: true })
+  legal_accepted_at!: Date;
+
+  @Column({ type: 'varchar', length: 50, nullable: true })
+  legal_version!: string;
+
   @CreateDateColumn({ type: 'timestamptz' })
   created_at!: Date;
 

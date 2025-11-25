@@ -2,6 +2,7 @@ import {
   Injectable,
   UnauthorizedException,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -42,6 +43,12 @@ export class AuthService {
         language_code: userData.language_code,
         app_version: dto.appVersion || '1.0.0',
       });
+
+      // Legal Docs Check
+      if (!user.legal_accepted_at) {
+        // Return specific error code so frontend can show legal docs modal
+        throw new ForbiddenException('Legal documents not accepted');
+      }
 
       // Get user role and company
       const roleData = await this.getUserRoleAndCompany(user.id);

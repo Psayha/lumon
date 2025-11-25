@@ -48,6 +48,7 @@ export const HealthChecksTab: React.FC = () => {
   const [data, setData] = useState<HealthCheckResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isChecking, setIsChecking] = useState(false);
+  const [showAllTables, setShowAllTables] = useState(false);
   const { showToast } = useToast();
   const logsEndRef = useRef<HTMLDivElement>(null);
 
@@ -255,7 +256,7 @@ export const HealthChecksTab: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {data.database_stats.tables.slice(0, 10).map((table) => (
+                  {(showAllTables ? data.database_stats.tables : data.database_stats.tables.slice(0, 10)).map((table) => (
                     <tr key={table.table_name} className="border-b dark:border-gray-700">
                       <td className="px-4 py-2 font-medium text-gray-900 dark:text-white">{table.table_name}</td>
                       <td className="px-4 py-2 text-right">{parseInt(table.row_count).toLocaleString()}</td>
@@ -265,8 +266,16 @@ export const HealthChecksTab: React.FC = () => {
                 </tbody>
               </table>
               {data.database_stats.tables.length > 10 && (
-                <div className="text-center mt-2 text-xs text-gray-500">
-                  Showing top 10 of {data.database_stats.tables.length} tables
+                <div className="text-center mt-2">
+                  <button
+                    onClick={() => setShowAllTables(!showAllTables)}
+                    className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
+                  >
+                    {showAllTables 
+                      ? 'Show less' 
+                      : `Show all ${data.database_stats.tables.length} tables`
+                    }
+                  </button>
                 </div>
               )}
             </div>

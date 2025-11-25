@@ -18,6 +18,8 @@ import { KnowledgeBaseModule } from './modules/knowledge-base/knowledge-base.mod
 import { CsrfProtectionMiddleware } from './common/middleware/csrf-protection.middleware';
 import { HttpsEnforcementMiddleware } from './common/middleware/https-enforcement.middleware';
 
+import { RequestLoggerMiddleware } from './common/middleware/request-logger.middleware';
+
 @Module({
   imports: [
     // Configuration
@@ -73,7 +75,10 @@ import { HttpsEnforcementMiddleware } from './common/middleware/https-enforcemen
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    // SECURITY: Enforce HTTPS in production (must be first)
+    // Logging middleware (first to log all requests)
+    consumer.apply(RequestLoggerMiddleware).forRoutes('*');
+
+    // SECURITY: Enforce HTTPS in production
     consumer.apply(HttpsEnforcementMiddleware).forRoutes('*');
 
     // SECURITY: Apply CSRF protection to all routes
