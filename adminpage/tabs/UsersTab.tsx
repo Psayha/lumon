@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Users, Search, Trash2, Sliders, RefreshCw, CheckCircle, XCircle, Settings, Unlock, Ban, X } from 'lucide-react';
+
+import { Users, Search, Trash2, CheckCircle, XCircle, Settings, Unlock, Ban, X } from 'lucide-react';
 import { useToast } from '../components/Toast';
 import { adminApiRequest, ADMIN_API_CONFIG } from '../config/api';
 
@@ -40,7 +40,7 @@ interface UserLimit {
 
 export const UsersTab: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
-  const [limits, setLimits] = useState<UserLimit[]>([]);
+
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -141,7 +141,7 @@ export const UsersTab: React.FC = () => {
     }
   };
 
-  const handleBanUser = async (userId: string, isBanned?: boolean) => {
+  const handleBanUser = async (_userId: string, _isBanned?: boolean) => {
     // Note: The current backend implementation for 'banUser' requires a companyId and only bans from a company.
     // There is no global ban endpoint in the provided AdminService.
     // However, for this UI, we might be expecting a global ban or a specific company ban.
