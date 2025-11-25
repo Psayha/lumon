@@ -1,13 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Plus, 
-  Search, 
   Edit2, 
   Trash2, 
   Bot, 
   Check, 
   X,
-  Settings,
   Key
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -26,10 +24,10 @@ interface Agent {
 
 export function AgentsTab() {
   const [agents, setAgents] = useState<Agent[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  // const [isLoading, setIsLoading] = useState(true); // Unused
   const [isEditing, setIsEditing] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
-  const [showApiKeyModal, setShowApiKeyModal] = useState(false);
+  // const [showApiKeyModal, setShowApiKeyModal] = useState(false); // Unused
 
   // Form state
   const [formData, setFormData] = useState<Partial<Agent>>({
@@ -65,7 +63,7 @@ export function AgentsTab() {
       console.error('Error fetching agents:', error);
       toast.error('Error fetching agents');
     } finally {
-      setIsLoading(false);
+      // setIsLoading(false);
     }
   };
 
