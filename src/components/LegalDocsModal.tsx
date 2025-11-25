@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Shield, CheckCircle, FileText, ArrowRight } from 'lucide-react';
+import { Shield, FileText, ArrowRight } from 'lucide-react';
 import { API_CONFIG, getApiUrl } from '../config/api';
 import { logger } from '../lib/logger';
 

@@ -107,6 +107,7 @@ export class AuthController {
         expires_in_minutes: 60,
       },
     };
+  }
   /**
    * POST /webhook/auth-accept-legal
    * Accept legal documents
