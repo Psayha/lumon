@@ -46,6 +46,7 @@ export interface AnalyticsEvent {
   action: string;
   resource?: string | null;
   resource_id?: string | null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   meta?: Record<string, any>;
 }
 
@@ -193,6 +194,7 @@ const reAuth = async (): Promise<boolean> => {
     }
 
     // Читаем JSON напрямую
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let data: any;
     try {
       data = await response.json();
@@ -353,16 +355,18 @@ export const authInit = async (initData: string, appVersion: string = '1.0.0'): 
   });
 
   try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { logFetchResponse } = await import('./debugLogger').catch(() => ({ logFetchResponse: null as any }));
     if (logFetchResponse) await logFetchResponse(res);
   } catch {
     // Ignore debug logger errors
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let json: any;
   try {
     json = await res.clone().json();
-  } catch (e) {
+  } catch {
     const text = await res.text();
     throw new Error(`auth-init-v2: failed to parse body: ${text.slice(0, 200)}`);
   }
@@ -653,6 +657,7 @@ export const createChat = async (title?: string): Promise<ApiResponse<Chat>> => 
   });
 
   try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { logFetchResponse } = await import('./debugLogger').catch(() => ({ logFetchResponse: null as any }));
     if (logFetchResponse) await logFetchResponse(res);
   } catch {

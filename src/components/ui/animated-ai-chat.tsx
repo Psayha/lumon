@@ -401,6 +401,13 @@ export function AnimatedAIChat({
 
     const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
 
+    interface Window {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        SpeechRecognition: any;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        webkitSpeechRecognition: any;
+    }
+
     const handleVoiceInput = () => {
         // Блокируем взаимодействие во время распознавания
         if (isRecognizing) {
@@ -408,7 +415,7 @@ export function AnimatedAIChat({
         }
 
         // Проверяем поддержку Web Speech API
-        const SpeechRecognitionConstructor = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+        const SpeechRecognitionConstructor = (window as unknown as Window).SpeechRecognition || (window as unknown as Window).webkitSpeechRecognition;
 
         if (!SpeechRecognitionConstructor) {
             toast.error('Ваш браузер не поддерживает распознавание речи. Попробуйте использовать Chrome или Edge.');
