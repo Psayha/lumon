@@ -13,6 +13,7 @@ export { AbExperiment } from './ab-experiment.entity';
 export { AbAssignment, AbVariant } from './ab-assignment.entity';
 export { AbEvent } from './ab-event.entity';
 export { Agent } from './agent.entity';
+export * from './knowledge-base.entity';
 export { PlatformStats } from './platform-stats.entity';
 export { RateLimit } from './rate-limit.entity';
 export { Backup } from './backup.entity';

@@ -19,6 +19,8 @@ interface Agent {
   temperature: number;
   is_active: boolean;
   is_default: boolean;
+  is_public: boolean;
+  quick_commands: { label: string; prompt: string; icon: string }[];
   created_at: string;
 }
 
@@ -141,6 +143,8 @@ export function AgentsTab() {
       temperature: 0.7,
       is_active: true,
       is_default: false,
+      is_public: true,
+      quick_commands: [],
     });
     setIsEditing(true);
   };
@@ -263,6 +267,83 @@ export function AgentsTab() {
                   Default Agent (Used for new chats)
                 </label>
               </div>
+
+              <div className="flex items-center space-x-3">
+                <input
+                  type="checkbox"
+                  id="is_public"
+                  checked={formData.is_public}
+                  onChange={(e) => setFormData({ ...formData, is_public: e.target.checked })}
+                  className="w-4 h-4 text-violet-600 rounded focus:ring-violet-500"
+                />
+                <label htmlFor="is_public" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Visible on Assistant Page
+                </label>
+              </div>
+            </div>
+
+            {/* Knowledge Base Section */}
+            <div className="col-span-2 space-y-4 border-t border-gray-200 dark:border-gray-700 pt-4">
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white">Knowledge Base</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Select documents this agent can access.</p>
+                {/* TODO: Implement Multi-select for Knowledge Bases */}
+                <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                    <p className="text-sm text-gray-500 italic">Knowledge Base linking coming soon...</p>
+                </div>
+            </div>
+
+            {/* Quick Commands Section */}
+            <div className="col-span-2 space-y-4 border-t border-gray-200 dark:border-gray-700 pt-4">
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white">Quick Commands</h3>
+                <div className="space-y-3">
+                    {formData.quick_commands?.map((cmd, idx) => (
+                        <div key={idx} className="flex items-center space-x-2">
+                            <input
+                                type="text"
+                                placeholder="Label"
+                                value={cmd.label}
+                                onChange={(e) => {
+                                    const newCmds = [...(formData.quick_commands || [])];
+                                    newCmds[idx].label = e.target.value;
+                                    setFormData({ ...formData, quick_commands: newCmds });
+                                }}
+                                className="flex-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm"
+                            />
+                            <input
+                                type="text"
+                                placeholder="Prompt"
+                                value={cmd.prompt}
+                                onChange={(e) => {
+                                    const newCmds = [...(formData.quick_commands || [])];
+                                    newCmds[idx].prompt = e.target.value;
+                                    setFormData({ ...formData, quick_commands: newCmds });
+                                }}
+                                className="flex-[2] px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    const newCmds = formData.quick_commands?.filter((_, i) => i !== idx);
+                                    setFormData({ ...formData, quick_commands: newCmds });
+                                }}
+                                className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
+                            >
+                                <Trash2 className="w-4 h-4" />
+                            </button>
+                        </div>
+                    ))}
+                    <button
+                        type="button"
+                        onClick={() => setFormData({
+                            ...formData,
+                            quick_commands: [...(formData.quick_commands || []), { label: '', prompt: '', icon: 'Zap' }]
+                        })}
+                        className="flex items-center text-sm text-violet-600 hover:text-violet-700"
+                    >
+                        <Plus className="w-4 h-4 mr-1" />
+                        Add Command
+                    </button>
+                </div>
             </div>
           </div>
 

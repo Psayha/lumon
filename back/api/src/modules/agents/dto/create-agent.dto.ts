@@ -28,4 +28,14 @@ export class CreateAgentDto {
   @IsBoolean()
   @IsOptional()
   is_default?: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  is_public?: boolean;
+
+  @IsOptional()
+  quick_commands?: { label: string; prompt: string; icon: string }[];
+
+  @IsOptional()
+  knowledge_bases?: any[];
 }

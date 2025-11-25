@@ -4,7 +4,10 @@ import {
   PrimaryGeneratedColumn,
   CreateDateColumn,
   UpdateDateColumn,
+  ManyToMany,
+  JoinTable,
 } from 'typeorm';
+import { KnowledgeBase } from './knowledge-base.entity';
 
 @Entity('agents')
 export class Agent {
@@ -31,6 +34,16 @@ export class Agent {
 
   @Column({ default: false })
   is_default!: boolean;
+
+  @Column({ default: false })
+  is_public!: boolean;
+
+  @Column({ type: 'jsonb', nullable: true })
+  quick_commands?: { label: string; prompt: string; icon: string }[];
+
+  @ManyToMany(() => KnowledgeBase)
+  @JoinTable()
+  knowledge_bases?: KnowledgeBase[];
 
   @CreateDateColumn()
   created_at!: Date;

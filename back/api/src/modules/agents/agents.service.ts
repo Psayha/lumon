@@ -32,11 +32,17 @@ export class AgentsService {
   }
 
   async findAll(): Promise<Agent[]> {
-    return this.agentRepository.find({ order: { created_at: 'DESC' } });
+    return this.agentRepository.find({
+      order: { created_at: 'DESC' },
+      relations: ['knowledge_bases'],
+    });
   }
 
   async findOne(id: string): Promise<Agent> {
-    const agent = await this.agentRepository.findOne({ where: { id } });
+    const agent = await this.agentRepository.findOne({
+      where: { id },
+      relations: ['knowledge_bases'],
+    });
     if (!agent) {
       throw new NotFoundException(`Agent with ID ${id} not found`);
     }
@@ -44,12 +50,14 @@ export class AgentsService {
   }
 
   async update(id: string, updateAgentDto: UpdateAgentDto): Promise<Agent> {
+    const agent = await this.findOne(id);
+    
     if (updateAgentDto.is_default) {
-      // Ensure only one default agent exists
       await this.agentRepository.update({ is_default: true }, { is_default: false });
     }
-    await this.agentRepository.update(id, updateAgentDto);
-    return this.findOne(id);
+
+    Object.assign(agent, updateAgentDto);
+    return this.agentRepository.save(agent);
   }
 
   async remove(id: string): Promise<void> {

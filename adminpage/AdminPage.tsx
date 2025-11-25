@@ -15,10 +15,11 @@ import { UsersTab } from './tabs/UsersTab';
 import { AnalyticsTab } from './tabs/AnalyticsTab';
 import { ABTestingTab } from './tabs/ABTestingTab';
 import { AgentsTab } from './tabs/agents/AgentsTab';
+import { KnowledgeBaseTab } from './tabs/knowledge-base/KnowledgeBaseTab';
 
 const AdminPage: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [activeTab, setActiveTab] = useState<'companies' | 'backups' | 'health' | 'logs' | 'users' | 'analytics' | 'ab-testing' | 'agents'>('companies');
+  const [activeTab, setActiveTab] = useState<'companies' | 'backups' | 'health' | 'logs' | 'users' | 'analytics' | 'ab-testing' | 'agents' | 'knowledge-base'>('companies');
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   // Check authentication on load by validating cookie with backend
@@ -117,10 +118,7 @@ const AdminPage: React.FC = () => {
   const tabs = [
     { id: 'companies' as const, label: 'Компании', icon: Building2 },
     { id: 'agents' as const, label: 'AI Agents', icon: Bot },
-    // Hidden: Legal Docs (stub endpoint - not yet migrated from n8n)
-    // { id: 'legal' as const, label: 'Юр документы', icon: FileText },
-    // Hidden: AI Docs (stub endpoint - not yet migrated from n8n)
-    // { id: 'ai-docs' as const, label: 'Документы для ИИ', icon: Database },
+    { id: 'knowledge-base' as const, label: 'База Знаний', icon: FileSearch },
     { id: 'backups' as const, label: 'Бэкапы', icon: HardDrive },
     { id: 'health' as const, label: 'Health Checks', icon: Activity },
     { id: 'logs' as const, label: 'Логи', icon: FileSearch },
@@ -259,32 +257,17 @@ const AdminPage: React.FC = () => {
                     <AgentsTab />
                   </motion.div>
                 )}
-                {/* Hidden: Legal Docs tab - stub endpoint
-                {activeTab === 'legal' && (
+                {activeTab === 'knowledge-base' && (
                   <motion.div
-                    key="legal"
+                    key="knowledge-base"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.2 }}
                   >
-                    <LegalDocsTab />
+                    <KnowledgeBaseTab />
                   </motion.div>
                 )}
-                */}
-                {/* Hidden: AI Docs tab - stub endpoint
-                {activeTab === 'ai-docs' && (
-                  <motion.div
-                    key="ai-docs"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <AIDocumentsTab />
-                  </motion.div>
-                )}
-                */}
                 {activeTab === 'backups' && (
                   <motion.div
                     key="backups"
