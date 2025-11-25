@@ -3,6 +3,8 @@ import { API_CONFIG, getApiUrl, getDefaultHeaders } from '../config/api';
 import { ModernSplashScreen } from './ModernSplashScreen';
 import { logger } from '../lib/logger';
 
+import { LegalDocsModal } from './LegalDocsModal';
+
 interface AuthGuardProps {
   children: React.ReactNode;
 }
@@ -10,6 +12,14 @@ interface AuthGuardProps {
 export const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [showLegalModal, setShowLegalModal] = useState(false);
+
+  // Функция для перезагрузки страницы после принятия документов
+  const handleLegalAccept = () => {
+    setShowLegalModal(false);
+    // Перезагружаем страницу, чтобы запустить процесс авторизации заново
+    window.location.reload();
+  };
 
   useEffect(() => {
     const initAuth = async () => {
@@ -94,6 +104,15 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
           } catch (e) {
             errorText = `HTTP ${response.status}`;
           }
+          
+          // Check for Legal Docs requirement (403 Forbidden)
+          if (response.status === 403) {
+            logger.warn('[AuthGuard] Legal documents not accepted, showing modal');
+            setShowLegalModal(true);
+            setIsAuthReady(true); // Allow app to render (modal will block)
+            return;
+          }
+
           logger.error('[AuthGuard] Auth init failed:', response.status, errorText);
           setAuthError(`Auth failed: ${response.status}`);
           setIsAuthReady(true);
@@ -174,6 +193,15 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
     logger.warn('[AuthGuard] Продолжаем работу с ошибкой авторизации:', authError);
   }
 
-  return <>{children}</>;
+  return (
+    <>
+      {children}
+      <LegalDocsModal 
+        isOpen={showLegalModal} 
+        onAccept={handleLegalAccept}
+        initData={window.Telegram?.WebApp?.initData || ''}
+      />
+    </>
+  );
 };
 

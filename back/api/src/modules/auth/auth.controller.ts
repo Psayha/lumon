@@ -107,5 +107,30 @@ export class AuthController {
         expires_in_minutes: 60,
       },
     };
+  /**
+   * POST /webhook/auth-accept-legal
+   * Accept legal documents
+   */
+  @Post('auth-accept-legal')
+  async acceptLegalDocs(@Body() body: { initData: string; version?: string }) {
+    if (!body.initData) {
+      throw new UnauthorizedException('Missing initData');
+    }
+
+    // We need to parse initData to get the user ID
+    // Since authInit is private/complex, we'll reuse authInit logic but just for parsing
+    // Actually, we can't easily reuse private methods.
+    // Let's rely on authInit to do the heavy lifting.
+    // Wait, if we call authInit, it will fail with ForbiddenException if docs not accepted.
+    // We need a way to identify the user WITHOUT logging them in fully OR allow a special "pre-auth" state.
+    
+    // Better approach: 
+    // 1. Parse initData (we need to expose parseTelegramInitData or duplicate logic? Exposing is better).
+    // 2. Update user.
+    
+    // Let's make parseTelegramInitData public in AuthService or move to helper.
+    // For now, to minimize refactoring risk, I'll add a specific method in AuthService that handles parsing + updating.
+    
+    return this.authService.acceptLegalDocsWithInitData(body.initData, body.version);
   }
 }

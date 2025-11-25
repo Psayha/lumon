@@ -343,6 +343,54 @@ export class AuthService {
     };
   }
 
+  async acceptLegalDocs(userId: string, version: string = '1.0') {
+    await this.userRepository.update(userId, {
+      legal_accepted_at: new Date(),
+      legal_version: version,
+    });
+
+    // Log audit event
+    this.logAuditEvent({
+      user_id: userId,
+      action: 'user.legal_docs.accept',
+      resource_type: 'user',
+      resource_id: userId,
+      metadata: {
+        version,
+      },
+      ip: 'unknown', // We don't have IP here easily without context, but it's fine
+      user_agent: 'unknown',
+    }).catch((err) => console.error('Failed to log audit event:', err));
+
+    return {
+      success: true,
+      message: 'Legal documents accepted successfully',
+    };
+  }
+
+  async acceptLegalDocsWithInitData(initData: string, version: string = '1.0') {
+    try {
+      const userData = this.parseTelegramInitData(initData);
+      
+      // Find user by telegram_id
+      const user = await this.userRepository.findOne({
+        where: { telegram_id: Number(userData.telegram_id) },
+      });
+
+      if (!user) {
+        // If user doesn't exist, we can't accept docs for them. 
+        // They should call authInit first which creates the user (but fails login).
+        // Actually authInit creates user BEFORE checking legal docs.
+        // So user should exist.
+        throw new UnauthorizedException('User not found. Please try to login first.');
+      }
+
+      return this.acceptLegalDocs(user.id, version);
+    } catch (error) {
+      throw new UnauthorizedException((error as Error).message);
+    }
+  }
+
   private async logAuditEvent(data: {
     user_id: string;
     action: string;

@@ -192,7 +192,7 @@ export const BackupsTab: React.FC = () => {
                         ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
                         : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
                     }`}>
-                      {backup.status}
+                      {backup.status === 'completed' ? 'Готово' : backup.status === 'failed' ? 'Ошибка' : 'В процессе'}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">

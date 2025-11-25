@@ -178,82 +178,218 @@ export const UsersTab: React.FC = () => {
         </div>
       </div>
 
-      <div className="relative">
-        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <Search className="w-5 h-5 text-gray-400" />
-        </div>
-        <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Поиск по имени, username или Telegram ID..." className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-      </div>
-
-      <div className="space-y-4">
-        {filteredUsers.length === 0 ? (
-          <div className="text-center py-12">
-            <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-500 dark:text-gray-400">{searchQuery ? 'Пользователи не найдены' : 'Нет пользователей'}</p>
+      <div className="p-6">
+        <div className="flex items-center gap-4 mb-6">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Поиск пользователей..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
           </div>
-        ) : (
-          filteredUsers.map((user) => {
-            const primaryRole = user.companies[0]?.role || 'viewer';
-            return (
-              <motion.div key={user.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-                <div className="p-4 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3 flex-1">
-                      <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg flex items-center justify-center flex-shrink-0"><Users className="w-6 h-6 text-white" /></div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{user.firstName} {user.lastName} {user.username && `(@${user.username})`}</h3>
-                        <div className="flex items-center space-x-4 mt-1 text-sm text-gray-500 dark:text-gray-400">
-                          <span>TG ID: {user.telegramId}</span>
-                          <span className={`px-2 py-0.5 rounded text-xs font-semibold ${primaryRole === 'owner' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-300' : primaryRole === 'manager' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300' : 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300'}`}>{primaryRole}</span>
-                          <span>{user.chatsCount} чатов</span>
-                          <span className={`flex items-center space-x-1 ${user.legalAcceptedAt ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                            {user.legalAcceptedAt ? (
-                              <>
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
-                                <span>Docs Accepted</span>
-                              </>
-                            ) : (
-                              <>
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                                <span>Docs Pending</span>
-                              </>
-                            )}
+          <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+            <Users className="w-4 h-4" />
+            <span>Всего пользователей: {filteredUsers.length}</span>
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-gray-50 dark:bg-gray-700/50 text-gray-500 dark:text-gray-400 font-medium">
+                <tr>
+                  <th className="px-6 py-4">Пользователь</th>
+                  <th className="px-6 py-4">Роль</th>
+                  <th className="px-6 py-4">Компания</th>
+                  <th className="px-6 py-4">Лимиты (Использовано / Всего)</th>
+                  <th className="px-6 py-4">Юр. доки</th>
+                  <th className="px-6 py-4">Дата регистрации</th>
+                  <th className="px-6 py-4 text-right">Действия</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                {filteredUsers.map((user) => (
+                  <tr 
+                    key={user.id} 
+                    className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                  >
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center text-blue-600 dark:text-blue-400 font-medium">
+                          {user.first_name?.[0]?.toUpperCase() || user.username?.[0]?.toUpperCase() || '?'}
+                        </div>
+                        <div>
+                          <div className="font-medium text-gray-900 dark:text-white">
+                            {user.first_name || 'Без имени'} {user.last_name}
+                          </div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">@{user.username}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        user.role === 'admin'
+                          ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400'
+                          : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
+                      }`}>
+                        {user.role === 'admin' ? 'Администратор' : 'Пользователь'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-gray-600 dark:text-gray-300">
+                      {user.company_id ? `Компания #${user.company_id}` : '—'}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="space-y-1">
+                        <div className="text-xs">
+                          <span className="text-gray-500">GPT-4:</span>{' '}
+                          <span className="font-medium text-gray-900 dark:text-white">
+                            {user.gpt4_requests_count} / {user.gpt4_limit === -1 ? '∞' : user.gpt4_limit}
+                          </span>
+                        </div>
+                        <div className="text-xs">
+                          <span className="text-gray-500">Claude:</span>{' '}
+                          <span className="font-medium text-gray-900 dark:text-white">
+                            {user.claude_requests_count} / {user.claude_limit === -1 ? '∞' : user.claude_limit}
                           </span>
                         </div>
                       </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <button onClick={(e) => { e.stopPropagation(); setLimitsModalUser(user); loadLimits(user.id); setNewLimitValue(100); }} className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors" title="Задать лимиты"><Sliders className="w-5 h-5" /></button>
-                      <button onClick={(e) => { e.stopPropagation(); handleClearHistory(user.id, user.username || user.firstName || 'пользователя'); }} className="p-2 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded-lg transition-colors" title="Очистить историю"><RefreshCw className="w-5 h-5" /></button>
-                      <button onClick={(e) => { e.stopPropagation(); handleDeleteUser(user.id, user.username || user.firstName || 'пользователя'); }} className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors" title="Удалить пользователя"><Trash2 className="w-5 h-5" /></button>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            );
-          })
-        )}
+                    </td>
+                    <td className="px-6 py-4">
+                      {user.legalAcceptedAt ? (
+                        <div className="flex items-center gap-1.5 text-green-600 dark:text-green-400">
+                          <CheckCircle className="w-4 h-4" />
+                          <span className="text-xs font-medium">Приняты</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5 text-red-500 dark:text-red-400">
+                          <XCircle className="w-4 h-4" />
+                          <span className="text-xs font-medium">Ожидание</span>
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 text-gray-500 dark:text-gray-400 text-xs">
+                      {new Date(user.created_at || user.createdAt).toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedUser(user);
+                          }}
+                          className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                          title="Настроить лимиты"
+                        >
+                          <Settings className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleBanUser(user.id, user.is_banned);
+                          }}
+                          className={`p-1.5 rounded-lg transition-colors ${
+                            user.is_banned
+                              ? 'text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20'
+                              : 'text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20'
+                          }`}
+                          title={user.is_banned ? 'Разблокировать' : 'Заблокировать'}
+                        >
+                          {user.is_banned ? <Unlock className="w-4 h-4" /> : <Ban className="w-4 h-4" />}
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteUser(user.id, user.username || user.firstName || 'пользователя');
+                          }}
+                          className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                          title="Удалить"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
 
       {/* Limits Modal */}
-      {limitsModalUser && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50" onClick={() => setLimitsModalUser(null)}>
-          <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl p-6 max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Управление лимитами</h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">Пользователь: {limitsModalUser.firstName} {limitsModalUser.lastName} (@{limitsModalUser.username})</p>
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Дневной лимит запросов</label>
-              <input type="number" value={newLimitValue} onChange={(e) => setNewLimitValue(parseInt(e.target.value) || 0)} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500" min="0" />
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Текущее использование: {limits.find(l => l.userId === limitsModalUser.id && l.limitType === 'daily_requests')?.currentUsage || 0} / {limits.find(l => l.userId === limitsModalUser.id && l.limitType === 'daily_requests')?.limitValue || 0}</p>
+      {selectedUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md overflow-hidden">
+            <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Настройка лимитов
+              </h3>
+              <button
+                onClick={() => setSelectedUser(null)}
+                className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
-            <div className="flex space-x-3">
-              <button onClick={() => setLimitsModalUser(null)} className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">Отмена</button>
-              <button onClick={() => handleSetLimits(limitsModalUser.id, newLimitValue)} className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">Сохранить</button>
+            
+            <div className="p-6 space-y-6">
+              <div className="space-y-4">
+                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">GPT-4</h4>
+                <div className="grid grid-cols-3 gap-3">
+                  {[10, 50, 100, 500, 1000, -1].map((limit) => (
+                    <button
+                      key={`gpt4-${limit}`}
+                      onClick={() => handleUpdateLimit(selectedUser.id, 'gpt4_limit', limit)}
+                      className={`px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
+                        selectedUser.gpt4_limit === limit
+                          ? 'bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-900/30 dark:border-blue-800 dark:text-blue-400'
+                          : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-blue-200 hover:bg-blue-50/50'
+                      }`}
+                    >
+                      {limit === -1 ? 'Безлимит' : limit}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">Claude 3.5 Sonnet</h4>
+                <div className="grid grid-cols-3 gap-3">
+                  {[10, 50, 100, 500, 1000, -1].map((limit) => (
+                    <button
+                      key={`claude-${limit}`}
+                      onClick={() => handleUpdateLimit(selectedUser.id, 'claude_limit', limit)}
+                      className={`px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
+                        selectedUser.claude_limit === limit
+                          ? 'bg-purple-50 border-purple-200 text-purple-700 dark:bg-purple-900/30 dark:border-purple-800 dark:text-purple-400'
+                          : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-purple-200 hover:bg-purple-50/50'
+                      }`}
+                    >
+                      {limit === -1 ? 'Безлимит' : limit}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                <button
+                  onClick={() => handleClearHistory(selectedUser.id, selectedUser.username || selectedUser.firstName || 'пользователя')}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2 text-red-600 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/30 rounded-lg transition-colors text-sm font-medium"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Очистить историю чатов
+                </button>
+                <p className="mt-2 text-xs text-center text-gray-500">
+                  Это действие удалит все чаты и сообщения пользователя безвозвратно.
+                </p>
+              </div>
             </div>
-          </motion.div>
+          </div>
         </div>
       )}
     </div>
   );
 };
-

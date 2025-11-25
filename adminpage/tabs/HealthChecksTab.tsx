@@ -133,14 +133,14 @@ export const HealthChecksTab: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">System Health & Monitoring</h2>
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Мониторинг системы</h2>
         <button
           onClick={handleCheckAll}
           disabled={isChecking}
           className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
         >
           {isChecking ? <RefreshCw className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-          {isChecking ? 'Checking...' : 'Refresh All'}
+          {isChecking ? 'Проверка...' : 'Обновить все'}
         </button>
       </div>
 
@@ -150,7 +150,7 @@ export const HealthChecksTab: React.FC = () => {
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
               <Server className="w-5 h-5" />
-              System Status
+              Статус системы
             </h3>
             <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(data.system_status.overall_status)}`}>
               {data.system_status.overall_status.toUpperCase()}
@@ -163,7 +163,7 @@ export const HealthChecksTab: React.FC = () => {
               <div className="bg-gray-50 dark:bg-slate-700 rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Cpu className="w-4 h-4 text-blue-500" />
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">CPU Usage</span>
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Загрузка CPU</span>
                 </div>
                 <div className="text-2xl font-bold text-gray-900 dark:text-white">
                   {metrics.cpu_usage_percent.toFixed(1)}%
@@ -180,7 +180,7 @@ export const HealthChecksTab: React.FC = () => {
               <div className="bg-gray-50 dark:bg-slate-700 rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <MemoryStick className="w-4 h-4 text-purple-500" />
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Memory</span>
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Память</span>
                 </div>
                 <div className="text-2xl font-bold text-gray-900 dark:text-white">
                   {metrics.memory_usage_percent.toFixed(1)}%
@@ -200,7 +200,7 @@ export const HealthChecksTab: React.FC = () => {
               <div className="bg-gray-50 dark:bg-slate-700 rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <HardDrive className="w-4 h-4 text-green-500" />
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Disk</span>
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Диск</span>
                 </div>
                 <div className="text-2xl font-bold text-gray-900 dark:text-white">
                   {metrics.disk_usage_percent.toFixed(1)}%
@@ -240,19 +240,19 @@ export const HealthChecksTab: React.FC = () => {
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                 <Database className="w-5 h-5" />
-                Database Statistics
+                Статистика БД
               </h3>
               <span className="text-sm text-gray-500 dark:text-gray-400">
-                Total Size: {data.database_stats.total_size}
+                Общий размер: {data.database_stats.total_size}
               </span>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
                 <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-slate-700 dark:text-gray-400">
                   <tr>
-                    <th className="px-4 py-2">Table</th>
-                    <th className="px-4 py-2 text-right">Rows</th>
-                    <th className="px-4 py-2 text-right">Size</th>
+                    <th className="px-4 py-2">Таблица</th>
+                    <th className="px-4 py-2 text-right">Строки</th>
+                    <th className="px-4 py-2 text-right">Размер</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -272,8 +272,8 @@ export const HealthChecksTab: React.FC = () => {
                     className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
                   >
                     {showAllTables 
-                      ? 'Show less' 
-                      : `Show all ${data.database_stats.tables.length} tables`
+                      ? 'Свернуть' 
+                      : `Показать все ${data.database_stats.tables.length} таблиц`
                     }
                   </button>
                 </div>
@@ -288,13 +288,13 @@ export const HealthChecksTab: React.FC = () => {
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                 <Terminal className="w-5 h-5" />
-                Live System Logs
+                Системные логи (Live)
               </h3>
-              <span className="text-xs text-gray-500">Last 50 lines</span>
+              <span className="text-xs text-gray-500">Последние 50 строк</span>
             </div>
             <div className="flex-1 overflow-y-auto bg-gray-900 rounded-lg p-4 font-mono text-xs text-gray-300 space-y-1">
               {data.recent_logs.length === 0 ? (
-                <div className="text-gray-500 italic">No logs available</div>
+                <div className="text-gray-500 italic">Нет доступных логов</div>
               ) : (
                 data.recent_logs.map((log, index) => (
                   <div key={index} className="break-all hover:bg-gray-800 p-0.5 rounded">

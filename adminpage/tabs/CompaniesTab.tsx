@@ -192,7 +192,7 @@ export const CompaniesTab: React.FC = () => {
                         <span
                           className={`px-2 py-1 text-xs font-medium rounded-full ${getRoleBadge(user.role)}`}
                         >
-                          {user.role}
+                          {user.role === 'owner' ? 'Владелец' : user.role === 'manager' ? 'Менеджер' : 'Наблюдатель'}
                         </span>
                       </div>
                     ))}

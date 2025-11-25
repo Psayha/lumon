@@ -39,6 +39,7 @@ export const API_CONFIG = {
     authValidate: '/webhook/auth-validate-v2',
     authRefresh: '/webhook/auth-refresh',
     authLogout: '/webhook/auth-logout',
+    authAcceptLegal: '/webhook/auth-accept-legal',
     
     // Chat endpoints (обновлено с auth.validate)
     chatCreate: '/webhook/chat-create',

@@ -116,15 +116,15 @@ const AdminPage: React.FC = () => {
   }
 
   const tabs = [
+    { id: 'users' as const, label: 'Пользователи', icon: Users },
     { id: 'companies' as const, label: 'Компании', icon: Building2 },
     { id: 'agents' as const, label: 'AI Agents', icon: Bot },
     { id: 'knowledge-base' as const, label: 'База Знаний', icon: FileSearch },
-    { id: 'backups' as const, label: 'Бэкапы', icon: HardDrive },
-    { id: 'health' as const, label: 'Health Checks', icon: Activity },
-    { id: 'logs' as const, label: 'Логи', icon: FileSearch },
-    { id: 'users' as const, label: 'Пользователи', icon: Users },
+    { id: 'logs' as const, label: 'Логи', icon: ScrollText },
+    { id: 'health' as const, label: 'Здоровье системы', icon: Activity },
     { id: 'analytics' as const, label: 'Аналитика', icon: BarChart3 },
-    // { id: 'ab-testing' as const, label: 'A/B Тесты', icon: FlaskConical },
+    { id: 'backups' as const, label: 'База данных', icon: Database },
+    // { id: 'ab-testing' as const, label: 'A/B Тестирование', icon: FlaskConical },
   ];
 
   return (
@@ -148,8 +148,8 @@ const AdminPage: React.FC = () => {
                   <Shield className="w-5 h-5 text-white dark:text-slate-900" />
                 </div>
                 <div>
-                  <h1 className="text-sm font-semibold text-gray-900 dark:text-white">Админ-панель</h1>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Lumon</p>
+                  <h1 className="text-sm font-semibold text-gray-900 dark:text-white">Lumon Admin</h1>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Панель управления</p>
                 </div>
               </motion.div>
             )}
